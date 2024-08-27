@@ -6,12 +6,11 @@ import os
 import sys
 import re
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from mod_downloader.mod_downloader import ModDownloader
+    from mod_downloader import ModDownloader
 except ModuleNotFoundError:
     raise RuntimeError("Couldn't add ModDownloader to the PATH.")
-
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = Path(__file__).resolve().parent / "assets"
@@ -80,9 +79,7 @@ def btn_clicked():
     mod_downloader.start_download()
 
     tk.messagebox.showinfo(
-        "Success!", f"Project successfully generated at {output}.")
-
-
+        "Success!", f"Mods successfully downloaded at {output}.")
 
 
 # Required in order to add data files to Windows executable
