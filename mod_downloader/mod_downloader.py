@@ -1,16 +1,11 @@
-from pathlib import Path
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import chromedriver_autoinstaller
 from bs4 import BeautifulSoup
-import requests
-import random
 import time
 import os
-from mod_downloader import utils
-
+import requests
+import random
 
 class ModDownloader:
     def __init__(self, mod_url: str, output_path: str):
@@ -36,6 +31,22 @@ class ModDownloader:
     
     def close_driver(self, driver):
         driver.quit()
+
+    def download_file(self, url, file_path):
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Check if the request was successful
+
+        with open(file_path, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+
+        print(f"Downloaded: {file_path}")
+
+
+    def generate_anticache(self):
+        random_number = random.randint(1_000_000_000_000_000, 9_999_999_999_999_999)  # 16-digit number
+        return f"0.{random_number}"
+
 
     def get_required_dependencies(self, soup):
         dependencies = []
@@ -78,6 +89,7 @@ class ModDownloader:
         return mod_name.strip()
 
     def download_mod_with_dependencies(self, mod_url, download_path):
+
         driver = self.init_driver()
         driver.get(mod_url)
         time.sleep(2)
@@ -88,14 +100,14 @@ class ModDownloader:
         mod_name = self.get_mod_name(soup)
         latest_version = self.get_latest_version(soup)
 
-        download_url = f"https://mods-storage.re146.dev/{mod_name}/{latest_version}.zip?anticache={utils.generate_anticache()}"
+        download_url = f"https://mods-storage.re146.dev/{mod_name}/{latest_version}.zip?anticache={self.generate_anticache()}"
         file_name = f"{mod_name}_{latest_version}.zip"
         file_path = os.path.join(download_path, file_name)
         
         # Download the mod file
         os.makedirs(download_path, exist_ok=True)
         print(f"Downloading {file_name} from {download_url}")
-        utils.download_file(download_url, file_path)
+        self.download_file(download_url, file_path)
         
         # Get required dependencies and recursively download them
         dependencies = self.get_required_dependencies(soup)
