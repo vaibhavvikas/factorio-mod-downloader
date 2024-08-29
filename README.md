@@ -15,8 +15,13 @@ I have not included optional dependencies, as its a stupid idea, since a lots of
 
 Also, download speed is based on re146, Its not super fast but its fine.
 
-Feel free to reach out to me if you need soem help.
+Feel free to reach out to me if you need some help.
 
 
-### ToDo:
+### Todo:
 Improve the spec file. I am not good with packaging. 🥹
+
+### Credits:
+- re146.dev
+- [radioegor146](https://github.com/radioegor146)
+
