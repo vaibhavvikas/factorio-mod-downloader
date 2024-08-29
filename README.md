@@ -5,8 +5,6 @@ Factorio mod downloader, used [re146.dev](https://re146.dev/factorio/mods) to re
 If you love the game please buy it and support the developers. I am a big fan of the game.
 
 ### How to run
-This code is built using python so make sure you have python installed. You can use official Python website to download any version > 3.10
-
 1. Run the app, select the directory and add mod url from factorio portal i.e. URL for Krastorio 2 is: `https://mods.factorio.com/mod/Krastorio2`.
 2. Click on generate. The application will seem like its not responding. Don't panic, check the folder which you selected for downoading, the files are downloading, Once done, it will show a completed dialogue.
 
