@@ -1,8 +1,16 @@
-# factorio-mod-downloader
+# Factorio Mod Downloader
+
+[![GitHub Release](https://img.shields.io/github/v/release/vaibhavvikas/factorio-mod-downloader)](https://github.com/vaibhavvikas/factorio-mod-downloader/releases)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/vaibhavvikas/factorio-mod-downloader/total)
 
 Factorio mod downloader, uses [re146.dev](https://re146.dev/factorio/mods) to recursively download a mod and its all required depndedncies. Its really helpful if you want to download a modpack as a modpack contains various different recommended mods, that if you want to download separately will take you a lot of clicks and headache.
 
 If you love the game please buy it and support the developers. I am a big fan of the game.
+
+### How to download
+1. Go to [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases)
+2. Downlaod the latest executable from the latest version added inside the assets dropdown.
+
 
 ### How to run
 1. Run the app, select the directory and add mod url from official factorio mod portal for e.g. URL for Krastorio 2 mod is: `https://mods.factorio.com/mod/Krastorio2`.
@@ -17,7 +25,9 @@ Feel free to reach out to me if you need some help.
 
 
 ### Todo:
-Improve the spec file. I am not good with packaging. 🥹
+- Improve the spec file. I am not good with packaging. 🥹
+- Add package icon
+- Display file downloading logs and status
 
 ### Credits:
 - re146.dev
