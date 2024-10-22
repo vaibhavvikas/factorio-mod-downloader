@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "factorio-mod-downloader"
-version = "0.1.0"
+version = "0.2.0"
 description = "One Downloader for all your factorio mods."
 authors = ["Vaibhav Vikas <vbhvvikas@gmail.com>"]
 license = "MIT"
