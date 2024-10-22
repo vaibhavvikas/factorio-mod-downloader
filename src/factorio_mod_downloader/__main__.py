@@ -120,7 +120,7 @@ class App(customtkinter.CTk):
 
         self.textbox = customtkinter.CTkTextbox(master=self.logs_frame, border_width=0, width=680, font=customtkinter.CTkFont(family="Tahoma"))
         self.textbox.grid(row=0, column=0, sticky="nsew")
-        self.textbox.insert("0.0", "Factorio Mod Downloader v0.1.0:\n")
+        self.textbox.insert("0.0", "Factorio Mod Downloader v0.2.0:\n")
         self.textbox.yview(END)
         self.textbox.configure(state="disabled")
 
