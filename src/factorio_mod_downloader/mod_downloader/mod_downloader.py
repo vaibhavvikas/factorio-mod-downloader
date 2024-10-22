@@ -17,8 +17,9 @@ class ModDownloader(Thread):
         self.daemon = True
         self.output_path = output_path
         self.mod_url = 'https://re146.dev/factorio/mods/en#' + mod_url
-        self.chrome_options = self._init_selenium()
         self.app = app
+        self.chrome_options = self._init_selenium()
+        
 
     def run(self):
         self.download_mod_with_dependencies(self.mod_url, self.output_path)
@@ -29,7 +30,7 @@ class ModDownloader(Thread):
 
     def _init_selenium(self):
         # Set up chrome options
-        self.log_info("Loading application dependencies.")
+        self.log_info("Loading application dependencies.\n")
         chromedriver_autoinstaller.install()
         chrome_options = Options()
         chrome_options.add_argument("--headless")  # Run in headless mode (without a GUI)
