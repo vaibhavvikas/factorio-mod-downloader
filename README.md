@@ -7,6 +7,15 @@ Factorio mod downloader, uses [re146.dev](https://re146.dev/factorio/mods) to re
 
 If you love the game please buy it and support the developers. I am a big fan of the game.
 
+![Factorio Mod Downloader](factorio_mod_downloader.png)
+
+
+### Features
+1. Added Dark Mode
+2. Added progress bars and logs to see what files are being downloaded.
+3. Completely interactive and requires no other dependency. 100% standalone app.
+
+
 ### How to download
 1. Go to [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases)
 2. Downlaod the latest executable from the latest version added inside the assets dropdown.
@@ -22,12 +31,6 @@ I have not included optional dependencies, as its a stupid idea, since a lots of
 Also, download speed is based on re146, Its not super fast but its fine.
 
 Feel free to reach out to me if you need some help.
-
-
-### Todo:
-- Improve the spec file. I am not good with packaging. 🥹
-- Add package icon
-- Display file downloading logs and status
 
 ### Credits:
 - re146.dev

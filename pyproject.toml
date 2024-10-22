@@ -1,0 +1,60 @@
+[tool.poetry]
+name = "factorio-mod-downloader"
+version = "0.1.0"
+description = "One Downloader for all your factorio mods."
+authors = ["Vaibhav Vikas <vbhvvikas@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 4 - Beta",
+]
+packages = [
+    { include = "factorio_mod_downloader", from="src" },
+]
+
+[tool.poetry.urls]
+Changelog = "https://github.com/vaibhav_vikas/factorio-mod-downloader/releases"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+requests = "^2.32.3"
+pillow = "^11.0.0"
+customtkinter = "^5.2.2"
+ctkmessagebox = "^2.7"
+chromedriver-autoinstaller = "^0.6.4"
+selenium = "^4.25.0"
+poetry-pyinstaller-plugin = "^1.2.0"
+beautifulsoup4 = "^4.12.3"
+
+[tool.poetry.dev-dependencies]
+isort = ">=5.10.1"
+
+[tool.poetry.scripts]
+factorio-mod-downloader = "factorio_mod_downloader.__main__:main"
+
+[tool.isort]
+profile = "black"
+force_single_line = true
+lines_after_imports = 2
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry-pyinstaller-plugin]
+disable-upx = true
+recursive-copy-metadata = [
+    "requests",
+    "chromedriver_autoinstaller",
+    "selenium",
+    "customtkinter"
+]
+
+[tool.poetry-pyinstaller-plugin.scripts]
+factorio_mod_downloader = { source = "src/factorio_mod_downloader/__main__.py", type = "onefile", bundle = true, add_version = true, icon = "factorio_downloader.ico", windowed = true }
+
+[tool.poetry-pyinstaller-plugin.collect]
+all = ['factorio_mod_downloader', 'mod_downloader']
+
+[tool.poetry-pyinstaller-plugin.include]
+"factorio_downloader.ico" = "."
