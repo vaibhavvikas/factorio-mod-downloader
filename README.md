@@ -17,8 +17,8 @@ If you love the game please buy it and support the developers. I am a big fan of
 
 
 ### How to download
-1. Go to [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases)
-2. Download the latest executable from the latest version added inside the assets dropdown. Latest release version is mentioned on the top of README.md file.
+1. Go to [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases/latest) 
+2. Download the latest executable i.e. **\*.exe file** from the latest version added inside the assets dropdown. Latest release version is mentioned on the top of README.md file.
 
 
 ### How to run
