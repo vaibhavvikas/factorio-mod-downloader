@@ -30,13 +30,15 @@ class ModDownloader(Thread):
 
     def _init_selenium(self):
         # Set up chrome options
-        self.log_info("Loading application dependencies.\n")
+        self.log_info("Downloading application dependencies.\n")
         chromedriver_autoinstaller.install()
+        self.log_info("Finished downloading application dependencies.\n")
         chrome_options = Options()
         chrome_options.add_argument("--headless")  # Run in headless mode (without a GUI)
         chrome_options.add_argument("--window-position=-2400,-2400")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--remote-debugging-port=9222")
+        self.log_info("Configured application dependencies.\n")
         return chrome_options
 
     def init_driver(self):
