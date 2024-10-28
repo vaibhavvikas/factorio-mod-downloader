@@ -25,7 +25,7 @@ Factorio mod downloader, uses [re146.dev](https://re146.dev/factorio/mods) to re
 
 
 ### How to run
-1. Run the app, select the directory and add mod url from official factorio mod portal for e.g. URL for Krastorio 2 mod is: `https://mods.factorio.com/mod/Krastorio2`.
+1. Run the app, select the directory and add mod url from official [factorio mod portal](https://mods.factorio.com/) for e.g. URL for Krastorio 2 mod is: `https://mods.factorio.com/mod/Krastorio2`.
 2. Click on Download button.
 3. The application will start downloading the mods and show the status and progress in the corresponding sections.
 4. The first step of loading dependencies take some time as it download [chromium-drivers](https://github.com/yeongbin-jo/python-chromedriver-autoinstaller) (~30-35 MB) required for loading URLs and the mods for downloading.
