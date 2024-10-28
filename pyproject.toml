@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "factorio-mod-downloader"
-version = "0.2.0"
+version = "0.2.1"
 description = "One Downloader for all your factorio mods."
 authors = ["Vaibhav Vikas <vbhvvikas@gmail.com>"]
 license = "MIT"
@@ -25,6 +25,7 @@ chromedriver-autoinstaller = "^0.6.4"
 selenium = "^4.25.0"
 poetry-pyinstaller-plugin = "^1.2.0"
 beautifulsoup4 = "^4.12.3"
+pylint = "^3.3.1"
 
 [tool.poetry.dev-dependencies]
 isort = ">=5.10.1"
@@ -32,10 +33,26 @@ isort = ">=5.10.1"
 [tool.poetry.scripts]
 factorio-mod-downloader = "factorio_mod_downloader.__main__:main"
 
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+
 [tool.isort]
 profile = "black"
 force_single_line = true
 lines_after_imports = 2
+
+[tool.black]
+line-length = 100
+skip-string-normalization = false  
+
+[tool.pylint]
+disable = [
+    "missing-docstring",
+    # Optional: More specific docstring warnings
+    # "missing-class-docstring",
+    # "missing-function-docstring",
+    # "missing-module-docstring"
+]
 
 [build-system]
 requires = ["poetry-core"]
