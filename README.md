@@ -1,11 +1,14 @@
+
 # Factorio Mod Downloader
 
 [![GitHub Release](https://img.shields.io/github/v/release/vaibhavvikas/factorio-mod-downloader)](https://github.com/vaibhavvikas/factorio-mod-downloader/releases)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/vaibhavvikas/factorio-mod-downloader/total)
 
-Factorio mod downloader, uses [re146.dev](https://re146.dev/factorio/mods) to recursively download a mod and its all required depndedncies. Its really helpful if you want to download a modpack as a modpack contains various different recommended mods, that if you want to download separately will take you a lot of clicks and headache.
+Factorio mod downloader, uses [re146.dev](https://re146.dev/factorio/mods) to recursively download a mod and its all required dependencies. Its really helpful if you want to download a mod or modpack containing various different recommended mods, that if you want to download separately will take you a lot of clicks and headache.
 
-If you love the game please buy it and support the developers. I am a big fan of the game.
+**If you love the game please buy it and support the developers. I am a big fan of the game.**
+
+[Official Factorio Link](https://factorio.com)
 
 ![Factorio Mod Downloader](factorio_mod_downloader.png)
 
@@ -25,7 +28,8 @@ If you love the game please buy it and support the developers. I am a big fan of
 1. Run the app, select the directory and add mod url from official factorio mod portal for e.g. URL for Krastorio 2 mod is: `https://mods.factorio.com/mod/Krastorio2`.
 2. Click on Download button.
 3. The application will start downloading the mods and show the status and progress in the corresponding sections.
-4. Once completed the application will show a download complete dialog.
+4. The first step of loading dependencies take some time as it download [chromium-drivers](https://github.com/yeongbin-jo/python-chromedriver-autoinstaller) (~30-35 MB) required for loading URLs and the mods for downloading.
+5. Once completed the application will show a download complete dialog.
 
 ### Note
 I have not included optional dependencies, as its a stupid idea, since a lots of mods, even they don't need something have optional dependencies mentioned. So it will probably take forever to finish downloading. It can be implemented although. Not a big task.
