@@ -3,7 +3,7 @@ import re
 import sys
 import webbrowser
 from pathlib import Path
-from tkinter import *
+from tkinter import END, Label
 
 import customtkinter
 from CTkMessagebox import CTkMessagebox
@@ -18,14 +18,13 @@ customtkinter.set_default_color_theme("blue")
 def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)
-    else:
-        return relative_path
+    return relative_path
 
 
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
-        self.resizable(0,0)
+        self.resizable(0, 0)
         self.title("Factorio Mod Downloader")
         self.geometry(f"{740}x{560}")
         self.iconbitmap(resource_path("factorio_downloader.ico"))
@@ -50,28 +49,43 @@ class App(customtkinter.CTk):
         self.title_frame.grid_rowconfigure(0, weight=1)
         self.title_frame.rowconfigure(3, weight=1)
 
-        self.title_label = customtkinter.CTkLabel(master=self.title_frame, text="Factorio Mod Downloader", font=customtkinter.CTkFont(family="Tahoma", size=20, weight="bold"))
+        self.title_label = customtkinter.CTkLabel(
+            master=self.title_frame,
+            text="Factorio Mod Downloader",
+            font=customtkinter.CTkFont(family="Tahoma", size=20, weight="bold"),
+        )
         self.title_label.grid(row=0, padx=10, sticky="nsw")
 
         self.title_sub_label = customtkinter.CTkLabel(
-            master=self.title_frame, 
-            text="One Downloader for all your factorio mods.", 
-            font=customtkinter.CTkFont(family="Tahoma"), 
-            text_color=("grey74", "grey60"))
+            master=self.title_frame,
+            text="One Downloader for all your factorio mods.",
+            font=customtkinter.CTkFont(family="Tahoma"),
+            text_color=("grey74", "grey60"),
+        )
         self.title_sub_label.grid(row=1, padx=12, sticky="nsw")
-
-        github_url = "Made with ♥ by Vaibhav Vikas, https://github.com/vaibhavvikas/factorio-mod-downloader"
+        github_repo = "https://github.com/vaibhavvikas/factorio-mod-downloader"
+        github_url = f"Made with ♥ by Vaibhav Vikas, {github_repo}"
         self.developer_label = customtkinter.CTkLabel(
-            master=self.title_frame, 
+            master=self.title_frame,
             text=github_url,
-            font=customtkinter.CTkFont(family="Tahoma"), 
+            font=customtkinter.CTkFont(family="Tahoma"),
             text_color=("grey60", "grey74"),
-            cursor="hand2")
+            cursor="hand2",
+        )
         self.developer_label.grid(row=2, padx=12, sticky="nsw")
-        self.developer_label.bind("<Button-1>", lambda e: callback("https://github.com/vaibhavvikas/factorio-mod-downloader"))
+        self.developer_label.bind(
+            "<Button-1>",
+            lambda e: callback(
+                "https://github.com/vaibhavvikas/factorio-mod-downloader"
+            ),
+        )
         self.developer_link = Label(self, text="Hyperlink", fg="blue", cursor="hand2")
-        self.developer_link.bind("<Button-1>", lambda e: callback("https://github.com/vaibhavvikas/factorio-mod-downloader"))
-
+        self.developer_link.bind(
+            "<Button-1>",
+            lambda e: callback(
+                "https://github.com/vaibhavvikas/factorio-mod-downloader"
+            ),
+        )
 
         # Body Frame
         self.body_frame = customtkinter.CTkFrame(master=self.frame_0)
@@ -80,50 +94,74 @@ class App(customtkinter.CTk):
         self.body_frame.rowconfigure(3, weight=1)
         self.body_frame.columnconfigure(4, weight=1)
 
+        self.mod_url = customtkinter.CTkEntry(
+            self.body_frame, placeholder_text="Mod Url", width=500
+        )
+        self.mod_url.grid(
+            row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew"
+        )
 
-        self.mod_url = customtkinter.CTkEntry(self.body_frame, placeholder_text="Mod Url", width=500)
-        self.mod_url.grid(row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
-
-        self.download_path = customtkinter.CTkEntry(self.body_frame, placeholder_text="Download Path", width=500)
-        self.download_path.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
+        self.download_path = customtkinter.CTkEntry(
+            self.body_frame, placeholder_text="Download Path", width=500
+        )
+        self.download_path.grid(
+            row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew"
+        )
 
         self.path_button = customtkinter.CTkButton(
-            master=self.body_frame, 
-            border_width=2, 
-            fg_color="transparent", 
-            text_color=("gray10", "#DCE4EE"), 
+            master=self.body_frame,
+            border_width=2,
+            fg_color="transparent",
+            text_color=("gray10", "#DCE4EE"),
             text="Select Path",
-            command=select_path)
+            command=select_path,
+        )
         self.path_button.grid(row=1, column=3, padx=10, pady=10, sticky="nsew")
 
-        self.download_button = customtkinter.CTkButton(master=self.body_frame, text="Start Download", command=self.download_button_action)
-        self.download_button.grid(row=2, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+        self.download_button = customtkinter.CTkButton(
+            master=self.body_frame,
+            text="Start Download",
+            command=self.download_button_action,
+        )
+        self.download_button.grid(
+            row=2, column=0, columnspan=4, padx=10, pady=10, sticky="nsew"
+        )
 
         # Download Status and Progress Frame
         self.downloads_frame = customtkinter.CTkFrame(master=self.frame_0)
         self.downloads_frame.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
         self.progress_file = customtkinter.CTkLabel(
-            master=self.downloads_frame, 
-            text="Start download to see progress.", 
-            font=customtkinter.CTkFont(family="Tahoma"), 
-            text_color=("grey74", "grey60"))
+            master=self.downloads_frame,
+            text="Start download to see progress.",
+            font=customtkinter.CTkFont(family="Tahoma"),
+            text_color=("grey74", "grey60"),
+        )
         self.progress_file.grid(row=0, padx=12, sticky="nsw")
 
-        self.progressbar = customtkinter.CTkProgressBar(self.downloads_frame, orientation="horizontal", width = 660, mode="indeterminate", indeterminate_speed=1)
-        self.progressbar.grid(row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ns")
+        self.progressbar = customtkinter.CTkProgressBar(
+            self.downloads_frame,
+            orientation="horizontal",
+            width=660,
+            mode="indeterminate",
+            indeterminate_speed=1,
+        )
+        self.progressbar.grid(
+            row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ns"
+        )
         self.progressbar.start()
 
         # Logs Frame
-        self.logs_frame = customtkinter.CTkFrame(master=self.frame_0)
-        self.logs_frame.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
-
-        self.textbox = customtkinter.CTkTextbox(master=self.logs_frame, border_width=0, width=680, font=customtkinter.CTkFont(family="Tahoma"))
-        self.textbox.grid(row=0, column=0, sticky="nsew")
-        self.textbox.insert("0.0", "Factorio Mod Downloader v0.2.0:\n")
+        self.textbox = customtkinter.CTkTextbox(
+            master=self.frame_0,
+            border_width=0,
+            width=680,
+            font=customtkinter.CTkFont(family="Tahoma"),
+        )
+        self.textbox.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        self.textbox.insert("0.0", "Factorio Mod Downloader v0.2.1:\n")
         self.textbox.yview(END)
         self.textbox.configure(state="disabled")
-
 
     def download_button_action(self):
         mod_url = self.mod_url.get()
@@ -132,40 +170,71 @@ class App(customtkinter.CTk):
         download_path = self.download_path.get()
         download_path = download_path.strip()
 
-        if not mod_url or (mod_url and re.match(r'^https://mods\.factorio\.com/mod/.*', mod_url.strip()) is None):
-            CTkMessagebox(title="Error", width=500, wraplength=500, message="Please provide a valid mod_url!!!", icon="cancel")
+        if not mod_url or (
+            mod_url
+            and re.match(r"^https://mods\.factorio\.com/mod/.*", mod_url.strip())
+            is None
+        ):
+            CTkMessagebox(
+                title="Error",
+                width=500,
+                wraplength=500,
+                message="Please provide a valid mod_url!!!",
+                icon="cancel",
+            )
             return
 
         if not download_path:
-            CTkMessagebox(title="Error", width=500, message="Please provide a valid download_path!!!", icon="cancel")
+            CTkMessagebox(
+                title="Error",
+                width=500,
+                message="Please provide a valid download_path!!!",
+                icon="cancel",
+            )
             return
-        
+
         self.download_button.configure(state="disabled", text="Download Started")
         download_path = f"{download_path}/mods"
         output = Path(download_path).expanduser().resolve()
 
         if output.exists() and not output.is_dir():
-            CTkMessagebox(title="Error", width=500, wraplength=500, message=f"{output} already exists and is not a directory.\n"
-                "Enter a valid output directory.")
+            CTkMessagebox(
+                title="Error",
+                width=500,
+                wraplength=500,
+                message=f"{output} already exists and is not a directory.\n"
+                "Enter a valid output directory.",
+            )
             self.download_button.configure(state="normal", text="Start Download")
             return
 
-        elif output.exists() and output.is_dir() and tuple(output.glob('*')):            
-            response = CTkMessagebox(title="Continue?", width=500, wraplength=500, message=f"Directory {output} is not empty.\n"
+        if output.exists() and output.is_dir() and tuple(output.glob("*")):
+            response = CTkMessagebox(
+                title="Continue?",
+                width=500,
+                wraplength=500,
+                message=f"Directory {output} is not empty.\n"
                 "Do you want to continue and overwrite?",
-                  icon="warning", option_1="Cancel", option_2="Yes")
-            
+                icon="warning",
+                option_1="Cancel",
+                option_2="Yes",
+            )
+
             if not response or (response and response.get() != "Yes"):
                 self.download_button.configure(state="normal", text="Start Download")
                 return
-        
-        os.makedirs(download_path, exist_ok=True)
-        mod_downloader = ModDownloader(mod_url, download_path, self)
-        self.progressbar.stop()
-        self.progressbar.configure(mode="determinate")
-        self.progressbar.set(0)
 
-        mod_downloader.start()
+        os.makedirs(download_path, exist_ok=True)
+        try:
+            mod_downloader = ModDownloader(mod_url, download_path, self)
+            mod_downloader.start()
+        except Exception as e:
+            CTkMessagebox(
+                title="Error",
+                width=500,
+                wraplength=500,
+                message=f"Unknown error occured.\n{str(e).split("\n")[0]}",
+            )
         return
 
 
