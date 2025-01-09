@@ -17,6 +17,11 @@ BASE_MOD_URL: Final = "https://re146.dev/factorio/mods/en#"
 BASE_DOWNLOAD_URL: Final = "https://mods-storage.re146.dev"
 
 
+class WebsiteDownException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
 class ModDownloader(Thread):
     def __init__(self, mod_url, output_path, app):
         super().__init__()
@@ -28,6 +33,8 @@ class ModDownloader(Thread):
 
     def run(self):
         try:
+            if self.is_website_down():
+                raise WebsiteDownException("https://re146.dev is down. Please close the application and try again later.")
             self.chrome_options = self._init_selenium()
             self.log_info(f"Loading mod {self.mod}.\n")
             self.download_mod_with_dependencies(self.mod_url, self.output_path)
@@ -68,6 +75,16 @@ class ModDownloader(Thread):
             result = sock.connect_ex(("localhost", port))
             return result != 0
 
+    def is_website_down(self):
+        try:
+            response = requests.get(BASE_MOD_URL, timeout=5)
+            if response.status_code >= 200 and response.status_code < 300:
+                return False
+            else:
+                return True
+        except requests.exceptions.RequestException:
+            return True
+
     def _init_selenium(self):
         # Set up chrome options
         try:
@@ -77,9 +94,10 @@ class ModDownloader(Thread):
                     text="Downloading and loading dependencies."
                 ),
             )
-            self.log_info("Downloading application dependencies.\n")
+
+            self.log_info("Retrieving Chromium drivers.\n")
             chromedriver_autoinstaller.install()
-            self.log_info("Finished downloading application dependencies.\n")
+            self.log_info("Chromium drivers successfully retrieved.\n")
             chrome_options = Options()
 
             # Run in headless mode (without a GUI)
@@ -92,9 +110,7 @@ class ModDownloader(Thread):
                 if self.is_port_free(port):
                     chrome_options.add_argument(f"--remote-debugging-port={port}")
                     break
-                port += 10
-
-            self.log_info("Configured application dependencies.\n")
+                port += 1
             return chrome_options
         except Exception as e:
             self.log_info(str(e))

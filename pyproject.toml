@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "factorio-mod-downloader"
-version = "0.2.1"
+version = "0.2.2"
 description = "One Downloader for all your factorio mods."
 authors = ["Vaibhav Vikas <vbhvvikas@gmail.com>"]
 license = "MIT"
@@ -48,10 +48,6 @@ skip-string-normalization = false
 [tool.pylint]
 disable = [
     "missing-docstring",
-    # Optional: More specific docstring warnings
-    # "missing-class-docstring",
-    # "missing-function-docstring",
-    # "missing-module-docstring"
 ]
 
 [build-system]
@@ -68,7 +64,7 @@ recursive-copy-metadata = [
 ]
 
 [tool.poetry-pyinstaller-plugin.scripts]
-factorio_mod_downloader = { source = "src/factorio_mod_downloader/__main__.py", type = "onefile", bundle = true, add_version = true, icon = "factorio_downloader.ico", windowed = true }
+factorio_mod_downloader = { source = "src/factorio_mod_downloader/__main__.py", type = "onefile", bundle = false, add_version = true, icon = "factorio_downloader.ico", windowed = true }
 
 [tool.poetry-pyinstaller-plugin.collect]
 all = ['factorio_mod_downloader', 'mod_downloader']
