@@ -35,10 +35,10 @@ It is really helpful if you want to download a mod or modpack containing various
 
 
 ### Development
-1. You can build and run the app yourself. I have written the code in python and implemented poetry for dependency mamagement and easy build.
+1. You can build and run the app yourself. I have written the code in python and implemented poetry for dependency management and easy build.
 2. Install python > v3.12 and install poetry, refer to [poetry official website](https://python-poetry.org/docs/#installation) for installation guide.
 3. Install dependencies via the command `poetry install`.
-4. To run the application use the command `poetry run factorio-mod-downloader`. This will run the application to be used.
+4. To run the application use the command `poetry run factorio-mod-downloader`. This will run the application directly without building.
 5. To build the application, I am using pyinstaller (you need a **Windows x64** system to build it). Run the command `poetry build` to build the application. A new .exe file will be generated inside `/dist/pyinstaller/win_amd64`.
 
 
