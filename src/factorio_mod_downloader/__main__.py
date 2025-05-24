@@ -25,7 +25,7 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         self.resizable(0, 0)
-        self.title("Factorio Mod Downloader")
+        self.title("Factorio Mod Downloader v0.2.2")
         self.geometry(f"{740}x{560}")
         self.iconbitmap(resource_path("factorio_downloader.ico"))
 
@@ -159,7 +159,7 @@ class App(customtkinter.CTk):
             font=customtkinter.CTkFont(family="Tahoma"),
         )
         self.textbox.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
-        self.textbox.insert("0.0", "Factorio Mod Downloader v0.2.1:\n")
+        self.textbox.insert("0.0", "Factorio Mod Downloader v0.2.2:\n")
         self.textbox.yview(END)
         self.textbox.configure(state="disabled")
 
