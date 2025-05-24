@@ -33,12 +33,22 @@ It is really helpful if you want to download a mod or modpack containing various
 4. The first step of loading dependencies take some time as it download [chromium-drivers](https://github.com/yeongbin-jo/python-chromedriver-autoinstaller) (~30-35 MB) required for loading URLs and the mods for downloading.
 5. Once completed the application will show a download complete dialog.
 
+
+### Development
+1. You can build and run the app yourself. I have written the code in python and implemented poetry for dependency mamagement and easy build.
+2. Install python > v3.12 and install poetry, refer to [poetry official website](https://python-poetry.org/docs/#installation) for installation guide.
+3. Install dependencies via the command `poetry install`.
+4. To run the application use the command `poetry run factorio-mod-downloader`. This will run the application to be used.
+5. To build the application, I am using pyinstaller (you need a **Windows x64** system to build it). Run the command `poetry build` to build the application. A new .exe file will be generated inside `/dist/pyinstaller/win_amd64`.
+
+
 ### Note
 I have not included optional dependencies, as its a stupid idea, since a lots of mods, even they don't need something have optional dependencies mentioned. So it will probably take forever to finish downloading. It can be implemented although. Not a big task.
 
 Also, download speed is based on re146, Its not super fast but its fine.
 
 Feel free to reach out to me or start a message in the discussions tab if you need some help. 
+
 
 ### Credits:
 - re146.dev
