@@ -243,7 +243,7 @@ class ModDownloader(Thread):
             return
 
         for dep_name, dep_url in dependencies:
-            self.log_info(f"Analayzing dependency {dep_name} of {mod_name}\n")
+            self.log_info(f"Analyzing dependency {dep_name} of {mod_name}\n")
             self.download_mod_with_dependencies(dep_url, download_path)
 
     def log_info(self, info):
