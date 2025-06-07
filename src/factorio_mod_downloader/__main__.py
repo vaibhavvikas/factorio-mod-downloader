@@ -25,7 +25,7 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         self.resizable(0, 0)
-        self.title("Factorio Mod Downloader")
+        self.title("Factorio Mod Downloader v0.2.2")
         self.geometry(f"{740}x{560}")
         self.iconbitmap(resource_path("factorio_downloader.ico"))
 

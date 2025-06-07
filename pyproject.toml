@@ -16,14 +16,14 @@ packages = [
 Changelog = "https://github.com/vaibhav_vikas/factorio-mod-downloader/releases"
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.13"
+python = ">=3.12,<3.14"
 requests = "^2.32.3"
 pillow = "^11.0.0"
 customtkinter = "^5.2.2"
 ctkmessagebox = "^2.7"
 chromedriver-autoinstaller = "^0.6.4"
 selenium = "^4.25.0"
-poetry-pyinstaller-plugin = "^1.2.0"
+poetry-pyinstaller-plugin = "^1.4.0"
 beautifulsoup4 = "^4.12.3"
 pylint = "^3.3.1"
 
@@ -35,6 +35,7 @@ factorio-mod-downloader = "factorio_mod_downloader.__main__:main"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
+pyinstaller = "^6.13.0"
 
 [tool.isort]
 profile = "black"
