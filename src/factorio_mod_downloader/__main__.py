@@ -1,3 +1,4 @@
+import argparse
 import os
 import re
 import sys
@@ -22,11 +23,11 @@ def resource_path(relative_path):
 
 
 class App(customtkinter.CTk):
-    def __init__(self):
+    def __init__(self, sources=None, destination=None):
         super().__init__()
         self.resizable(0, 0)
         self.title("Factorio Mod Downloader v0.2.2")
-        self.geometry(f"{740}x{560}")
+        self.geometry(f"{740}x{660}")
         self.iconbitmap(resource_path("factorio_downloader.ico"))
 
         self.frame_0 = customtkinter.CTkFrame(master=self)
@@ -94,19 +95,26 @@ class App(customtkinter.CTk):
         self.body_frame.rowconfigure(3, weight=1)
         self.body_frame.columnconfigure(4, weight=1)
 
-        self.mod_url = customtkinter.CTkEntry(
-            self.body_frame, placeholder_text="Mod Url", width=500
+        self.mod_url_label = customtkinter.CTkLabel(
+            master=self.body_frame,
+            text="Mod URLs",
+            font=customtkinter.CTkFont(family="Tahoma"),
+            text_color=("grey74", "grey60"),
         )
-        self.mod_url.grid(
-            row=0, column=0, columnspan=4, padx=10, pady=10, sticky="nsew"
-        )
+        self.mod_url_label.grid(row=0, padx=10, sticky="nsw")
+
+        self.mod_urls = customtkinter.CTkTextbox(master=self.body_frame, wrap="none", height=100)
+        self.mod_urls.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+        self.mod_urls.insert(f"1.0", "\n".join(sources))
 
         self.download_path = customtkinter.CTkEntry(
             self.body_frame, placeholder_text="Download Path", width=500
         )
         self.download_path.grid(
-            row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew"
+            row=2, column=0, columnspan=3, padx=10, pady=10, sticky="nsew"
         )
+        if destination is not None:
+            self.download_path.insert(0, destination)
 
         self.path_button = customtkinter.CTkButton(
             master=self.body_frame,
@@ -116,7 +124,7 @@ class App(customtkinter.CTk):
             text="Select Path",
             command=select_path,
         )
-        self.path_button.grid(row=1, column=3, padx=10, pady=10, sticky="nsew")
+        self.path_button.grid(row=2, column=3, padx=10, pady=10, sticky="nsew")
 
         self.download_button = customtkinter.CTkButton(
             master=self.body_frame,
@@ -124,7 +132,7 @@ class App(customtkinter.CTk):
             command=self.download_button_action,
         )
         self.download_button.grid(
-            row=2, column=0, columnspan=4, padx=10, pady=10, sticky="nsew"
+            row=3, column=0, columnspan=4, padx=10, pady=10, sticky="nsew"
         )
 
         # Download Status and Progress Frame
@@ -163,26 +171,29 @@ class App(customtkinter.CTk):
         self.textbox.yview(END)
         self.textbox.configure(state="disabled")
 
-    def download_button_action(self):
-        mod_url = self.mod_url.get()
-        mod_url = mod_url.strip()
+    def download_button_action(self, ignore_overwrite=False):
+        mod_urls = [
+            line.strip() 
+            for line in self.mod_urls.get("1.0", END).split()
+        ]
 
         download_path = self.download_path.get()
         download_path = download_path.strip()
 
-        if not mod_url or (
-            mod_url
-            and re.match(r"^https://mods\.factorio\.com/mod/.*", mod_url.strip())
-            is None
-        ):
-            CTkMessagebox(
-                title="Error",
-                width=500,
-                wraplength=500,
-                message="Please provide a valid mod_url!!!",
-                icon="cancel",
-            )
-            return
+        for mod_url in mod_urls:
+            if not mod_url or (
+                mod_url
+                and re.match(r"^https://mods\.factorio\.com/mod/.*", mod_url)
+                is None
+            ):
+                CTkMessagebox(
+                    title="Error",
+                    width=500,
+                    wraplength=500,
+                    message=f"'{mod_url}' is not a valid Factorio mod URL",
+                    icon="cancel",
+                )
+                return
 
         if not download_path:
             CTkMessagebox(
@@ -208,12 +219,12 @@ class App(customtkinter.CTk):
             self.download_button.configure(state="normal", text="Start Download")
             return
 
-        if output.exists() and output.is_dir() and tuple(output.glob("*")):
+        if not ignore_overwrite and output.exists() and output.is_dir() and tuple(output.glob("*")):
             response = CTkMessagebox(
                 title="Continue?",
                 width=500,
-                wraplength=500,
-                message=f"Directory {output} is not empty.\n"
+                wraplength=450,
+                message=f"Directory '{output}' is not empty.\n"
                 "Do you want to continue and overwrite?",
                 icon="warning",
                 option_1="Cancel",
@@ -226,7 +237,7 @@ class App(customtkinter.CTk):
 
         os.makedirs(download_path, exist_ok=True)
         try:
-            mod_downloader = ModDownloader(mod_url, download_path, self)
+            mod_downloader = ModDownloader(mod_urls, download_path, self)
             mod_downloader.start()
         except Exception as e:
             CTkMessagebox(
@@ -235,12 +246,52 @@ class App(customtkinter.CTk):
                 wraplength=500,
                 message=f"Unknown error occured.\n{str(e).split("\n")[0]}",
             )
-        return
 
 
 def main():
-    app = App()
-    app.mainloop()
+    parser = argparse.ArgumentParser(
+        prog="factorio-mod-downloader",
+        description="Downloads Factorio mods and their dependencies.",
+    )
+    parser.add_argument(
+        "--headless", 
+        action="store_true",
+        help="Download mods without launching the GUI."
+    )
+    parser.add_argument(
+        "-s", "--sources", 
+        nargs="+",
+        help="A space-separated list of mod URLs to download."
+    )
+    parser.add_argument(
+        "-f", "--file", 
+        help="The path to a text file containing a newline-separated list of "
+             "mod URLs to download."
+    )
+    parser.add_argument(
+        "-d", "--destination",
+        help="The destination folder mods should be downloaded to."
+    )
+    parser.add_argument(
+        "-i", "--ignore-overwrite",
+        action="store_true",
+        default=False,
+        help="Automatically continues downloading even if the `destination` is "
+             "not a completely empty folder."
+    )
+
+    args = parser.parse_args()
+
+    # Collect all urls from modlist file
+    if args.file is not None:
+        with open(args.file) as file:
+            args.sources = [line.strip() for line in file.readlines()]
+
+    if args.headless:
+        pass # TODO
+    else:
+        app = App(sources=args.sources, destination=args.destination)
+        app.mainloop()
 
 
 if __name__ == "__main__":

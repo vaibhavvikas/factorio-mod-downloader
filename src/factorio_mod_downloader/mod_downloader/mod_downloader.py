@@ -23,12 +23,15 @@ class WebsiteDownException(Exception):
 
 
 class ModDownloader(Thread):
-    def __init__(self, mod_url, output_path, app):
+    def __init__(self, mod_urls, output_path, app):
         super().__init__()
         self.daemon = True
         self.output_path = output_path
-        self.mod = mod_url
-        self.mod_url = BASE_MOD_URL + mod_url
+        # self.mod_urls = [
+        #     BASE_MOD_URL + mod_url
+        #     for mod_url in mod_urls
+        # ]
+        self.mod_urls = mod_urls
         self.app = app
         self.downloaded_mods = set()
 
@@ -40,8 +43,9 @@ class ModDownloader(Thread):
             if not self.is_website_up(BASE_MOD_URL):
                 raise Exception("Website down.")
 
-            self.log_info(f"Loading mod {self.mod}.\n")
-            self.download_mod_with_dependencies(self.mod_url, self.output_path)
+            for mod_url in self.mod_urls:
+                self.log_info(f"Loading mod {mod_url}.\n")
+                self.download_mod_with_dependencies(BASE_MOD_URL + mod_url, self.output_path)
             self.log_info("All mods downloaded successfully.\n")
             self.app.progress_file.after(
                 0,
