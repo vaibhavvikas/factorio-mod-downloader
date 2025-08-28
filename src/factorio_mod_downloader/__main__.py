@@ -9,7 +9,7 @@ from tkinter import END, Label
 import customtkinter
 from CTkMessagebox import CTkMessagebox
 
-from factorio_mod_downloader.mod_downloader.mod_downloader import ModDownloader
+from factorio_mod_downloader.mod_downloader import ModDownloader
 
 
 customtkinter.set_appearance_mode("dark")
@@ -20,6 +20,94 @@ def resource_path(relative_path):
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, relative_path)
     return relative_path
+
+
+class AppModDownloader(ModDownloader):
+    """
+    Subclass of ModDownloader with all GUI-specific plumbing.
+    """
+    def __init__(self, mod_urls, output_path, app):
+        super().__init__(mod_urls=mod_urls, output_path=output_path)
+        self.app = app
+
+    def run(self):
+        try:
+            super().run()
+
+            self.app.progress_file.after(
+                0,
+                lambda: self.app.progress_file.configure(
+                    text="All mods downloaded successfully."
+                ),
+            )
+            CTkMessagebox(
+                title="Download Completed",
+                width=500,
+                wraplength=500,
+                message="Mods successfully downloaded.",
+                icon="check",
+                option_1="Ok",
+            )
+        except Exception as e:
+            CTkMessagebox(
+                title="Error",
+                width=500,
+                wraplength=500,
+                message=f"Unknown error occured.\n{str(e).split("\n")[0]}.",
+            )
+            self.app.progress_file.after(
+                0,
+                lambda: self.app.progress_file.configure(
+                    text="Start download to see progress."
+                ),
+            )
+        finally:
+            self.app.download_button.configure(state="normal", text="Start Download")
+
+    def _init_selenium(self):
+        self.app.progress_file.after(
+            0,
+            lambda: self.app.progress_file.configure(
+                text="Downloading and loading dependencies."
+            ),
+        )
+        return super()._init_selenium()
+    
+    def download_file(self, url, file_path, file_name):
+        self.app.progressbar.stop()
+        self.app.progressbar.configure(mode="determinate")
+        self.app.progress_file.after(
+            0, lambda: self.app.progress_file.configure(text=f"Downloading {file_name}")
+        )
+        self.app.progressbar.set(0)
+
+        super().download_file(url, file_path, file_name)
+
+        self.app.progress_file.after(
+            0, lambda: self.app.progress_file.configure(text=f"Downloaded {file_name}")
+        )
+
+    def download_file_hook(self, percentage):
+        self.app.progressbar.set(percentage)
+
+    def download_mod_with_dependencies(self, mod_url, download_path):
+        self.app.progressbar.stop()
+        self.app.progress_file.after(
+            0,
+            lambda: self.app.progress_file.configure(
+                text=f"Analayzing mod {mod_url.split("/")[-1]}"
+            ),
+        )
+        self.app.progressbar.configure(mode="indeterminate")
+        self.app.progressbar.start()
+
+        super().download_mod_with_dependencies(mod_url, download_path)
+
+    def log_info(self, info):
+        self.app.textbox.configure(state="normal")
+        self.app.textbox.insert("end", info)
+        self.app.textbox.yview("end")
+        self.app.textbox.configure(state="disabled")
 
 
 class App(customtkinter.CTk):
@@ -237,7 +325,7 @@ class App(customtkinter.CTk):
 
         os.makedirs(download_path, exist_ok=True)
         try:
-            mod_downloader = ModDownloader(mod_urls, download_path, self)
+            mod_downloader = AppModDownloader(mod_urls, download_path, self)
             mod_downloader.start()
         except Exception as e:
             CTkMessagebox(
@@ -288,6 +376,12 @@ def main():
             args.sources = [line.strip() for line in file.readlines()]
 
     if args.headless:
+        print("headless")
+        # Validate values of sources and destination
+        # Run ModDownloader
+        mod_downloader = ModDownloader(args.sources, args.destination)
+        mod_downloader.start()
+        mod_downloader.join()
         pass # TODO
     else:
         app = App(sources=args.sources, destination=args.destination)

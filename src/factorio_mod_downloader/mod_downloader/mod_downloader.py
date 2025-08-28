@@ -23,16 +23,11 @@ class WebsiteDownException(Exception):
 
 
 class ModDownloader(Thread):
-    def __init__(self, mod_urls, output_path, app):
+    def __init__(self, mod_urls, output_path):
         super().__init__()
         self.daemon = True
         self.output_path = output_path
-        # self.mod_urls = [
-        #     BASE_MOD_URL + mod_url
-        #     for mod_url in mod_urls
-        # ]
         self.mod_urls = mod_urls
-        self.app = app
         self.downloaded_mods = set()
 
     def run(self):
@@ -46,37 +41,11 @@ class ModDownloader(Thread):
             for mod_url in self.mod_urls:
                 self.log_info(f"Loading mod {mod_url}.\n")
                 self.download_mod_with_dependencies(BASE_MOD_URL + mod_url, self.output_path)
+            
             self.log_info("All mods downloaded successfully.\n")
-            self.app.progress_file.after(
-                0,
-                lambda: self.app.progress_file.configure(
-                    text="All mods downloaded successfully."
-                ),
-            )
-            CTkMessagebox(
-                title="Download Completed",
-                width=500,
-                wraplength=500,
-                message="Mods successfully downloaded.",
-                icon="check",
-                option_1="Ok",
-            )
         except Exception as e:
-            CTkMessagebox(
-                title="Error",
-                width=500,
-                wraplength=500,
-                message=f"Unknown error occured.\n{str(e).split("\n")[0]}.",
-            )
             self.log_info(str(e))
-            self.app.progress_file.after(
-                0,
-                lambda: self.app.progress_file.configure(
-                    text="Start download to see progress."
-                ),
-            )
-        finally:
-            self.app.download_button.configure(state="normal", text="Start Download")
+            raise e
 
     def is_website_up(self, url, timeout=5):
         try:
@@ -108,13 +77,6 @@ class ModDownloader(Thread):
     def _init_selenium(self):
         # Set up chrome options
         try:
-            self.app.progress_file.after(
-                0,
-                lambda: self.app.progress_file.configure(
-                    text="Downloading and loading dependencies."
-                ),
-            )
-
             self.log_info("Retrieving Chromium drivers.\n")
             chromedriver_autoinstaller.install()
             self.log_info("Chromium drivers successfully retrieved.\n")
@@ -146,12 +108,6 @@ class ModDownloader(Thread):
         driver.quit()
 
     def download_file(self, url, file_path, file_name):
-        self.app.progressbar.stop()
-        self.app.progressbar.configure(mode="determinate")
-        self.app.progress_file.after(
-            0, lambda: self.app.progress_file.configure(text=f"Downloading {file_name}")
-        )
-        self.app.progressbar.set(0)
         response = requests.get(url, stream=True)
         response.raise_for_status()  # Check if the request was successful
 
@@ -165,12 +121,16 @@ class ModDownloader(Thread):
                 file.write(chunk)
                 progress += len(chunk)
                 percentage = progress / total_size
-                self.app.progressbar.set(percentage)
+                self.download_file_hook(percentage)
 
-        self.app.progress_file.after(
-            0, lambda: self.app.progress_file.configure(text=f"Downloaded {file_name}")
-        )
         self.log_info(f"Downloaded: {file_path}.\n")
+
+    def download_file_hook(self, percentage):
+        """
+        Called periodically from `download_file()`. Useful for updating progress
+        bars.
+        """
+        pass
 
     def generate_anticache(self):
         random_number = random.randint(
@@ -217,16 +177,6 @@ class ModDownloader(Thread):
         return mod_name.strip()
 
     def download_mod_with_dependencies(self, mod_url, download_path):
-        self.app.progressbar.stop()
-        self.app.progress_file.after(
-            0,
-            lambda: self.app.progress_file.configure(
-                text=f"Analayzing mod {mod_url.split("/")[-1]}"
-            ),
-        )
-        self.app.progressbar.configure(mode="indeterminate")
-        self.app.progressbar.start()
-
         driver = self.init_driver()
         driver.get(mod_url)
         time.sleep(2)  # Wait 2 seconds for the page to load successfully.
@@ -267,7 +217,4 @@ class ModDownloader(Thread):
             self.download_mod_with_dependencies(dep_url, download_path)
 
     def log_info(self, info):
-        self.app.textbox.configure(state="normal")
-        self.app.textbox.insert("end", info)
-        self.app.textbox.yview("end")
-        self.app.textbox.configure(state="disabled")
+        print(info)
