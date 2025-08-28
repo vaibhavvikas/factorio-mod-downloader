@@ -39,10 +39,10 @@ class ModDownloader(Thread):
                 raise Exception("Website down.")
 
             for mod_url in self.mod_urls:
-                self.log_info(f"Loading mod {mod_url}.\n")
+                self.log_info(f"Loading mod {mod_url}.")
                 self.download_mod_with_dependencies(BASE_MOD_URL + mod_url, self.output_path)
             
-            self.log_info("All mods downloaded successfully.\n")
+            self.log_info("All mods downloaded successfully.")
         except Exception as e:
             self.log_info(str(e))
             raise e
@@ -77,9 +77,9 @@ class ModDownloader(Thread):
     def _init_selenium(self):
         # Set up chrome options
         try:
-            self.log_info("Retrieving Chromium drivers.\n")
+            self.log_info("Retrieving Chromium drivers.")
             chromedriver_autoinstaller.install()
-            self.log_info("Chromium drivers successfully retrieved.\n")
+            self.log_info("Chromium drivers successfully retrieved.")
             chrome_options = Options()
 
             # Run in headless mode (without a GUI)
@@ -123,7 +123,7 @@ class ModDownloader(Thread):
                 percentage = progress / total_size
                 self.download_file_hook(percentage)
 
-        self.log_info(f"Downloaded: {file_path}.\n")
+        self.log_info(f"Downloaded: {file_path}.")
 
     def download_file_hook(self, percentage):
         """
@@ -188,9 +188,9 @@ class ModDownloader(Thread):
         latest_version = self.get_latest_version(soup)
 
         if mod_name == "" or latest_version == "":
-            self.log_info(f"Error getting nid from the {mod_url}. Please download it manually. Skipping!\n")
+            self.log_info(f"Error getting nid from the {mod_url}. Please download it manually. Skipping!")
 
-        self.log_info(f"Loaded mod {mod_name} with version {latest_version}.\n")
+        self.log_info(f"Loaded mod {mod_name} with version {latest_version}.")
 
         download_url = f"{BASE_DOWNLOAD_URL}/{mod_name}/{latest_version}.zip?anticache={self.generate_anticache()}"
         file_name = f"{mod_name}_{latest_version}.zip"
@@ -199,21 +199,21 @@ class ModDownloader(Thread):
         # Download the mod file
         os.makedirs(download_path, exist_ok=True)
         if file_name not in self.downloaded_mods:
-            self.log_info(f"Downloading {file_name}.\n")
+            self.log_info(f"Downloading {file_name}.")
             self.download_file(download_url, file_path, file_name)
             self.downloaded_mods.add(file_name)
         else:
-            self.log_info(f"Mod was already downloaded {file_name}. Skipping!\n")
+            self.log_info(f"Mod was already downloaded {file_name}. Skipping!")
 
         # Get required dependencies and recursively download them
-        self.log_info(f"Loading dependencies for {mod_name}.\n")
+        self.log_info(f"Loading dependencies for {mod_name}.")
         dependencies = self.get_required_dependencies(soup)
         if len(dependencies) == 0:
-            self.log_info(f"No dependency exists for {mod_name}.\n")
+            self.log_info(f"No dependency exists for {mod_name}.")
             return
 
         for dep_name, dep_url in dependencies:
-            self.log_info(f"Analayzing dependency {dep_name} of {mod_name}\n")
+            self.log_info(f"Analayzing dependency {dep_name} of {mod_name}")
             self.download_mod_with_dependencies(dep_url, download_path)
 
     def log_info(self, info):

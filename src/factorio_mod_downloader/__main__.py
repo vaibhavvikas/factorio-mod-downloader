@@ -105,7 +105,7 @@ class AppModDownloader(ModDownloader):
 
     def log_info(self, info):
         self.app.textbox.configure(state="normal")
-        self.app.textbox.insert("end", info)
+        self.app.textbox.insert("end", info + "\n")
         self.app.textbox.yview("end")
         self.app.textbox.configure(state="disabled")
 
