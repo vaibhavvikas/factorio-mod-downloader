@@ -322,6 +322,7 @@ def main():
     parser.add_argument(
         "-s", "--sources", 
         nargs="+",
+        default=[],
         help="A space-separated list of mod URLs to download."
     )
     parser.add_argument(
