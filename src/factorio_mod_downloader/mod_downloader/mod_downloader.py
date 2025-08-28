@@ -1,7 +1,9 @@
 import os
 import random
+import re
 import socket
 import time
+from pathlib import Path
 from threading import Thread
 from typing import Final
 
@@ -17,21 +19,53 @@ BASE_MOD_URL: Final = "https://re146.dev/factorio/mods/en#"
 BASE_DOWNLOAD_URL: Final = "https://mods-storage.re146.dev"
 
 
+class InvalidModURL(Exception):
+    pass
+
+class InvalidDownloadFolder(Exception):
+    pass
+
 class WebsiteDownException(Exception):
     def __init__(self, message):
         super().__init__(message)
 
 
 class ModDownloader(Thread):
-    def __init__(self, mod_urls, output_path):
+    def __init__(self, mod_urls, output_path, ignore_overwrite=False):
         super().__init__()
         self.daemon = True
-        self.output_path = output_path
+        
+        # Make sure mod urls are valid
+        for mod_url in mod_urls:
+            if re.match(r"^https://mods\.factorio\.com/mod/.*", mod_url) is None:
+                raise InvalidModURL(f"'{mod_url}' is not a valid Factorio mod URL")
         self.mod_urls = mod_urls
+
+        # Make sure destination folder is valid
+        if not output_path:
+            raise InvalidDownloadFolder("Please provide a valid download_path!!!")
+        output = Path(output_path).expanduser().resolve()
+        if output.exists() and not output.is_dir():
+            raise InvalidDownloadFolder(
+                f"{output} already exists and is not a directory.\n"
+                "Enter a valid output directory."
+            )
+        self.output_path = output_path
+
+        # Add the option to skip overwrite checks (mostly for the command line)
+        self.ignore_overwrite = ignore_overwrite
+
         self.downloaded_mods = set()
 
     def run(self):
         try:
+            # Make sure the user is okay with overwriting files if we're about 
+            # to do so
+            output = Path(self.output_path).expanduser().resolve()
+            if not self.ignore_overwrite and tuple(output.glob("*")):
+                if not self.overwriting_okay():
+                    return
+
             if self.is_website_down():
                 raise WebsiteDownException("https://re146.dev is down. Please close the application and try again later.")
             self.chrome_options = self._init_selenium()
@@ -115,6 +149,20 @@ class ModDownloader(Thread):
         driver.stop_client()
         driver.close()
         driver.quit()
+
+    def overwriting_okay(self):
+        print(
+            f"Directory '{self.output_path}' is not empty.\n"
+            "Do you want to continue and overwrite? (Y/N)"
+        )
+        while True:
+            r = input()
+            if r.upper() == "Y":
+                return True
+            elif r.upper() == "N":
+                return False
+            print("\033[A", end="") # Move cursor up one line
+            print("\033[K", end="") # Clear the line from the cursor to the end
 
     def download_file(self, url, file_path, file_name):
         response = requests.get(url, stream=True)

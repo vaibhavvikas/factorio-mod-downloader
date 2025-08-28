@@ -1,15 +1,13 @@
 import argparse
 import os
-import re
 import sys
 import webbrowser
-from pathlib import Path
 from tkinter import END, Label
 
 import customtkinter
 from CTkMessagebox import CTkMessagebox
 
-from factorio_mod_downloader.mod_downloader import ModDownloader
+from factorio_mod_downloader.mod_downloader import ModDownloader, InvalidModURL, InvalidDownloadFolder
 
 
 customtkinter.set_appearance_mode("dark")
@@ -73,6 +71,24 @@ class AppModDownloader(ModDownloader):
         )
         return super()._init_selenium()
     
+    def overwriting_okay(self):
+        response = CTkMessagebox(
+            title="Continue?",
+            width=500,
+            wraplength=450,
+            message=f"Directory '{self.output_path}' is not empty.\n"
+            "Do you want to continue and overwrite?",
+            icon="warning",
+            option_1="Cancel",
+            option_2="Yes",
+        )
+
+        if not response or (response and response.get() != "Yes"):
+            self.download_button.configure(state="normal", text="Start Download")
+            return False
+        
+        return True
+
     def download_file(self, url, file_path, file_name):
         self.app.progressbar.stop()
         self.app.progressbar.configure(mode="determinate")
@@ -259,7 +275,7 @@ class App(customtkinter.CTk):
         self.textbox.yview(END)
         self.textbox.configure(state="disabled")
 
-    def download_button_action(self, ignore_overwrite=False):
+    def download_button_action(self):
         mod_urls = [
             line.strip() 
             for line in self.mod_urls.get("1.0", END).split()
@@ -267,66 +283,23 @@ class App(customtkinter.CTk):
 
         download_path = self.download_path.get()
         download_path = download_path.strip()
-
-        for mod_url in mod_urls:
-            if not mod_url or (
-                mod_url
-                and re.match(r"^https://mods\.factorio\.com/mod/.*", mod_url)
-                is None
-            ):
-                CTkMessagebox(
-                    title="Error",
-                    width=500,
-                    wraplength=500,
-                    message=f"'{mod_url}' is not a valid Factorio mod URL",
-                    icon="cancel",
-                )
-                return
-
-        if not download_path:
-            CTkMessagebox(
-                title="Error",
-                width=500,
-                message="Please provide a valid download_path!!!",
-                icon="cancel",
-            )
-            return
+        download_path = f"{download_path}/mods"
 
         self.download_button.configure(state="disabled", text="Download Started")
-        download_path = f"{download_path}/mods"
-        output = Path(download_path).expanduser().resolve()
-
-        if output.exists() and not output.is_dir():
-            CTkMessagebox(
-                title="Error",
-                width=500,
-                wraplength=500,
-                message=f"{output} already exists and is not a directory.\n"
-                "Enter a valid output directory.",
-            )
-            self.download_button.configure(state="normal", text="Start Download")
-            return
-
-        if not ignore_overwrite and output.exists() and output.is_dir() and tuple(output.glob("*")):
-            response = CTkMessagebox(
-                title="Continue?",
-                width=500,
-                wraplength=450,
-                message=f"Directory '{output}' is not empty.\n"
-                "Do you want to continue and overwrite?",
-                icon="warning",
-                option_1="Cancel",
-                option_2="Yes",
-            )
-
-            if not response or (response and response.get() != "Yes"):
-                self.download_button.configure(state="normal", text="Start Download")
-                return
-
+        
         os.makedirs(download_path, exist_ok=True)
         try:
             mod_downloader = AppModDownloader(mod_urls, download_path, self)
             mod_downloader.start()
+        except (InvalidModURL, InvalidDownloadFolder) as e:
+            CTkMessagebox(
+                title="Error",
+                width=500,
+                wraplength=500,
+                message=str(e),
+                icon="cancel",
+            )
+            self.download_button.configure(state="normal", text="Start Download")
         except Exception as e:
             CTkMessagebox(
                 title="Error",
@@ -365,7 +338,7 @@ def main():
         action="store_true",
         default=False,
         help="Automatically continues downloading even if the `destination` is "
-             "not a completely empty folder."
+             "not a completely empty folder. Only affects headless mode."
     )
 
     args = parser.parse_args()
@@ -376,13 +349,13 @@ def main():
             args.sources = [line.strip() for line in file.readlines()]
 
     if args.headless:
-        print("headless")
-        # Validate values of sources and destination
-        # Run ModDownloader
-        mod_downloader = ModDownloader(args.sources, args.destination)
+        mod_downloader = ModDownloader(
+            args.sources, 
+            args.destination, 
+            args.ignore_overwrite
+        )
         mod_downloader.start()
         mod_downloader.join()
-        pass # TODO
     else:
         app = App(sources=args.sources, destination=args.destination)
         app.mainloop()

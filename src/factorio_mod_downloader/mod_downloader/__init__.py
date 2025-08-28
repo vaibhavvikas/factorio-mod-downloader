@@ -1,3 +1,13 @@
-from .mod_downloader import ModDownloader, WebsiteDownException
+from .mod_downloader import (
+    ModDownloader,
+    InvalidModURL,
+    InvalidDownloadFolder,
+    WebsiteDownException
+)
 
-__all__ = ["ModDownloader", "WebsiteDownException"]
+__all__ = [
+    "ModDownloader", 
+    "InvalidModURL",
+    "InvalidDownloadFolder",
+    "WebsiteDownException"
+]
