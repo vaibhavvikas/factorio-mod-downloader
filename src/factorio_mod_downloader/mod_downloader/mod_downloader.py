@@ -87,6 +87,15 @@ class ModDownloader(Thread):
             chrome_options.add_argument("--window-position=-2400,-2400")
             chrome_options.add_argument("--disable-gpu")
 
+            # This *should* remove the "Devtools listening on ws:..." logging
+            # messages printed to stdout, but due to a selenium/chromedriver bug
+            # it currently has no effect:
+            # https://github.com/SeleniumHQ/selenium/issues/16201
+            # A little ugly, but permissable.
+            chrome_options.add_experimental_option(
+                "excludeSwitches", ["enable-logging"]
+            )
+
             port = 9222
             while port:
                 if self.is_port_free(port):
