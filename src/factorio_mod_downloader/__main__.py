@@ -70,8 +70,8 @@ class App(customtkinter.CTk):
             text_color=("grey74", "grey60"),
         )
         self.title_sub_label.grid(row=1, padx=12, sticky="nsw")
-        github_repo = "https://github.com/emmet-v15/factorio-mod-downloader"
-        github_url = f"Made by Emmet, {github_repo}"
+        github_repo = "https://github.com/vaibhavvikas/factorio-mod-downloader"
+        github_url = f"Made blazingly fast by Emmet, forked from vaibhavvikas, {github_repo}"
         self.developer_label = customtkinter.CTkLabel(
             master=self.title_frame,
             text=github_url,
