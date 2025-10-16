@@ -4,6 +4,8 @@ import random
 import time
 from threading import Thread
 from typing import Final
+import sys
+import subprocess
 
 import aiohttp
 import requests
@@ -108,8 +110,37 @@ class ModDownloader(Thread):
             )
             self.log_info("Starting browser (first run may download Chromium)...\n")
             self._pw = await async_playwright().start()
-            # Launch headless Chromium
-            self._browser = await self._pw.chromium.launch(headless=True, args=["--disable-gpu", "--no-sandbox"])
+            # Launch headless Chromium; if browsers are missing, install them and retry once
+            try:
+                self._browser = await self._pw.chromium.launch(
+                    headless=True, args=["--disable-gpu", "--no-sandbox"]
+                )
+            except Exception as e:
+                msg = str(e)
+                needs_install = (
+                    "Executable doesn't exist" in msg
+                    or "playwright was just installed" in msg.lower()
+                    or "please run the following command to download" in msg.lower()
+                )
+                if needs_install:
+                    self.log_info(
+                        "Playwright browsers not found. Downloading Chromium (one-time setup)...\n"
+                    )
+                    # Stop the current Playwright instance to avoid caching issues
+                    try:
+                        await self._pw.stop()
+                    except Exception:
+                        pass
+                    self._pw = None
+                    # Install browsers
+                    await self._install_playwright_browsers("chromium")
+                    # Start a fresh Playwright instance and retry launch once after install
+                    self._pw = await async_playwright().start()
+                    self._browser = await self._pw.chromium.launch(
+                        headless=True, args=["--disable-gpu", "--no-sandbox"]
+                    )
+                else:
+                    raise
             self._context = await self._browser.new_context()
             # Create semaphore for concurrent operations
             self._semaphore = asyncio.Semaphore(self._max_concurrent)
@@ -119,6 +150,58 @@ class ModDownloader(Thread):
         except Exception as e:
             self.log_info(str(e))
             raise e
+
+    async def _install_playwright_browsers(self, browser: str = "chromium"):
+        """Install Playwright browsers programmatically. Runs synchronously in a worker thread.
+        - In frozen (PyInstaller) builds, call playwright.__main__.main and swallow SystemExit(0).
+        - In non-frozen runs, prefer invoking `python -m playwright install`.
+        """
+        def install_sync():
+            # Frozen app path: avoid spawning the frozen exe with -m; use in-process CLI instead
+            if getattr(sys, "frozen", False):
+                try:
+                    from playwright.__main__ import main as pw_main
+                except Exception as e:
+                    raise RuntimeError(
+                        "Playwright is not available in the frozen application."
+                    ) from e
+
+                saved_argv = sys.argv[:]
+                try:
+                    sys.argv = ["playwright", "install", browser]
+                    try:
+                        pw_main()
+                    except SystemExit as se:
+                        # Treat SystemExit(0) as success; non-zero as failure
+                        code = se.code if isinstance(se.code, int) else 0
+                        if code not in (0, None):
+                            raise RuntimeError(
+                                f"Playwright install exited with code {code}"
+                            ) from se
+                finally:
+                    sys.argv = saved_argv
+                return
+
+            # Non-frozen: use subprocess to run the module
+            try:
+                subprocess.run(
+                    [sys.executable, "-m", "playwright", "install", browser],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                )
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(
+                    f"Failed to install Playwright browser '{browser}'. Output: {e.stdout}"
+                ) from e
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to install Playwright browser '{browser}'. Error: {e}"
+                ) from e
+
+        # Run the blocking install in a background thread to avoid freezing the event loop
+        await asyncio.to_thread(install_sync)
 
     async def _shutdown_playwright(self):
         try:

@@ -8,6 +8,22 @@ from tkinter import END, Label
 import customtkinter
 from CTkMessagebox import CTkMessagebox
 
+# Ensure Playwright downloads browsers to a persistent user directory
+try:
+    if sys.platform.startswith("win"):
+        base_dir = os.environ.get("LOCALAPPDATA") or str(Path.home())
+        browsers_dir = os.path.join(base_dir, "ms-playwright")
+    else:
+        # Fallbacks for non-Windows
+        base_dir = os.environ.get("XDG_CACHE_HOME") or os.path.join(str(Path.home()), ".cache")
+        browsers_dir = os.path.join(base_dir, "ms-playwright")
+    os.makedirs(browsers_dir, exist_ok=True)
+    # Only set if not already provided by the environment
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", browsers_dir)
+except Exception:
+    # Best-effort; continue even if directory setup fails
+    pass
+
 from factorio_mod_downloader.mod_downloader.mod_downloader import ModDownloader
 
 
