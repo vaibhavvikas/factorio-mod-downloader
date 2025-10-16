@@ -23,8 +23,10 @@ uv sync
 uv run python -m playwright install chromium
 uv run factorio-mod-downloader
 
-# Build (Windows x64)
-# Use PyInstaller after uv sync
+# Build executable (Windows x64)
+uv sync
+uv run pyinstaller factorio-mod-downloader.spec
+# Output will be in /dist/
 ```
 
 ## Credits
