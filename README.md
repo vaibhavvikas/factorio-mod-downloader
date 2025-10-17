@@ -7,6 +7,8 @@ Recursively downloads Factorio mods and all required dependencies. No login requ
 - Progress tracking
 - Standalone (no dependencies)
 
+![Preview](https://github.com/Emmet-v15/factorio-mod-downloader/blob/main/factorio_mod_downloader.png)
+
 ## Download
 Get the latest `.exe` from [Releases](https://github.com/emmet-v15/factorio-mod-downloader/releases/latest)
 
