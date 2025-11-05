@@ -18,6 +18,11 @@ BASE_MOD_URL: Final = "https://re146.dev/factorio/mods/en#"
 BASE_DOWNLOAD_URL: Final = "https://mods-storage.re146.dev"
 
 
+class WebsiteDownException(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
+
 class ModDownloader(Thread):
     def __init__(self, mod_url, output_path, app):
         super().__init__()
@@ -44,27 +49,9 @@ class ModDownloader(Thread):
     def run(self):
         # Run async code from thread
         try:
-            asyncio.run(self._async_run())
-        except Exception as e:
-            CTkMessagebox(
-                title="Error",
-                width=500,
-                wraplength=500,
-                message=f"Unknown error occured.\n{str(e).split('\n')[0]}.",
-            )
-            self.log_info(str(e))
-            self.app.progress_file.after(
-                0,
-                lambda: self.app.progress_file.configure(
-                    text="Start download to see progress."
-                ),
-            )
-        finally:
-            self.app.download_button.configure(state="normal", text="Start Download")
-
-    async def _async_run(self):
-        try:
-            await self._init_playwright()
+            if self.is_website_down():
+                raise WebsiteDownException("https://re146.dev is down. Please close the application and try again later.")
+            self.chrome_options = self._init_selenium()
             if not self.is_website_up(BASE_MOD_URL):
                 raise Exception("Website down.")
 
@@ -100,7 +87,23 @@ class ModDownloader(Thread):
             self.log_info(f"Error connecting to {url}, Website might be down or check your internet connection.")
             return False
     
-    async def _init_playwright(self):
+    def is_port_free(self, port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            result = sock.connect_ex(("localhost", port))
+            return result != 0
+
+    def is_website_down(self):
+        try:
+            response = requests.get(BASE_MOD_URL, timeout=5)
+            if response.status_code >= 200 and response.status_code < 300:
+                return False
+            else:
+                return True
+        except requests.exceptions.RequestException:
+            return True
+
+    def _init_selenium(self):
+        # Set up chrome options
         try:
             self.app.progress_file.after(
                 0,
@@ -108,45 +111,24 @@ class ModDownloader(Thread):
                     text="Downloading and loading dependencies."
                 ),
             )
-            self.log_info("Starting browser (first run may download Chromium)...\n")
-            self._pw = await async_playwright().start()
-            # Launch headless Chromium; if browsers are missing, install them and retry once
-            try:
-                self._browser = await self._pw.chromium.launch(
-                    headless=True, args=["--disable-gpu", "--no-sandbox"]
-                )
-            except Exception as e:
-                msg = str(e)
-                needs_install = (
-                    "Executable doesn't exist" in msg
-                    or "playwright was just installed" in msg.lower()
-                    or "please run the following command to download" in msg.lower()
-                )
-                if needs_install:
-                    self.log_info(
-                        "Playwright browsers not found. Downloading Chromium (one-time setup)...\n"
-                    )
-                    # Stop the current Playwright instance to avoid caching issues
-                    try:
-                        await self._pw.stop()
-                    except Exception:
-                        pass
-                    self._pw = None
-                    # Install browsers
-                    await self._install_playwright_browsers("chromium")
-                    # Start a fresh Playwright instance and retry launch once after install
-                    self._pw = await async_playwright().start()
-                    self._browser = await self._pw.chromium.launch(
-                        headless=True, args=["--disable-gpu", "--no-sandbox"]
-                    )
-                else:
-                    raise
-            self._context = await self._browser.new_context()
-            # Create semaphore for concurrent operations
-            self._semaphore = asyncio.Semaphore(self._max_concurrent)
-            # Create lock for thread-safe counter updates
-            self._lock = asyncio.Lock()
-            self.log_info("Browser ready.\n")
+
+            self.log_info("Retrieving Chromium drivers.\n")
+            chromedriver_autoinstaller.install()
+            self.log_info("Chromium drivers successfully retrieved.\n")
+            chrome_options = Options()
+
+            # Run in headless mode (without a GUI)
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--window-position=-2400,-2400")
+            chrome_options.add_argument("--disable-gpu")
+
+            port = 9222
+            while port:
+                if self.is_port_free(port):
+                    chrome_options.add_argument(f"--remote-debugging-port={port}")
+                    break
+                port += 1
+            return chrome_options
         except Exception as e:
             self.log_info(str(e))
             raise e
