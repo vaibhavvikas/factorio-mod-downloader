@@ -8,11 +8,34 @@ from tkinter import END, Label
 import customtkinter
 from CTkMessagebox import CTkMessagebox
 
+# Ensure Playwright downloads browsers to a persistent user directory
+try:
+    if sys.platform.startswith("win"):
+        base_dir = os.environ.get("LOCALAPPDATA") or str(Path.home())
+        browsers_dir = os.path.join(base_dir, "ms-playwright")
+    else:
+        # Fallbacks for non-Windows
+        base_dir = os.environ.get("XDG_CACHE_HOME") or os.path.join(str(Path.home()), ".cache")
+        browsers_dir = os.path.join(base_dir, "ms-playwright")
+    os.makedirs(browsers_dir, exist_ok=True)
+    # Only set if not already provided by the environment
+    os.environ.setdefault("PLAYWRIGHT_BROWSERS_PATH", browsers_dir)
+except Exception:
+    # Best-effort; continue even if directory setup fails
+    pass
+
 from factorio_mod_downloader.mod_downloader.mod_downloader import ModDownloader
 
 
 customtkinter.set_appearance_mode("dark")
-customtkinter.set_default_color_theme("blue")
+# Use Factorio orange color theme
+customtkinter.set_default_color_theme("dark-blue")
+
+# Define Factorio-inspired colors
+FACTORIO_ORANGE = "#FF8C00"
+FACTORIO_DARK_ORANGE = "#CC6600"
+FACTORIO_LIGHT_ORANGE = "#FFA500"
+FACTORIO_BG = "#2B2B2B"
 
 
 def resource_path(relative_path):
@@ -25,8 +48,8 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         self.resizable(0, 0)
-        self.title("Factorio Mod Downloader v0.2.2")
-        self.geometry(f"{740}x{560}")
+        self.title("Factorio Mod Downloader v1.0.0")
+        self.geometry(f"{740}x{600}")
         self.iconbitmap(resource_path("factorio_downloader.ico"))
 
         self.frame_0 = customtkinter.CTkFrame(master=self)
@@ -64,7 +87,7 @@ class App(customtkinter.CTk):
         )
         self.title_sub_label.grid(row=1, padx=12, sticky="nsw")
         github_repo = "https://github.com/vaibhavvikas/factorio-mod-downloader"
-        github_url = f"Made with ♥ by Vaibhav Vikas, {github_repo}"
+        github_url = f"Made blazingly fast by Emmet, forked from vaibhavvikas, {github_repo}"
         self.developer_label = customtkinter.CTkLabel(
             master=self.title_frame,
             text=github_url,
@@ -112,7 +135,9 @@ class App(customtkinter.CTk):
             master=self.body_frame,
             border_width=2,
             fg_color="transparent",
-            text_color=("gray10", "#DCE4EE"),
+            text_color=(FACTORIO_ORANGE, FACTORIO_LIGHT_ORANGE),
+            hover_color=FACTORIO_DARK_ORANGE,
+            border_color=FACTORIO_ORANGE,
             text="Select Path",
             command=select_path,
         )
@@ -121,6 +146,8 @@ class App(customtkinter.CTk):
         self.download_button = customtkinter.CTkButton(
             master=self.body_frame,
             text="Start Download",
+            fg_color=FACTORIO_ORANGE,
+            hover_color=FACTORIO_DARK_ORANGE,
             command=self.download_button_action,
         )
         self.download_button.grid(
@@ -131,23 +158,36 @@ class App(customtkinter.CTk):
         self.downloads_frame = customtkinter.CTkFrame(master=self.frame_0)
         self.downloads_frame.grid(row=2, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
-        self.progress_file = customtkinter.CTkLabel(
+        # Overall status label
+        self.progress_overall = customtkinter.CTkLabel(
             master=self.downloads_frame,
-            text="Start download to see progress.",
-            font=customtkinter.CTkFont(family="Tahoma"),
+            text="Status: Ready",
+            font=customtkinter.CTkFont(family="Tahoma", weight="bold"),
             text_color=("grey74", "grey60"),
         )
-        self.progress_file.grid(row=0, padx=12, sticky="nsw")
+        self.progress_overall.grid(row=0, column=0, padx=12, pady=(5, 0), sticky="nsw")
 
+        # Currently downloading label
+        self.progress_file = customtkinter.CTkLabel(
+            master=self.downloads_frame,
+            text="Currently downloading: None",
+            font=customtkinter.CTkFont(family="Tahoma", size=11),
+            text_color=("grey74", "grey60"),
+        )
+        self.progress_file.grid(row=1, column=0, padx=12, pady=(0, 0), sticky="nsw")
+
+        # Overall progress bar
         self.progressbar = customtkinter.CTkProgressBar(
             self.downloads_frame,
             orientation="horizontal",
             width=660,
             mode="indeterminate",
             indeterminate_speed=1,
+            progress_color=FACTORIO_ORANGE,
+            fg_color=FACTORIO_BG,
         )
         self.progressbar.grid(
-            row=1, column=0, padx=(10, 10), pady=(10, 10), sticky="ns"
+            row=2, column=0, padx=(10, 10), pady=(10, 10), sticky="ew"
         )
         self.progressbar.start()
 
