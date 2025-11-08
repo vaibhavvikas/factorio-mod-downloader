@@ -12,13 +12,18 @@ It is really helpful if you want to download a mod or modpack containing various
 
 [Official Factorio Link](https://factorio.com)
 
-![Factorio Mod Downloader](factorio_mod_downloader.png)
+<img width="812" height="466" alt="image" src="https://github.com/user-attachments/assets/473e92de-ebec-4acf-ba5d-e426066fb474" />
+
 
 
 ### Features
 1. Added Dark Mode
 2. Added progress bars and logs to see what files are being downloaded.
-3. Completely interactive and requires no other dependency. 100% standalone app.
+3. Added a seperate downloads section to track each file with custom progress and success icons.
+4. Added speed and progress bar specific updates while file is getting downloaded.
+5. Added multithreading downloads, i.e. file will be getting downloaded in background while new dependencies are being analyzed.
+6. Updated to add the option to downlaod optional dependencies as well (Use with caution as it may significantly increase number of files getting downloaded).
+7. Completely interactive and requires no other dependency. 100% standalone app.
 
 
 ### How to download
@@ -43,7 +48,7 @@ It is really helpful if you want to download a mod or modpack containing various
 
 
 ### Note
-I have not included optional dependencies, as its a stupid idea, since a lots of mods, even they don't need something have optional dependencies mentioned. So it will probably take forever to finish downloading. It can be implemented although. Not a big task.
+I have finally included optional dependencies as well. My advice is handle with care as it significantly increase the number and size of downloads.
 
 Also, download speed is based on re146, Its not super fast but its fine.
 
