@@ -11,8 +11,12 @@ from bs4 import BeautifulSoup
 from CTkMessagebox import CTkMessagebox
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 
 
+BASE_FACTORIO_MOD_URL: Final = "https://mods.factorio.com/mod"
 BASE_MOD_URL: Final = "https://re146.dev/factorio/mods/en#"
 BASE_DOWNLOAD_URL: Final = "https://mods-storage.re146.dev"
 
@@ -26,6 +30,7 @@ class ModDownloader(Thread):
         self.mod_url = BASE_MOD_URL + mod_url
         self.app = app
         self.downloaded_mods = set()
+        self.analyzed_mods = set()
 
     def run(self):
         try:
@@ -126,31 +131,34 @@ class ModDownloader(Thread):
         driver.quit()
 
     def download_file(self, url, file_path, file_name):
-        self.app.progressbar.stop()
-        self.app.progressbar.configure(mode="determinate")
-        self.app.progress_file.after(
-            0, lambda: self.app.progress_file.configure(text=f"Downloading {file_name}")
-        )
-        self.app.progressbar.set(0)
-        response = requests.get(url, stream=True)
-        response.raise_for_status()  # Check if the request was successful
+        entry = self.app.downloader_frame.add_download(file_name)
+        entry.label.configure(text=f"Downloading {file_name}")
+        entry.progress_bar.set(0)
 
-        total_size = int(response.headers.get("content-length", 0))
+        def _download():
+            try:
+                response = requests.get(url, stream=True)
+                response.raise_for_status()
+                total_size = int(response.headers.get("content-length", 0))
+                block_size = max(1024 * 1024 * 10, total_size // 100 or 1)
+                progress = 0
 
-        block_size = max(1024 * 1024 * 10, total_size / 100)
-        progress = 0
+                with open(file_path, "wb") as file:
+                    for chunk in response.iter_content(chunk_size=block_size):
+                        if chunk:
+                            file.write(chunk)
+                            progress += len(chunk)
+                            percentage = progress / total_size if total_size else 0
+                            entry.progress_bar.after(0, entry.progress_bar.set, percentage)
 
-        with open(file_path, "wb") as file:
-            for chunk in response.iter_content(chunk_size=block_size):
-                file.write(chunk)
-                progress += len(chunk)
-                percentage = progress / total_size
-                self.app.progressbar.set(percentage)
+                entry.label.after(0, lambda: entry.label.configure(text=f"Downloaded {file_name}"))
+                self.log_info(f"Downloaded: {file_path}.\n")
+            except Exception as e:
+                entry.label.after(0, lambda: entry.label.configure(text=f"Error: {file_name}"))
+                self.log_info(f"Error downloading {file_path}: {e}\n")
 
-        self.app.progress_file.after(
-            0, lambda: self.app.progress_file.configure(text=f"Downloaded {file_name}")
-        )
-        self.log_info(f"Downloaded: {file_path}.\n")
+        # Run download in a new thread to prevent GUI freeze
+        Thread(target=_download, daemon=True).start()
 
     def generate_anticache(self):
         random_number = random.randint(
@@ -158,18 +166,20 @@ class ModDownloader(Thread):
         )  # 16-digit number
         return f"0.{random_number}"
 
-    def get_required_dependencies(self, soup):
-        dependencies = []
-        required_deps = soup.find("dd", {"id": "mod-info-required-dependencies"})
+    def get_required_dependencies(self, mod_name):
+        # Use mod name to get required dependencies from mod.factorio
+        dependency_url = f"https://mods.factorio.com/mod/{mod_name}/dependencies?direction=out&sort=idx&filter=required"
+        soup = self.get_page_source(dependency_url, True)
+        required_mods = []
 
-        if required_deps:
-            links = required_deps.find_all("a", href=True)
-            for link in links:
-                mod_name = link.text.strip()
-                mod_url = link["href"]
-                dependencies.append((mod_name, mod_url))
+        links = soup.find_all("a", class_="mod-dependencies-required")
+        if links:
+            for a in links:
+                dep_name = a.get_text(strip=True)
+                mod_url = f"{BASE_MOD_URL}{BASE_FACTORIO_MOD_URL}/{dep_name}"
+                required_mods.append((dep_name, mod_url))
 
-        return dependencies
+        return required_mods
 
     def get_latest_version(self, soup):
         select = soup.find("select", {"id": "mod-version"})
@@ -196,32 +206,53 @@ class ModDownloader(Thread):
         mod_name = dd_element.get_text(strip=True)
         return mod_name.strip()
 
+    def get_page_source(self, url, is_dependency_check=False):
+        driver = self.init_driver()
+        print("driver_url:", url)
+        driver.get(url)
+    
+        if is_dependency_check:
+            try:
+                WebDriverWait(driver, 15).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "table.panel-hole"))
+                )
+            except Exception:
+                print("Timeout: dependency table not found within 15 seconds")
+        else:
+            time.sleep(2)
+
+        html = driver.page_source
+        self.close_driver(driver)
+        return BeautifulSoup(html, "html.parser")
+
     def download_mod_with_dependencies(self, mod_url, download_path):
         self.app.progressbar.stop()
         self.app.progress_file.after(
             0,
             lambda: self.app.progress_file.configure(
-                text=f"Analayzing mod {mod_url.split("/")[-1]}"
+                text=f"Analyzing mod {mod_url.split("/")[-1]}"
             ),
         )
         self.app.progressbar.configure(mode="indeterminate")
         self.app.progressbar.start()
 
-        driver = self.init_driver()
-        driver.get(mod_url)
-        time.sleep(2)  # Wait 2 seconds for the page to load successfully.
-        html = driver.page_source
-        self.close_driver(driver)
-        soup = BeautifulSoup(html, "html.parser")
-
-        mod_name = self.get_mod_name(soup)
+        soup = self.get_page_source(mod_url)
+        try:
+            mod_name = self.get_mod_name(soup)
+        except:
+            self.log_info(f"Error getting mod name for {mod_url.split("/")[-1]}")
+            return
+        
         latest_version = self.get_latest_version(soup)
-
         if mod_name == "" or latest_version == "":
-            self.log_info(f"Error getting nid from the {mod_url}. Please download it manually. Skipping!\n")
+            self.log_info(f"Error getting id from the {mod_url}. Please download it manually. Skipping!\n")
+            return
+        elif mod_name in ("space-age"):
+            self.log_info(f"Skipping reserved dependency {mod_url}. Please download it manually if required.\n")
+            return
 
         self.log_info(f"Loaded mod {mod_name} with version {latest_version}.\n")
-
+        self.analyzed_mods.add(mod_url)
         download_url = f"{BASE_DOWNLOAD_URL}/{mod_name}/{latest_version}.zip?anticache={self.generate_anticache()}"
         file_name = f"{mod_name}_{latest_version}.zip"
         file_path = os.path.join(download_path, file_name)
@@ -230,20 +261,23 @@ class ModDownloader(Thread):
         os.makedirs(download_path, exist_ok=True)
         if file_name not in self.downloaded_mods:
             self.log_info(f"Downloading {file_name}.\n")
-            self.download_file(download_url, file_path, file_name)
             self.downloaded_mods.add(file_name)
+            self.download_file(download_url, file_path, file_name)
         else:
             self.log_info(f"Mod was already downloaded {file_name}. Skipping!\n")
 
         # Get required dependencies and recursively download them
         self.log_info(f"Loading dependencies for {mod_name}.\n")
-        dependencies = self.get_required_dependencies(soup)
+        dependencies = self.get_required_dependencies(mod_name)
         if len(dependencies) == 0:
             self.log_info(f"No dependency exists for {mod_name}.\n")
             return
 
+        self.log_info(f"Dependencies found for {mod_name}: {", ".join([dep_name for dep_name, _ in dependencies])}\n")
         for dep_name, dep_url in dependencies:
-            self.log_info(f"Analayzing dependency {dep_name} of {mod_name}\n")
+            if dep_name in self.downloaded_mods or mod_url in self.analyzed_mods:
+                continue
+            self.log_info(f"Analyzing dependency {dep_name} of {mod_name}\n")
             self.download_mod_with_dependencies(dep_url, download_path)
 
     def log_info(self, info):
