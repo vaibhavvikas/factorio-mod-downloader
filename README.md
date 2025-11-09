@@ -12,8 +12,7 @@ It is really helpful if you want to download a mod or modpack containing various
 
 [Official Factorio Link](https://factorio.com)
 
-<img width="812" height="466" alt="image" src="https://github.com/user-attachments/assets/473e92de-ebec-4acf-ba5d-e426066fb474" />
-
+![Factorio Mod Downloader](factorio_mod_downloader.png)
 
 
 ### Features
