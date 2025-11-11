@@ -62,7 +62,7 @@ def print_detailed_help():
     console = Console()
     
     console.print("\n[bold cyan]╔═══════════════════════════════════════════════════════════════╗[/bold cyan]")
-    console.print("[bold cyan]║     Factorio Mod Downloader v2.0.0 - Complete Guide      ║[/bold cyan]")
+    console.print("[bold cyan]║     Factorio Mod Downloader v2.0.0 - Complete Guide             ║[/bold cyan]")
     console.print("[bold cyan]╚═══════════════════════════════════════════════════════════════╝[/bold cyan]\n")
     
     # Overview
