@@ -25,11 +25,13 @@ def print_simple_help():
         "[bold]Quick Start Guide[/bold]\n\n"
         "1. Download a single mod:\n"
         "   [cyan]fmd download https://mods.factorio.com/mod/Krastorio2[/cyan]\n\n"
-        "2. Download multiple mods from JSON file:\n"
+        "2. Create batch file template:\n"
+        "   [cyan]fmd batch init[/cyan]\n\n"
+        "3. Download multiple mods from JSON file:\n"
         "   [cyan]fmd batch mods.json[/cyan]\n\n"
-        "3. Check for mod updates:\n"
+        "4. Check for mod updates:\n"
         "   [cyan]fmd check-updates ./mods[/cyan]\n\n"
-        "4. Initialize configuration:\n"
+        "5. Initialize configuration:\n"
         "   [cyan]fmd config init[/cyan]",
         title="🚀 Getting Started",
         border_style="green"
@@ -62,7 +64,7 @@ def print_detailed_help():
     console = Console()
     
     console.print("\n[bold cyan]╔═══════════════════════════════════════════════════════════════╗[/bold cyan]")
-    console.print("[bold cyan]║     Factorio Mod Downloader v2.0.0 - Complete Guide            ║[/bold cyan]")
+    console.print("[bold cyan]║     Factorio Mod Downloader v2.0.0 - Complete Guide           ║[/bold cyan]")
     console.print("[bold cyan]╚═══════════════════════════════════════════════════════════════╝[/bold cyan]\n")
     
     # Overview
@@ -108,7 +110,7 @@ def print_detailed_help():
     # Batch Command
     console.print("\n")
     console.print(Panel.fit(
-        "[bold cyan]fmd batch <JSON_FILE> [OPTIONS][/bold cyan]\n\n"
+        "[bold cyan]fmd batch <JSON_FILE|init> [OPTIONS][/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
         "Download multiple mods from a JSON batch file.\n\n"
         "[bold]JSON Format:[/bold]\n"
@@ -124,6 +126,8 @@ def print_detailed_help():
         "  --include-optional         Include optional dependencies\n"
         "  --continue-on-error        Continue if one mod fails\n\n"
         "[bold]Examples:[/bold]\n"
+        "  [dim]# Create template batch file[/dim]\n"
+        "  fmd batch init\n\n"
         "  [dim]# Download all mods from JSON file[/dim]\n"
         "  fmd batch mods.json\n\n"
         "  [dim]# Download to custom directory, continue on errors[/dim]\n"
@@ -452,13 +456,16 @@ Alternative format (direct array):
     "https://mods.factorio.com/mod/Krastorio2",
     "https://mods.factorio.com/mod/space-exploration"
   ]
+
+Use 'fmd batch init' to create a template batch file.
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
     batch_parser.add_argument(
         'file',
-        help='Path to JSON batch file containing mod URLs'
+        nargs='?',  # Make file optional for 'init' subcommand
+        help='Path to JSON batch file containing mod URLs, or "init" to create template'
     )
     
     batch_parser.add_argument(

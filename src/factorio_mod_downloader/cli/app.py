@@ -376,12 +376,99 @@ class CLIApp:
             self.output.print_error(f"Error analyzing dependencies: {e}")
             return 1
     
+    def _batch_init(self) -> int:
+        """Create a template batch file in the Factorio mods directory.
+        
+        Returns:
+            Exit code (0 for success, non-zero for failure).
+        """
+        import json
+        import os
+        
+        # Determine the Factorio mods directory
+        if os.name == 'nt':  # Windows
+            appdata = os.getenv('APPDATA')
+            if appdata:
+                factorio_dir = Path(appdata) / 'Factorio' / 'mods'
+            else:
+                self.output.print_error("Could not determine APPDATA directory")
+                return 1
+        else:  # Linux/Mac
+            factorio_dir = Path.home() / '.factorio' / 'mods'
+        
+        # Create the batch file path
+        batch_file_path = factorio_dir / 'mods_dl.json'
+        
+        # Check if Factorio directory exists
+        if not factorio_dir.exists():
+            self.output.print_warning(
+                f"Factorio mods directory not found: {factorio_dir}"
+            )
+            self.output.print_info(
+                "Creating the directory... Make sure Factorio is installed."
+            )
+            try:
+                factorio_dir.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                self.output.print_error(f"Failed to create directory: {e}")
+                return 1
+        
+        # Check if file already exists
+        if batch_file_path.exists():
+            self.output.print_warning(f"File already exists: {batch_file_path}")
+            response = input("Overwrite? (y/N): ").strip().lower()
+            if response != 'y':
+                self.output.print_info("Cancelled.")
+                return 0
+        
+        # Create template batch file
+        template = {
+            "name": "My Factorio Modpack",
+            "description": "A collection of Factorio mods to download",
+            "version": "1.0",
+            "author": "Your Name",
+            "mods": [
+                "https://mods.factorio.com/mod/example-mod-1",
+                "https://mods.factorio.com/mod/example-mod-2",
+                "https://mods.factorio.com/mod/example-mod-3"
+            ],
+            "_instructions": {
+                "1": "Replace the example URLs above with actual mod URLs from https://mods.factorio.com/",
+                "2": "Each URL should be in the format: https://mods.factorio.com/mod/<mod-name>",
+                "3": "You can add as many mods as you want to the 'mods' array",
+                "4": "Remove this '_instructions' section before using the file",
+                "5": "Run: fmd batch mods_dl.json"
+            }
+        }
+        
+        try:
+            with open(batch_file_path, 'w', encoding='utf-8') as f:
+                json.dump(template, f, indent=2, ensure_ascii=False)
+            
+            self.output.print_success(f"Template batch file created: {batch_file_path}")
+            self.output.print_info("\nNext steps:")
+            self.output.print_info("  1. Edit the file and replace example URLs with actual mod URLs")
+            self.output.print_info("  2. Remove the '_instructions' section")
+            self.output.print_info(f"  3. Run: fmd batch \"{batch_file_path}\"")
+            self.output.print_info("\nOr use a custom location:")
+            self.output.print_info("  fmd batch mods_dl.json -o ./custom-mods")
+            
+            # Log the action
+            self.logger.info(f"Created template batch file: {batch_file_path}")
+            
+            return 0
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create batch file: {e}")
+            self.output.print_error(f"Failed to create batch file: {e}")
+            return 1
+    
     def download_batch(self, args: argparse.Namespace) -> int:
         """Download multiple mods from a batch file.
         
         Args:
             args: Parsed command-line arguments containing:
-                  - file: Path to batch file
+                  - file: Path to batch file or "init" to create template
                   - output_path: Output directory (optional)
                   - include_optional: Include optional dependencies
                   - continue_on_error: Continue on errors
@@ -389,6 +476,17 @@ class CLIApp:
         Returns:
             Exit code (0 for success, non-zero for failure).
         """
+        # Handle 'batch init' command
+        if args.file == 'init':
+            return self._batch_init()
+        
+        # Check if file argument is provided
+        if not args.file:
+            self.output.print_error("Error: batch file path is required")
+            self.output.print_info("Usage: fmd batch <file.json>")
+            self.output.print_info("   or: fmd batch init  (to create template)")
+            return 1
+        
         # Validate batch file
         is_valid, error = validate_batch_file(args.file)
         if not is_valid:
