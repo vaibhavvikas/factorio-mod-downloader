@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "factorio-mod-downloader"
+name = "fmd"
 version = "2.0.0"
 description = "Download Factorio mods from the command line or GUI with full dependency resolution."
 authors = ["Vaibhav Vikas <vbhvvikas@gmail.com>"]
