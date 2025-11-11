@@ -162,3 +162,6 @@ cython_debug/
 
 # Download file specific
 mods/
+
+# Factorio Mod Downloader specific
+.factorio-mod-downloader/
