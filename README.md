@@ -174,10 +174,14 @@ uv build
 uv run pyinstaller src/factorio_mod_downloader/__main__.py --onefile --console --icon=factorio_downloader.ico --name=factorio-mod-downloader --clean
 ```
 
-**Legacy (Poetry with plugin):**
+**Poetry (with plugin) - Recommended:**
 ```bash
+# IMPORTANT: Run this OUTSIDE the virtual environment
+# Your prompt should NOT show (factorio-mod-downloader)
 poetry build  # Automatically builds both package and .exe
 ```
+
+**⚠️ Important:** If you get a permission error, make sure you're NOT in an activated virtual environment. Close your terminal and run `poetry build` in a fresh terminal.
 
 **Build artifacts:**
 - Python packages: `dist/*.whl`, `dist/*.tar.gz`
