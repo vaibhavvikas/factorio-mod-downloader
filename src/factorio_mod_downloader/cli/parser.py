@@ -24,13 +24,13 @@ def print_simple_help():
     console.print(Panel.fit(
         "[bold]Quick Start Guide[/bold]\n\n"
         "1. Download a single mod:\n"
-        "   [cyan]factorio-mod-downloader download https://mods.factorio.com/mod/Krastorio2[/cyan]\n\n"
+        "   [cyan]fmd download https://mods.factorio.com/mod/Krastorio2[/cyan]\n\n"
         "2. Download multiple mods from JSON file:\n"
-        "   [cyan]factorio-mod-downloader batch mods.json[/cyan]\n\n"
+        "   [cyan]fmd batch mods.json[/cyan]\n\n"
         "3. Check for mod updates:\n"
-        "   [cyan]factorio-mod-downloader check-updates ./mods[/cyan]\n\n"
+        "   [cyan]fmd check-updates ./mods[/cyan]\n\n"
         "4. Initialize configuration:\n"
-        "   [cyan]factorio-mod-downloader config init[/cyan]",
+        "   [cyan]fmd config init[/cyan]",
         title="🚀 Getting Started",
         border_style="green"
     ))
@@ -52,9 +52,9 @@ def print_simple_help():
     
     # More Help
     console.print("\n[bold]Need more help?[/bold]")
-    console.print("  • Detailed help: [cyan]factorio-mod-downloader -hh[/cyan]")
-    console.print("  • Command help: [cyan]factorio-mod-downloader <command> --help[/cyan]")
-    console.print("  • Version info: [cyan]factorio-mod-downloader --version[/cyan]\n")
+    console.print("  • Detailed help: [cyan]fmd -hh[/cyan]")
+    console.print("  • Command help: [cyan]fmd <command> --help[/cyan]")
+    console.print("  • Version info: [cyan]fmd --version[/cyan]\n")
 
 
 def print_detailed_help():
@@ -62,7 +62,7 @@ def print_detailed_help():
     console = Console()
     
     console.print("\n[bold cyan]╔═══════════════════════════════════════════════════════════════╗[/bold cyan]")
-    console.print("[bold cyan]║     Factorio Mod Downloader v2.0.0 - Complete Guide             ║[/bold cyan]")
+    console.print("[bold cyan]║     Factorio Mod Downloader v2.0.0 - Complete Guide            ║[/bold cyan]")
     console.print("[bold cyan]╚═══════════════════════════════════════════════════════════════╝[/bold cyan]\n")
     
     # Overview
@@ -84,7 +84,7 @@ def print_detailed_help():
     
     # Download Command
     console.print(Panel.fit(
-        "[bold cyan]factorio-mod-downloader download <URL> [OPTIONS][/bold cyan]\n\n"
+        "[bold cyan]fmd download <URL> [OPTIONS][/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
         "Download a single mod and all its required dependencies.\n\n"
         "[bold]Options:[/bold]\n"
@@ -95,12 +95,12 @@ def print_detailed_help():
         "  --no-resume                Disable resume functionality\n\n"
         "[bold]Examples:[/bold]\n"
         "  [dim]# Download to Factorio directory[/dim]\n"
-        "  factorio-mod-downloader download https://mods.factorio.com/mod/Krastorio2\n\n"
+        "  fmd download https://mods.factorio.com/mod/Krastorio2\n\n"
         "  [dim]# Download with optional dependencies to custom folder[/dim]\n"
-        "  factorio-mod-downloader download https://mods.factorio.com/mod/space-exploration \\\n"
+        "  fmd download https://mods.factorio.com/mod/space-exploration \\\n"
         "    --include-optional -o D:\\MyMods\n\n"
         "  [dim]# Preview download without actually downloading[/dim]\n"
-        "  factorio-mod-downloader download https://mods.factorio.com/mod/FNEI --dry-run",
+        "  fmd download https://mods.factorio.com/mod/FNEI --dry-run",
         title="📥 download",
         border_style="cyan"
     ))
@@ -108,7 +108,7 @@ def print_detailed_help():
     # Batch Command
     console.print("\n")
     console.print(Panel.fit(
-        "[bold cyan]factorio-mod-downloader batch <JSON_FILE> [OPTIONS][/bold cyan]\n\n"
+        "[bold cyan]fmd batch <JSON_FILE> [OPTIONS][/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
         "Download multiple mods from a JSON batch file.\n\n"
         "[bold]JSON Format:[/bold]\n"
@@ -125,9 +125,9 @@ def print_detailed_help():
         "  --continue-on-error        Continue if one mod fails\n\n"
         "[bold]Examples:[/bold]\n"
         "  [dim]# Download all mods from JSON file[/dim]\n"
-        "  factorio-mod-downloader batch mods.json\n\n"
+        "  fmd batch mods.json\n\n"
         "  [dim]# Download to custom directory, continue on errors[/dim]\n"
-        "  factorio-mod-downloader batch mods.json -o ./mods --continue-on-error",
+        "  fmd batch mods.json -o ./mods --continue-on-error",
         title="📋 batch",
         border_style="cyan"
     ))
@@ -135,14 +135,14 @@ def print_detailed_help():
     # Check Updates Command
     console.print("\n")
     console.print(Panel.fit(
-        "[bold cyan]factorio-mod-downloader check-updates <DIRECTORY>[/bold cyan]\n\n"
+        "[bold cyan]fmd check-updates <DIRECTORY>[/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
         "Scan a directory for installed mods and check if newer versions are available.\n\n"
         "[bold]Examples:[/bold]\n"
         "  [dim]# Check for updates in Factorio mods directory[/dim]\n"
-        "  factorio-mod-downloader check-updates %APPDATA%\\Factorio\\mods\n\n"
+        "  fmd check-updates %APPDATA%\\Factorio\\mods\n\n"
         "  [dim]# Check custom directory[/dim]\n"
-        "  factorio-mod-downloader check-updates ./my-mods",
+        "  fmd check-updates ./my-mods",
         title="🔍 check-updates",
         border_style="cyan"
     ))
@@ -150,7 +150,7 @@ def print_detailed_help():
     # Update Command
     console.print("\n")
     console.print(Panel.fit(
-        "[bold cyan]factorio-mod-downloader update <DIRECTORY> [OPTIONS][/bold cyan]\n\n"
+        "[bold cyan]fmd update <DIRECTORY> [OPTIONS][/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
         "Download newer versions of installed mods.\n\n"
         "[bold]Options:[/bold]\n"
@@ -158,9 +158,9 @@ def print_detailed_help():
         "  --replace                  Replace old versions (default: keep both)\n\n"
         "[bold]Examples:[/bold]\n"
         "  [dim]# Update all mods[/dim]\n"
-        "  factorio-mod-downloader update ./mods\n\n"
+        "  fmd update ./mods\n\n"
         "  [dim]# Update specific mod and replace old version[/dim]\n"
-        "  factorio-mod-downloader update ./mods --update-mod Krastorio2 --replace",
+        "  fmd update ./mods --update-mod Krastorio2 --replace",
         title="⬆️  update",
         border_style="cyan"
     ))
@@ -168,7 +168,7 @@ def print_detailed_help():
     # Config Command
     console.print("\n")
     console.print(Panel.fit(
-        "[bold cyan]factorio-mod-downloader config <ACTION> [ARGS][/bold cyan]\n\n"
+        "[bold cyan]fmd config <ACTION> [ARGS][/bold cyan]\n\n"
         "[bold]Actions:[/bold]\n"
         "  init                       Create default configuration file\n"
         "  list                       Show all configuration values\n"
@@ -183,11 +183,11 @@ def print_detailed_help():
         "  concurrent_downloads       Number of concurrent downloads\n\n"
         "[bold]Examples:[/bold]\n"
         "  [dim]# Initialize configuration[/dim]\n"
-        "  factorio-mod-downloader config init\n\n"
+        "  fmd config init\n\n"
         "  [dim]# Set default output path[/dim]\n"
-        "  factorio-mod-downloader config set default_output_path D:\\MyMods\n\n"
+        "  fmd config set default_output_path D:\\MyMods\n\n"
         "  [dim]# View all settings[/dim]\n"
-        "  factorio-mod-downloader config list",
+        "  fmd config list",
         title="⚙️  config",
         border_style="cyan"
     ))
@@ -195,11 +195,11 @@ def print_detailed_help():
     # Validate Command
     console.print("\n")
     console.print(Panel.fit(
-        "[bold cyan]factorio-mod-downloader validate <DIRECTORY>[/bold cyan]\n\n"
+        "[bold cyan]fmd validate <DIRECTORY>[/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
         "Check the integrity of downloaded mod files in a directory.\n\n"
         "[bold]Examples:[/bold]\n"
-        "  factorio-mod-downloader validate ./mods",
+        "  fmd validate ./mods",
         title="✓ validate",
         border_style="cyan"
     ))
@@ -230,14 +230,14 @@ def print_detailed_help():
         "   Batch files must be in JSON format with a [cyan].json[/cyan] extension.\n"
         "   See example-mods.json in the repository for reference.\n\n"
         "[bold blue]ℹ[/bold blue]  [bold]Configuration:[/bold]\n"
-        "   Configuration is stored at: [cyan]~/.factorio-mod-downloader/config.yaml[/cyan]\n"
-        "   Logs are stored at: [cyan]~/.factorio-mod-downloader/logs/[/cyan]",
+        "   Configuration is stored at: [cyan]~/.fmd/config.yaml[/cyan]\n"
+        "   Logs are stored at: [cyan]~/.fmd/logs/[/cyan]",
         border_style="yellow"
     ))
     
     # Footer
     console.print("\n[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]")
-    console.print("[dim]For more information, visit: https://github.com/vaibhavvikas/factorio-mod-downloader[/dim]")
+    console.print("[dim]For more information, visit: https://github.com/vaibhavvikas/fmd[/dim]")
     console.print("[bold cyan]═══════════════════════════════════════════════════════════════[/bold cyan]\n")
 
 
@@ -264,7 +264,7 @@ def create_parser() -> argparse.ArgumentParser:
     """
     # Main parser with custom help
     parser = argparse.ArgumentParser(
-        prog='factorio-mod-downloader',
+        prog='fmd',
         description='Download Factorio mods from the mod portal with dependency resolution.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         add_help=False,  # We'll handle help ourselves
@@ -272,13 +272,13 @@ def create_parser() -> argparse.ArgumentParser:
 This is the normal help command. More detailed help is available with -hh
 
 Quick Examples:
-  factorio-mod-downloader download https://mods.factorio.com/mod/Krastorio2
-  factorio-mod-downloader batch mods.json
-  factorio-mod-downloader check-updates ./mods
-  factorio-mod-downloader config init
+  fmd download https://mods.factorio.com/mod/Krastorio2
+  fmd batch mods.json
+  fmd check-updates ./mods
+  fmd config init
 
 For detailed help with all commands and options:
-  factorio-mod-downloader -hh
+  fmd -hh
         """
     )
     
@@ -541,7 +541,7 @@ def _add_config_subcommand(subparsers):
         help='Manage configuration',
         description="""Initialize, view, or modify configuration settings.
 
-Configuration is stored at: ~/.factorio-mod-downloader/config.yaml
+Configuration is stored at: ~/.fmd/config.yaml
 
 Available configuration keys:
   - default_output_path: Default directory for downloads (default: ./mods)
@@ -552,10 +552,10 @@ Available configuration keys:
   - concurrent_downloads: Number of concurrent downloads (default: 3)
 
 Examples:
-  factorio-mod-downloader config init
-  factorio-mod-downloader config set default_output_path ./my-mods
-  factorio-mod-downloader config get max_retries
-  factorio-mod-downloader config list
+  fmd config init
+  fmd config set default_output_path ./my-mods
+  fmd config get max_retries
+  fmd config list
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )

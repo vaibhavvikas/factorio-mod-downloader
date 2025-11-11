@@ -76,7 +76,7 @@ recursive-copy-metadata = [
 ]
 
 [tool.poetry-pyinstaller-plugin.scripts]
-factorio_mod_downloader = { source = "src/factorio_mod_downloader/__main__.py", type = "onefile", bundle = true, add_version = true, icon = "factorio_downloader.ico", windowed = true }
+fmd = { source = "src/factorio_mod_downloader/__main__.py", type = "onefile", bundle = true, add_version = true, icon = "factorio_downloader.ico", console = true }
 
 [tool.poetry-pyinstaller-plugin.collect]
 all = ['factorio_mod_downloader', 'mod_downloader']
