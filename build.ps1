@@ -36,7 +36,7 @@ Write-Host "🔨 Building Windows executable (.exe)" -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Yellow
 Write-Host ""
 
-uv run pyinstaller src/factorio_mod_downloader/__main__.py --onefile --console --icon=factorio_downloader.ico --name=factorio-mod-downloader --clean
+uv run pyinstaller src/factorio_mod_downloader/__main__.py --onefile --console --icon=factorio_downloader.ico --name=fmd --clean
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host ""

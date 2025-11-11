@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fmd"
-version = "2.0.0"
+version = "0.3.0"
 description = "Download Factorio mods from the command line or GUI with full dependency resolution."
 authors = ["Vaibhav Vikas <vbhvvikas@gmail.com>"]
 license = "MIT"
