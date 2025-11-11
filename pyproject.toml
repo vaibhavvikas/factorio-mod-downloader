@@ -39,7 +39,7 @@ poetry-pyinstaller-plugin = "^1.4.0"
 
 [tool.poetry.scripts]
 factorio-mod-downloader = "factorio_mod_downloader.__main__:main"
-build = "poetry run pyinstaller src/factorio_mod_downloader/__main__.py --onefile --console --icon=factorio_downloader.ico --name=fmd --clean
+build = "poetry run pyinstaller src/factorio_mod_downloader/__main__.py --onefile --console --icon=factorio_downloader.ico --name=fmd --clean"
 
 [tool.poetry.group.dev.dependencies]
 pylint = "^3.3.1"
