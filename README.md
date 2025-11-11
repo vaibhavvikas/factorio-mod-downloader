@@ -146,19 +146,44 @@ Logs are stored at `~/.factorio-mod-downloader/logs/factorio-mod-downloader.log`
 4. To run the application use the command `uv run factorio-mod-downloader`. This will run the application directly without building.
 
 #### Building
-To build the application, we use PyInstaller (you need a **Windows x64** system to build the Windows executable):
 
-**Using uv:**
-```bash
-uv run pyinstaller src/factorio_mod_downloader/__main__.py --onefile --windowed --icon=factorio_downloader.ico --name=factorio-mod-downloader
+To build both the Python package and Windows executable, use the provided build scripts:
+
+**Windows (PowerShell):**
+```powershell
+.\build.ps1
 ```
 
-**Or using poetry (legacy):**
+**Linux/Mac (Bash):**
 ```bash
-poetry build
+chmod +x build.sh
+./build.sh
 ```
 
-The executable will be generated inside the `/dist` directory.
+**Python script (cross-platform):**
+```bash
+uv run python build.py
+```
+
+**Manual build (if needed):**
+```bash
+# Build Python package only
+uv build
+
+# Build Windows executable only
+uv run pyinstaller src/factorio_mod_downloader/__main__.py --onefile --console --icon=factorio_downloader.ico --name=factorio-mod-downloader --clean
+```
+
+**Legacy (Poetry with plugin):**
+```bash
+poetry build  # Automatically builds both package and .exe
+```
+
+**Build artifacts:**
+- Python packages: `dist/*.whl`, `dist/*.tar.gz`
+- Windows executable: `dist/factorio-mod-downloader.exe`
+
+**Note:** You need a **Windows x64** system to build the Windows executable.
 
 
 ### Batch File Format
