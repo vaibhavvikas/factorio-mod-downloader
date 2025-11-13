@@ -124,12 +124,18 @@ def print_detailed_help():
         "[bold]Options:[/bold]\n"
         "  -o, --output PATH          Output directory\n"
         "  --include-optional         Include optional dependencies\n"
-        "  --continue-on-error        Continue if one mod fails\n\n"
+        "  --continue-on-error        Continue if one mod fails\n"
+        "  --enabled                  Add mods to mod-list.json as enabled (default)\n"
+        "  --disabled                 Add mods to mod-list.json as disabled\n\n"
         "[bold]Examples:[/bold]\n"
-        "  [dim]# Create template batch file[/dim]\n"
+        "  [dim]# Create template batch file in Factorio directory[/dim]\n"
         "  fmd batch init\n\n"
+        "  [dim]# Download from template (auto-finds in Factorio directory)[/dim]\n"
+        "  fmd batch mods_dl.json\n\n"
         "  [dim]# Download all mods from JSON file[/dim]\n"
         "  fmd batch mods.json\n\n"
+        "  [dim]# Download mods as disabled in Factorio[/dim]\n"
+        "  fmd batch mods.json --disabled\n\n"
         "  [dim]# Download to custom directory, continue on errors[/dim]\n"
         "  fmd batch mods.json -o ./mods --continue-on-error",
         title="📋 batch",
@@ -232,7 +238,11 @@ def print_detailed_help():
         "   specify a custom output directory with [cyan]-o/--output[/cyan].\n\n"
         "[bold green]✓[/bold green]  [bold]Batch Files:[/bold]\n"
         "   Batch files must be in JSON format with a [cyan].json[/cyan] extension.\n"
-        "   See example-mods.json in the repository for reference.\n\n"
+        "   Use [cyan]fmd batch init[/cyan] to create a template in Factorio directory.\n"
+        "   Just filename works: [cyan]fmd batch mods_dl.json[/cyan] auto-finds it.\n\n"
+        "[bold green]✓[/bold green]  [bold]Automatic mod-list.json Update:[/bold]\n"
+        "   When downloading to Factorio directory, mods are automatically added\n"
+        "   to mod-list.json. Use [cyan]--disabled[/cyan] to add them as disabled.\n\n"
         "[bold blue]ℹ[/bold blue]  [bold]Configuration:[/bold]\n"
         "   Configuration is stored at: [cyan]~/.fmd/config.yaml[/cyan]\n"
         "   Logs are stored at: [cyan]~/.fmd/logs/[/cyan]",
@@ -392,7 +402,27 @@ The mod URL should be in the format: https://mods.factorio.com/mod/<mod-name>
     download_parser.add_argument(
         '--include-optional',
         action='store_true',
-        help='Include optional dependencies in download'
+        help='Include main mod optional dependencies and their required dependencies'
+    )
+    
+    download_parser.add_argument(
+        '--include-optional-all',
+        action='store_true',
+        help='Include all optional dependencies recursively (nested optional deps)'
+    )
+    
+    download_parser.add_argument(
+        '--target-mod-version',
+        dest='target_mod_version',
+        default=None,
+        help='Specific version of the main mod to download (e.g., 2.0.10)'
+    )
+    
+    download_parser.add_argument(
+        '--factorio-version',
+        dest='factorio_version',
+        default='2.0',
+        help='Target Factorio version for compatibility (default: 2.0)'
     )
     
     download_parser.add_argument(
@@ -478,13 +508,39 @@ Use 'fmd batch init' to create a template batch file.
     batch_parser.add_argument(
         '--include-optional',
         action='store_true',
-        help='Include optional dependencies in download'
+        help='Include main mod optional dependencies and their required dependencies'
+    )
+    
+    batch_parser.add_argument(
+        '--include-optional-all',
+        action='store_true',
+        help='Include all optional dependencies recursively (nested optional deps)'
+    )
+    
+    batch_parser.add_argument(
+        '--factorio-version',
+        dest='factorio_version',
+        default='2.0',
+        help='Target Factorio version for compatibility (default: 2.0)'
     )
     
     batch_parser.add_argument(
         '--continue-on-error',
         action='store_true',
         help='Continue processing remaining mods even if one fails'
+    )
+    
+    batch_parser.add_argument(
+        '--enabled',
+        action='store_true',
+        default=True,
+        help='Add mods to mod-list.json as enabled (default)'
+    )
+    
+    batch_parser.add_argument(
+        '--disabled',
+        action='store_true',
+        help='Add mods to mod-list.json as disabled'
     )
 
 

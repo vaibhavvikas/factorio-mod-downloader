@@ -25,6 +25,7 @@ from factorio_mod_downloader.infrastructure.errors import (
 )
 from factorio_mod_downloader.core.downloader import CoreDownloader
 from factorio_mod_downloader.core.mod_info_fetcher import ModInfoFetcher
+from factorio_mod_downloader.core.rust_downloader import RustDownloader, RUST_AVAILABLE
 from factorio_mod_downloader.infrastructure.config import Config, ConfigManager
 from factorio_mod_downloader.infrastructure.logger import LoggerSystem
 from factorio_mod_downloader.infrastructure.registry import ModRegistry
@@ -49,6 +50,18 @@ class CLIApp:
         self.output = OutputFormatter(config)
         self.config_manager = ConfigManager()
         self.registry = ModRegistry()
+        
+        # Initialize Rust downloader if available
+        self.use_rust = RUST_AVAILABLE
+        if self.use_rust:
+            try:
+                self.rust_downloader = RustDownloader(logger, config)
+                self.logger.info("Rust downloader initialized successfully")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize Rust downloader: {e}")
+                self.use_rust = False
+        else:
+            self.logger.info("Rust downloader not available, using Python fallback")
     
     def run(self, args: argparse.Namespace) -> int:
         """Execute CLI command and return exit code.
@@ -271,16 +284,47 @@ class CLIApp:
         
         # Create downloader
         try:
-            downloader = CoreDownloader(
-                output_path=output_path,
-                include_optional=args.include_optional,
-                logger=self.logger,
-                config=self.config,
-                progress_callback=progress_callback
-            )
-            
-            # Download mod
-            result = downloader.download_mod(args.url)
+            # Use Rust downloader if available
+            if self.use_rust:
+                # Get factorio version from args or config or default to 2.0
+                factorio_version = getattr(args, 'factorio_version', None) or getattr(self.config, 'factorio_version', '2.0')
+                
+                # Get optional dependency settings
+                include_optional_all = getattr(args, 'include_optional_all', False)
+                target_mod_version = getattr(args, 'target_mod_version', None)
+                
+                rust_result = self.rust_downloader.download_mod(
+                    mod_url=args.url,
+                    output_path=output_path,
+                    factorio_version=factorio_version,
+                    include_optional=args.include_optional,
+                    include_optional_all=include_optional_all,
+                    target_mod_version=target_mod_version,
+                    max_depth=10
+                )
+                
+                # Convert Rust result to Python result format
+                class RustResultAdapter:
+                    def __init__(self, rust_result):
+                        self.success = rust_result.success
+                        self.downloaded_mods = rust_result.downloaded_mods
+                        self.failed_mods = rust_result.failed_mods
+                        self.total_size = rust_result.total_size
+                        self.duration = rust_result.duration
+                
+                result = RustResultAdapter(rust_result)
+            else:
+                # Fallback to Python downloader
+                downloader = CoreDownloader(
+                    output_path=output_path,
+                    include_optional=args.include_optional,
+                    logger=self.logger,
+                    config=self.config,
+                    progress_callback=progress_callback
+                )
+                
+                # Download mod
+                result = downloader.download_mod(args.url)
             
             # Close any remaining progress bar
             if current_mod['progress_bar']:
@@ -376,6 +420,61 @@ class CLIApp:
             self.output.print_error(f"Error analyzing dependencies: {e}")
             return 1
     
+    def _update_mod_list(self, mod_names: list[str], mods_directory: Path, enabled: bool = True) -> bool:
+        """Update Factorio's mod-list.json file with newly downloaded mods.
+        
+        Args:
+            mod_names: List of mod names to add.
+            mods_directory: Path to Factorio mods directory.
+            enabled: Whether mods should be enabled (default: True).
+            
+        Returns:
+            True if successful, False otherwise.
+        """
+        import json
+        
+        mod_list_path = mods_directory / 'mod-list.json'
+        
+        try:
+            # Read existing mod-list.json or create new structure
+            if mod_list_path.exists():
+                with open(mod_list_path, 'r', encoding='utf-8') as f:
+                    mod_list = json.load(f)
+            else:
+                mod_list = {"mods": []}
+            
+            # Get existing mod names
+            existing_mods = {mod['name'] for mod in mod_list.get('mods', [])}
+            
+            # Add new mods that don't already exist
+            added_count = 0
+            for mod_name in mod_names:
+                if mod_name not in existing_mods:
+                    mod_list['mods'].append({
+                        "name": mod_name,
+                        "enabled": enabled
+                    })
+                    added_count += 1
+                    self.logger.info(f"Added {mod_name} to mod-list.json (enabled={enabled})")
+            
+            # Write updated mod-list.json
+            if added_count > 0:
+                with open(mod_list_path, 'w', encoding='utf-8') as f:
+                    json.dump(mod_list, f, indent=2, ensure_ascii=False)
+                
+                self.output.print_success(
+                    f"Updated mod-list.json: added {added_count} mod(s) (enabled={enabled})"
+                )
+                return True
+            else:
+                self.output.print_info("All mods already in mod-list.json")
+                return True
+                
+        except Exception as e:
+            self.logger.error(f"Failed to update mod-list.json: {e}")
+            self.output.print_warning(f"Could not update mod-list.json: {e}")
+            return False
+    
     def _batch_init(self) -> int:
         """Create a template batch file in the Factorio mods directory.
         
@@ -415,11 +514,27 @@ class CLIApp:
         
         # Check if file already exists
         if batch_file_path.exists():
-            self.output.print_warning(f"File already exists: {batch_file_path}")
-            response = input("Overwrite? (y/N): ").strip().lower()
-            if response != 'y':
-                self.output.print_info("Cancelled.")
-                return 0
+            self.output.print_info(f"Batch file already exists: {batch_file_path}")
+            self.output.print_info("\nFile details:")
+            try:
+                import json
+                with open(batch_file_path, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+                    if isinstance(existing_data, dict):
+                        self.output.print_info(f"  Name: {existing_data.get('name', 'N/A')}")
+                        self.output.print_info(f"  Description: {existing_data.get('description', 'N/A')}")
+                        mods_list = existing_data.get('mods', [])
+                        self.output.print_info(f"  Number of mods: {len(mods_list)}")
+                    else:
+                        self.output.print_info(f"  Number of mods: {len(existing_data)}")
+            except Exception:
+                pass
+            
+            self.output.print_info("\nTo use this file:")
+            self.output.print_info(f"  fmd batch mods_dl.json")
+            self.output.print_info("\nTo edit the file, open it in a text editor:")
+            self.output.print_info(f"  {batch_file_path}")
+            return 0
         
         # Create template batch file
         template = {
@@ -487,11 +602,32 @@ class CLIApp:
             self.output.print_info("   or: fmd batch init  (to create template)")
             return 1
         
+        # Check if file is just a filename (not a path) - look in Factorio directory
+        batch_file_path = Path(args.file)
+        if not batch_file_path.exists():
+            # Try to find it in Factorio mods directory
+            import os
+            if os.name == 'nt':  # Windows
+                appdata = os.getenv('APPDATA')
+                if appdata:
+                    factorio_batch = Path(appdata) / 'Factorio' / 'mods' / args.file
+                    if factorio_batch.exists():
+                        batch_file_path = factorio_batch
+                        self.output.print_info(f"Using batch file from Factorio directory: {batch_file_path}")
+            else:  # Linux/Mac
+                factorio_batch = Path.home() / '.factorio' / 'mods' / args.file
+                if factorio_batch.exists():
+                    batch_file_path = factorio_batch
+                    self.output.print_info(f"Using batch file from Factorio directory: {batch_file_path}")
+        
         # Validate batch file
-        is_valid, error = validate_batch_file(args.file)
+        is_valid, error = validate_batch_file(str(batch_file_path))
         if not is_valid:
             self.output.print_error(error)
             return 1
+        
+        # Update args.file to use the resolved path
+        args.file = str(batch_file_path)
         
         # Determine output path
         output_path = args.output_path or self.config.default_output_path
@@ -582,66 +718,105 @@ class CLIApp:
         total_size = 0
         start_time = time.time()
         failed_list = []
+        downloaded_mod_names = []  # Track mod names for mod-list.json update
         
-        # Download each mod
-        for i, url in enumerate(unique_urls, 1):
-            self.output.print_info(f"\n[{i}/{len(unique_urls)}] Processing: {url}")
-            
-            # Create a mock args object for download_single
-            class BatchArgs:
-                def __init__(self, url, output_path, include_optional):
-                    self.url = url
-                    self.output_path = output_path
-                    self.include_optional = include_optional
-                    self.dry_run = False
-                    self.max_retries = None
-            
-            batch_args = BatchArgs(url, output_path, args.include_optional)
-            
+        # Use Rust batch downloader if available
+        if self.use_rust:
             try:
-                # Create downloader for this mod
-                downloader = CoreDownloader(
+                factorio_version = getattr(args, 'factorio_version', None) or getattr(self.config, 'factorio_version', '2.0')
+                include_optional_all = getattr(args, 'include_optional_all', False)
+                
+                self.output.print_info("Using Rust batch downloader for maximum speed...")
+                
+                rust_result = self.rust_downloader.batch_download(
+                    mod_urls=unique_urls,
                     output_path=output_path,
+                    factorio_version=factorio_version,
                     include_optional=args.include_optional,
-                    logger=self.logger,
-                    config=self.config,
-                    progress_callback=None  # Simplified for batch mode
+                    include_optional_all=include_optional_all,
+                    max_depth=10,
+                    continue_on_error=args.continue_on_error
                 )
                 
-                # Download the mod
-                result = downloader.download_mod(url)
-                
                 # Update statistics
-                total_mods += len(result.downloaded_mods) + len(result.failed_mods)
-                successful_downloads += len(result.downloaded_mods)
-                failed_downloads += len(result.failed_mods)
-                total_size += result.total_size
+                total_mods = len(rust_result.downloaded_mods) + len(rust_result.failed_mods)
+                successful_downloads = len(rust_result.downloaded_mods)
+                failed_downloads = len(rust_result.failed_mods)
+                total_size = rust_result.total_size
+                duration = rust_result.duration
+                downloaded_mod_names = rust_result.downloaded_mods
+                failed_list = [(url, mod_name, error) for mod_name, error in rust_result.failed_mods]
                 
-                # Track failures
-                if result.failed_mods:
-                    for mod_name, error in result.failed_mods:
-                        failed_list.append((url, mod_name, error))
+            except Exception as e:
+                self.logger.error(f"Rust batch download failed: {e}")
+                self.output.print_warning("Falling back to Python downloader...")
+                self.use_rust = False
+        
+        # Fallback to Python downloader
+        if not self.use_rust:
+            # Download each mod
+            for i, url in enumerate(unique_urls, 1):
+                self.output.print_info(f"\n[{i}/{len(unique_urls)}] Processing: {url}")
                 
-                # Display result for this URL
-                if result.success:
-                    self.output.print_success(
-                        f"Downloaded {len(result.downloaded_mods)} mod(s) from {url}"
+                # Create a mock args object for download_single
+                class BatchArgs:
+                    def __init__(self, url, output_path, include_optional):
+                        self.url = url
+                        self.output_path = output_path
+                        self.include_optional = include_optional
+                        self.dry_run = False
+                        self.max_retries = None
+                
+                batch_args = BatchArgs(url, output_path, args.include_optional)
+                
+                try:
+                    # Create downloader for this mod
+                    downloader = CoreDownloader(
+                        output_path=output_path,
+                        include_optional=args.include_optional,
+                        logger=self.logger,
+                        config=self.config,
+                        progress_callback=None  # Simplified for batch mode
                     )
-                else:
-                    self.output.print_error(f"Failed to download from {url}")
+                    
+                    # Download the mod
+                    result = downloader.download_mod(url)
+                
+                    # Update statistics
+                    total_mods += len(result.downloaded_mods) + len(result.failed_mods)
+                    successful_downloads += len(result.downloaded_mods)
+                    failed_downloads += len(result.failed_mods)
+                    total_size += result.total_size
+                    
+                    # Track downloaded mod names for mod-list.json
+                    if result.downloaded_mods:
+                        downloaded_mod_names.extend(result.downloaded_mods)
+                    
+                    # Track failures
+                    if result.failed_mods:
+                        for mod_name, error in result.failed_mods:
+                            failed_list.append((url, mod_name, error))
+                    
+                    # Display result for this URL
+                    if result.success:
+                        self.output.print_success(
+                            f"Downloaded {len(result.downloaded_mods)} mod(s) from {url}"
+                        )
+                    else:
+                        self.output.print_error(f"Failed to download from {url}")
+                        if not args.continue_on_error:
+                            self.output.print_error("Stopping batch download (use --continue-on-error to continue)")
+                            break
+                            
+                except Exception as e:
+                    self.logger.error(f"Error downloading {url}: {e}")
+                    self.output.print_error(f"Error downloading {url}: {e}")
+                    failed_downloads += 1
+                    failed_list.append((url, url.split('/')[-1], str(e)))
+                    
                     if not args.continue_on_error:
                         self.output.print_error("Stopping batch download (use --continue-on-error to continue)")
                         break
-                        
-            except Exception as e:
-                self.logger.error(f"Error downloading {url}: {e}")
-                self.output.print_error(f"Error downloading {url}: {e}")
-                failed_downloads += 1
-                failed_list.append((url, url.split('/')[-1], str(e)))
-                
-                if not args.continue_on_error:
-                    self.output.print_error("Stopping batch download (use --continue-on-error to continue)")
-                    break
         
         # Calculate duration
         duration = time.time() - start_time
@@ -679,6 +854,36 @@ class CLIApp:
         if successful_downloads > 0:
             self.registry.scan_directory(Path(output_path))
             self.registry.save_registry()
+            
+            # Update mod-list.json if downloading to Factorio directory
+            if using_default_path and downloaded_mod_names:
+                # Determine if mods should be enabled or disabled
+                mods_enabled = not args.disabled if hasattr(args, 'disabled') else True
+                
+                self.output.print_info("\nUpdating mod-list.json...")
+                
+                # Use Rust function if available
+                if self.use_rust:
+                    try:
+                        self.rust_downloader.update_mod_list_json(
+                            mod_names=downloaded_mod_names,
+                            mods_directory=output_path,
+                            enabled=mods_enabled
+                        )
+                        self.output.print_success(f"Updated mod-list.json with {len(downloaded_mod_names)} mod(s)")
+                    except Exception as e:
+                        self.logger.warning(f"Rust mod-list update failed: {e}")
+                        self._update_mod_list(
+                            downloaded_mod_names,
+                            Path(output_path),
+                            enabled=mods_enabled
+                        )
+                else:
+                    self._update_mod_list(
+                        downloaded_mod_names,
+                        Path(output_path),
+                        enabled=mods_enabled
+                    )
         
         # Return exit code
         if failed_downloads > 0:

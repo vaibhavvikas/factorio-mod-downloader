@@ -36,6 +36,8 @@ rich = "^13.9.4"
 colorama = "^0.4.6"
 # Build dependencies
 poetry-pyinstaller-plugin = "^1.4.0"
+# Rust extension (optional, built separately)
+# factorio-mod-downloader-rust = { path = ".", optional = true }
 
 [tool.poetry.scripts]
 factorio-mod-downloader = "factorio_mod_downloader.__main__:main"
