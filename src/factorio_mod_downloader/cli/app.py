@@ -186,9 +186,20 @@ class CLIApp:
         Returns:
             Exit code (0 for success, non-zero for failure).
         """
+        # Parse URL for @VERSION syntax (e.g., FNEI@2.0.10)
+        mod_url = args.url
+        target_version = args.target_mod_version
+        
+        if '@' in mod_url and not mod_url.startswith('http'):
+            # Handle MOD_ID@VERSION syntax
+            mod_id, version = mod_url.split('@', 1)
+            mod_url = f"https://mods.factorio.com/mod/{mod_id}"
+            target_version = version
+            self.output.print_info(f"🚀 Using @VERSION syntax: {mod_id} version {version}")
+        
         # Validate mod URL
         try:
-            is_valid, error = validate_mod_url(args.url)
+            is_valid, error = validate_mod_url(mod_url)
             if not is_valid:
                 self.output.print_error(error)
                 return 1
@@ -196,6 +207,10 @@ class CLIApp:
             error_msg = format_error_for_cli(e, context="Invalid mod URL")
             self.output.print_error(error_msg)
             return 1
+        
+        # Update args with parsed values
+        args.url = mod_url
+        args.target_mod_version = target_version
         
         # Determine output path
         output_path = args.output_path or self.config.default_output_path
@@ -292,6 +307,8 @@ class CLIApp:
                 # Get optional dependency settings
                 include_optional_all = getattr(args, 'include_optional_all', False)
                 target_mod_version = getattr(args, 'target_mod_version', None)
+                
+                self.logger.info(f"Download parameters: factorio_version={factorio_version}, include_optional={args.include_optional}, include_optional_all={include_optional_all}, target_mod_version={target_mod_version}")
                 
                 rust_result = self.rust_downloader.download_mod(
                     mod_url=args.url,
@@ -595,11 +612,39 @@ class CLIApp:
         if args.file == 'init':
             return self._batch_init()
         
+        # Handle 'batch install' command - auto-find mods_dl.json
+        if args.file == 'install':
+            import os
+            if os.name == 'nt':  # Windows
+                appdata = os.getenv('APPDATA')
+                if appdata:
+                    factorio_batch = Path(appdata) / 'Factorio' / 'mods' / 'mods_dl.json'
+                    if factorio_batch.exists():
+                        args.file = str(factorio_batch)
+                        self.output.print_info(f"🚀 Auto-installing from: {factorio_batch}")
+                    else:
+                        self.output.print_error("❌ mods_dl.json not found in Factorio directory")
+                        self.output.print_info("💡 Create it with: fmd batch init")
+                        return 1
+                else:
+                    self.output.print_error("❌ Cannot find Factorio directory (APPDATA not set)")
+                    return 1
+            else:  # Linux/Mac
+                factorio_batch = Path.home() / '.factorio' / 'mods' / 'mods_dl.json'
+                if factorio_batch.exists():
+                    args.file = str(factorio_batch)
+                    self.output.print_info(f"🚀 Auto-installing from: {factorio_batch}")
+                else:
+                    self.output.print_error("❌ mods_dl.json not found in Factorio directory")
+                    self.output.print_info("💡 Create it with: fmd batch init")
+                    return 1
+        
         # Check if file argument is provided
         if not args.file:
             self.output.print_error("Error: batch file path is required")
             self.output.print_info("Usage: fmd batch <file.json>")
-            self.output.print_info("   or: fmd batch init  (to create template)")
+            self.output.print_info("   or: fmd batch init     (to create template)")
+            self.output.print_info("   or: fmd batch install  (auto-find mods_dl.json)")
             return 1
         
         # Check if file is just a filename (not a path) - look in Factorio directory
@@ -620,14 +665,14 @@ class CLIApp:
                     batch_file_path = factorio_batch
                     self.output.print_info(f"Using batch file from Factorio directory: {batch_file_path}")
         
+        # Update args.file to use the resolved path
+        args.file = str(batch_file_path)
+        
         # Validate batch file
         is_valid, error = validate_batch_file(str(batch_file_path))
         if not is_valid:
             self.output.print_error(error)
             return 1
-        
-        # Update args.file to use the resolved path
-        args.file = str(batch_file_path)
         
         # Determine output path
         output_path = args.output_path or self.config.default_output_path

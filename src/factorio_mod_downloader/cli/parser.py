@@ -86,18 +86,34 @@ def print_detailed_help():
     
     # Download Command
     console.print(Panel.fit(
-        "[bold cyan]fmd download <URL> [OPTIONS][/bold cyan]\n\n"
+        "[bold cyan]fmd download <URL|MOD_ID> [OPTIONS][/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
-        "Download a single mod and all its required dependencies.\n\n"
+        "Download a single mod and all its required dependencies using blazing-fast Rust engine.\n\n"
+        "[bold]🔥 New Features:[/bold]\n"
+        "  • [green]Rust-powered parallel downloads[/green] (2-4x faster)\n"
+        "  • [green]Beautiful progress bars[/green] with real-time stats\n"
+        "  • [green]Smart dependency resolution[/green]\n"
+        "  • [green]Mod ID support[/green] - no need for full URLs!\n\n"
         "[bold]Options:[/bold]\n"
-        "  -o, --output PATH          Output directory (default: Factorio mods folder)\n"
-        "  --include-optional         Include optional dependencies\n"
-        "  --dry-run                  Preview what would be downloaded\n"
-        "  --max-retries N            Maximum retry attempts (default: 3)\n"
-        "  --no-resume                Disable resume functionality\n\n"
-        "[bold]Examples:[/bold]\n"
-        "  [dim]# Download to Factorio directory[/dim]\n"
-        "  fmd download https://mods.factorio.com/mod/Krastorio2\n\n"
+        "  -o, --output PATH              Output directory (default: Factorio mods folder)\n"
+        "  --include-optional             Include main mod's optional dependencies\n"
+        "  --include-optional-all         Include ALL optional deps recursively 🤓\n"
+        "  --target-mod-version VER       Specific version (e.g., 2.0.10)\n"
+        "  @ VER                          Version alias: MOD_ID@2.0.10 🚀\n"
+        "  --factorio-version VER         Target Factorio version (default: 2.0)\n"
+        "  -fv VER                        Factorio version alias 🤓\n"
+        "  --dry-run                      Preview download plan without downloading\n"
+        "  --max-retries N                Maximum retry attempts (default: 3)\n"
+        "  --no-resume                    Disable resume functionality\n\n"
+        "[bold]🤓 Nerd Examples:[/bold]\n"
+        "  [dim]# Download latest version[/dim]\n"
+        "  fmd download Krastorio2\n\n"
+        "  [dim]# Download specific version with alias[/dim]\n"
+        "  fmd download space-exploration@0.6.138\n\n"
+        "  [dim]# Download for older Factorio with all optional deps[/dim]\n"
+        "  fmd download FNEI -fv 1.1 --include-optional-all\n\n"
+        "  [dim]# Dry run to see what would be downloaded[/dim]\n"
+        "  fmd download \"Side%20Inserters@2.5.0\" --dry-run\n\n"
         "  [dim]# Download with optional dependencies to custom folder[/dim]\n"
         "  fmd download https://mods.factorio.com/mod/space-exploration \\\n"
         "    --include-optional -o D:\\MyMods\n\n"
@@ -110,32 +126,35 @@ def print_detailed_help():
     # Batch Command
     console.print("\n")
     console.print(Panel.fit(
-        "[bold cyan]fmd batch <JSON_FILE|init> [OPTIONS][/bold cyan]\n\n"
+        "[bold cyan]fmd batch <JSON_FILE|init|install> [OPTIONS][/bold cyan]\n\n"
         "[bold]Description:[/bold]\n"
-        "Download multiple mods from a JSON batch file.\n\n"
+        "Download multiple mods from a JSON batch file with Rust-powered speed.\n\n"
+        "[bold]🔥 New Commands:[/bold]\n"
+        "  • [green]install[/green] - Auto-find and download from mods_dl.json 🚀\n"
+        "  • [green]Rust batch engine[/green] - Parallel downloads for maximum speed\n\n"
         "[bold]JSON Format:[/bold]\n"
         '{\n'
         '  "name": "My Modpack",\n'
         '  "mods": [\n'
-        '    "https://mods.factorio.com/mod/Krastorio2",\n'
-        '    "https://mods.factorio.com/mod/space-exploration"\n'
+        '    "Krastorio2",  [dim]// Mod ID (recommended)[/dim]\n'
+        '    "space-exploration@0.6.138",  [dim]// With version[/dim]\n'
+        '    "https://mods.factorio.com/mod/FNEI"  [dim]// Full URL[/dim]\n'
         '  ]\n'
         '}\n\n'
         "[bold]Options:[/bold]\n"
-        "  -o, --output PATH          Output directory\n"
-        "  --include-optional         Include optional dependencies\n"
-        "  --continue-on-error        Continue if one mod fails\n"
-        "  --enabled                  Add mods to mod-list.json as enabled (default)\n"
-        "  --disabled                 Add mods to mod-list.json as disabled\n\n"
-        "[bold]Examples:[/bold]\n"
-        "  [dim]# Create template batch file in Factorio directory[/dim]\n"
+        "  -o, --output PATH              Output directory\n"
+        "  --include-optional             Include optional dependencies\n"
+        "  --include-optional-all         Include ALL optional deps recursively 🤓\n"
+        "  --continue-on-error            Continue if one mod fails\n"
+        "  --enabled                      Add mods to mod-list.json as enabled (default)\n"
+        "  --disabled                     Add mods to mod-list.json as disabled\n\n"
+        "[bold]🤓 Nerd Examples:[/bold]\n"
+        "  [dim]# Auto-install from Factorio directory[/dim]\n"
+        "  fmd batch install\n\n"
+        "  [dim]# Create template batch file[/dim]\n"
         "  fmd batch init\n\n"
-        "  [dim]# Download from template (auto-finds in Factorio directory)[/dim]\n"
-        "  fmd batch mods_dl.json\n\n"
-        "  [dim]# Download all mods from JSON file[/dim]\n"
-        "  fmd batch mods.json\n\n"
-        "  [dim]# Download mods as disabled in Factorio[/dim]\n"
-        "  fmd batch mods.json --disabled\n\n"
+        "  [dim]# Download with all optional dependencies[/dim]\n"
+        "  fmd batch mods.json --include-optional-all\n\n"
         "  [dim]# Download to custom directory, continue on errors[/dim]\n"
         "  fmd batch mods.json -o ./mods --continue-on-error",
         title="📋 batch",
@@ -408,6 +427,7 @@ The mod URL should be in the format: https://mods.factorio.com/mod/<mod-name>
     download_parser.add_argument(
         '--include-optional-all',
         action='store_true',
+        dest='include_optional_all',
         help='Include all optional dependencies recursively (nested optional deps)'
     )
     
@@ -415,14 +435,20 @@ The mod URL should be in the format: https://mods.factorio.com/mod/<mod-name>
         '--target-mod-version',
         dest='target_mod_version',
         default=None,
-        help='Specific version of the main mod to download (e.g., 2.0.10)'
+        help='Specific version of the main mod to download (e.g., 2.0.10). Use @VERSION syntax in URL: MOD_ID@VERSION'
     )
     
     download_parser.add_argument(
-        '--factorio-version',
+        '--factorio-version', '-fv',
         dest='factorio_version',
         default='2.0',
         help='Target Factorio version for compatibility (default: 2.0)'
+    )
+    
+    download_parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be downloaded without actually downloading'
     )
     
     download_parser.add_argument(
@@ -444,12 +470,6 @@ The mod URL should be in the format: https://mods.factorio.com/mod/<mod-name>
         type=int,
         default=None,
         help='Maximum number of retry attempts for failed downloads (default: from config or 3)'
-    )
-    
-    download_parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Show what would be downloaded without actually downloading'
     )
 
 
@@ -494,8 +514,8 @@ Use 'fmd batch init' to create a template batch file.
     
     batch_parser.add_argument(
         'file',
-        nargs='?',  # Make file optional for 'init' subcommand
-        help='Path to JSON batch file containing mod URLs, or "init" to create template'
+        nargs='?',  # Make file optional for 'init' and 'install' subcommands
+        help='Path to JSON batch file, "init" to create template, or "install" to auto-find mods_dl.json'
     )
     
     batch_parser.add_argument(
@@ -514,6 +534,7 @@ Use 'fmd batch init' to create a template batch file.
     batch_parser.add_argument(
         '--include-optional-all',
         action='store_true',
+        dest='include_optional_all',
         help='Include all optional dependencies recursively (nested optional deps)'
     )
     

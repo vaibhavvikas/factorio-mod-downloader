@@ -95,7 +95,7 @@ class DependencyResolver:
         self.analyzed_mods.add(mod_url)
         
         # Fetch mod information
-        self.logger.info(f"Analyzing mod: {mod_url}")
+        self.logger.debug(f"Analyzing mod: {mod_url}")
         soup = self.mod_info_fetcher.get_page_source(mod_url)
         
         if not soup:

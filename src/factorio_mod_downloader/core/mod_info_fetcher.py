@@ -63,9 +63,9 @@ class ModInfoFetcher:
             Exception: If chromedriver installation fails
         """
         try:
-            self.logger.info("Downloading application dependencies (chromedriver)")
+            self.logger.debug("Downloading application dependencies (chromedriver)")
             chromedriver_autoinstaller.install()
-            self.logger.info("Finished downloading application dependencies")
+            self.logger.debug("Finished downloading application dependencies")
             
             chrome_options = Options()
             chrome_options.add_argument("--headless")
@@ -76,7 +76,7 @@ class ModInfoFetcher:
             port = find_free_port()
             chrome_options.add_argument(f"--remote-debugging-port={port}")
             
-            self.logger.info("Configured application dependencies")
+            self.logger.debug("Configured application dependencies")
             self.chrome_options = chrome_options
             return chrome_options
             

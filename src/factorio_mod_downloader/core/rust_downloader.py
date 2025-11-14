@@ -82,9 +82,9 @@ class RustDownloader:
             mod_urls=mod_urls,
             output_path=output_path,
             factorio_version=factorio_version,
-            include_optional=include_optional,
-            include_optional_all=include_optional_all,
-            max_depth=max_depth,
+            _include_optional=include_optional,
+            _include_optional_all=include_optional_all,
+            _max_depth=max_depth,
             continue_on_error=continue_on_error
         )
         

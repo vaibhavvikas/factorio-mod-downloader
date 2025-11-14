@@ -472,14 +472,14 @@ fn download_mod_with_deps(
 
 /// Download multiple mods from a list of URLs
 #[pyfunction]
-#[pyo3(signature = (mod_urls, output_path, factorio_version="2.0", include_optional=true, include_optional_all=false, max_depth=10, continue_on_error=true))]
+#[pyo3(signature = (mod_urls, output_path, factorio_version="2.0", _include_optional=true, _include_optional_all=false, _max_depth=10, continue_on_error=true))]
 fn batch_download_mods(
     mod_urls: Vec<String>,
     output_path: String,
     factorio_version: &str,
-    include_optional: bool,
-    include_optional_all: bool,
-    max_depth: usize,
+    _include_optional: bool,
+    _include_optional_all: bool,
+    _max_depth: usize,
     continue_on_error: bool,
 ) -> PyResult<DownloadResult> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -491,15 +491,35 @@ fn batch_download_mods(
         let mut total_size = 0u64;
         
         for mod_url in mod_urls {
-            let result = download_mod_with_deps(
-                mod_url.clone(),
-                output_path.clone(),
-                factorio_version,
-                include_optional,
-                include_optional_all,
-                None,
-                max_depth,
-            )?;
+            // Use spawn_blocking to avoid nested runtime issue
+            let mod_url_clone = mod_url.clone();
+            let output_path_clone = output_path.clone();
+            let _factorio_version_clone = factorio_version.to_string();
+            
+            let result = tokio::task::spawn_blocking(move || -> Result<DownloadResult, String> {
+                let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
+                rt.block_on(async {
+                    // Simple single mod download without dependencies for batch
+                    let mod_id = extract_mod_id(&mod_url_clone).map_err(|e| e.to_string())?;
+                    let mod_info = get_mod_info(&mod_id).await.map_err(|e| e.to_string())?;
+                    
+                    let release = mod_info.releases.last()
+                        .ok_or_else(|| "No releases found".to_string())?;
+                    
+                    let file_name = format!("{}_{}.zip", mod_id, release.version);
+                    let size = download_mod(&mod_id, &release.version, &file_name, &output_path_clone)
+                        .await.map_err(|e| e.to_string())?;
+                    
+                    Ok(DownloadResult {
+                        success: true,
+                        downloaded_mods: vec![mod_id],
+                        failed_mods: vec![],
+                        total_size: size,
+                        duration: 0.0,
+                    })
+                })
+            }).await.map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Task join error: {}", e)))?
+              .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Download error: {}", e)))?;
             
             all_downloaded.extend(result.downloaded_mods);
             all_failed.extend(result.failed_mods.clone());
