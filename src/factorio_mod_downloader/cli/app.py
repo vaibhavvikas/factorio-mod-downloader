@@ -56,7 +56,7 @@ class CLIApp:
         if self.use_rust:
             try:
                 self.rust_downloader = RustDownloader(logger, config)
-                self.logger.info("Rust downloader initialized successfully")
+                self.logger.debug("Rust downloader initialized successfully")
             except Exception as e:
                 self.logger.warning(f"Failed to initialize Rust downloader: {e}")
                 self.use_rust = False
@@ -251,9 +251,10 @@ class CLIApp:
         if hasattr(args, 'max_retries') and args.max_retries is not None:
             self.config.max_retries = args.max_retries
         
-        # Log download start
-        self.logger.info(f"Starting download: {args.url}")
-        self.output.print_info(f"Downloading mod from: {args.url}")
+        # Log download start (only in verbose mode)
+        self.logger.debug(f"Starting download: {args.url}")
+        if not self.config.quiet:
+            self.output.print_info(f"Downloading mod from: {args.url}")
         
         # Create progress callback
         current_mod = {'name': '', 'progress_bar': None, 'last_percentage': 0}
@@ -308,17 +309,37 @@ class CLIApp:
                 include_optional_all = getattr(args, 'include_optional_all', False)
                 target_mod_version = getattr(args, 'target_mod_version', None)
                 
-                self.logger.info(f"Download parameters: factorio_version={factorio_version}, include_optional={args.include_optional}, include_optional_all={include_optional_all}, target_mod_version={target_mod_version}")
+                self.logger.debug(f"Download parameters: factorio_version={factorio_version}, include_optional={args.include_optional}, include_optional_all={include_optional_all}, target_mod_version={target_mod_version}")
                 
-                rust_result = self.rust_downloader.download_mod(
-                    mod_url=args.url,
-                    output_path=output_path,
-                    factorio_version=factorio_version,
-                    include_optional=args.include_optional,
-                    include_optional_all=include_optional_all,
-                    target_mod_version=target_mod_version,
-                    max_depth=10
-                )
+                # Show progress spinner for Rust downloads
+                if not self.config.quiet and not self.config.json_output:
+                    from rich.console import Console
+                    from rich.spinner import Spinner
+                    from rich.live import Live
+                    
+                    console = Console()
+                    spinner = Spinner('dots', text='🚀 Downloading with Rust engine...')
+                    
+                    with Live(spinner, console=console, refresh_per_second=10):
+                        rust_result = self.rust_downloader.download_mod(
+                            mod_url=args.url,
+                            output_path=output_path,
+                            factorio_version=factorio_version,
+                            include_optional=args.include_optional,
+                            include_optional_all=include_optional_all,
+                            target_mod_version=target_mod_version,
+                            max_depth=10
+                        )
+                else:
+                    rust_result = self.rust_downloader.download_mod(
+                        mod_url=args.url,
+                        output_path=output_path,
+                        factorio_version=factorio_version,
+                        include_optional=args.include_optional,
+                        include_optional_all=include_optional_all,
+                        target_mod_version=target_mod_version,
+                        max_depth=10
+                    )
                 
                 # Convert Rust result to Python result format
                 class RustResultAdapter:
@@ -751,9 +772,10 @@ class CLIApp:
             self.output.print_error("No valid URLs found in batch file")
             return 1
         
-        # Log batch download start
-        self.logger.info(f"Starting batch download of {len(unique_urls)} mods")
-        self.output.print_info(f"Processing {len(unique_urls)} mod(s) from batch file")
+        # Log batch download start (only in verbose mode)
+        self.logger.debug(f"Starting batch download of {len(unique_urls)} mods")
+        if not self.config.quiet:
+            self.output.print_info(f"Processing {len(unique_urls)} mod(s) from batch file")
         
         # Track statistics
         total_mods = 0
@@ -771,17 +793,38 @@ class CLIApp:
                 factorio_version = getattr(args, 'factorio_version', None) or getattr(self.config, 'factorio_version', '2.0')
                 include_optional_all = getattr(args, 'include_optional_all', False)
                 
-                self.output.print_info("Using Rust batch downloader for maximum speed...")
+                if not self.config.quiet:
+                    self.output.print_info("Using Rust batch downloader for maximum speed...")
                 
-                rust_result = self.rust_downloader.batch_download(
-                    mod_urls=unique_urls,
-                    output_path=output_path,
-                    factorio_version=factorio_version,
-                    include_optional=args.include_optional,
-                    include_optional_all=include_optional_all,
-                    max_depth=10,
-                    continue_on_error=args.continue_on_error
-                )
+                # Show progress spinner for Rust batch downloads
+                if not self.config.quiet and not self.config.json_output:
+                    from rich.console import Console
+                    from rich.spinner import Spinner
+                    from rich.live import Live
+                    
+                    console = Console()
+                    spinner = Spinner('dots', text=f'🚀 Batch downloading {len(unique_urls)} mods with Rust engine...')
+                    
+                    with Live(spinner, console=console, refresh_per_second=10):
+                        rust_result = self.rust_downloader.batch_download(
+                            mod_urls=unique_urls,
+                            output_path=output_path,
+                            factorio_version=factorio_version,
+                            include_optional=args.include_optional,
+                            include_optional_all=include_optional_all,
+                            max_depth=10,
+                            continue_on_error=args.continue_on_error
+                        )
+                else:
+                    rust_result = self.rust_downloader.batch_download(
+                        mod_urls=unique_urls,
+                        output_path=output_path,
+                        factorio_version=factorio_version,
+                        include_optional=args.include_optional,
+                        include_optional_all=include_optional_all,
+                        max_depth=10,
+                        continue_on_error=args.continue_on_error
+                    )
                 
                 # Update statistics
                 total_mods = len(rust_result.downloaded_mods) + len(rust_result.failed_mods)
@@ -866,10 +909,11 @@ class CLIApp:
         # Calculate duration
         duration = time.time() - start_time
         
-        # Display summary
-        self.output.print_info("\n" + "=" * 50)
-        self.output.print_info("Batch Download Summary")
-        self.output.print_info("=" * 50)
+        # Display summary (only if not quiet)
+        if not self.config.quiet:
+            self.output.print_info("\n" + "=" * 50)
+            self.output.print_info("Batch Download Summary")
+            self.output.print_info("=" * 50)
         
         stats = {
             'total_mods': total_mods,
@@ -1343,16 +1387,16 @@ def cli_main(args: List[str]) -> int:
             console_level=console_level
         )
         
-        # Log startup
-        logger.info("Factorio Mod Downloader CLI started")
+        # Log startup (only in verbose mode)
+        logger.debug("Factorio Mod Downloader CLI started")
         logger.debug(f"Arguments: {args}")
         
         # Create and run CLI application
         app = CLIApp(config, logger)
         exit_code = app.run(parsed_args)
         
-        # Log shutdown
-        logger.info(f"CLI exiting with code {exit_code}")
+        # Log shutdown (only in verbose mode)
+        logger.debug(f"CLI exiting with code {exit_code}")
         
         return exit_code
         

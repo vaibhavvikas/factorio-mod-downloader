@@ -45,7 +45,7 @@ class RustDownloader:
         max_depth: int = 10
     ) -> RustDownloadResult:
         """Download a mod with dependencies using Rust."""
-        self.logger.info(f"Using Rust downloader for: {mod_url}")
+        self.logger.debug(f"Using Rust downloader for: {mod_url}")
         
         result = rust_module.download_mod_with_deps(
             mod_url=mod_url,
@@ -76,7 +76,7 @@ class RustDownloader:
         continue_on_error: bool = True
     ) -> RustDownloadResult:
         """Batch download multiple mods using Rust."""
-        self.logger.info(f"Using Rust batch downloader for {len(mod_urls)} mods")
+        self.logger.debug(f"Using Rust batch downloader for {len(mod_urls)} mods")
         
         result = rust_module.batch_download_mods(
             mod_urls=mod_urls,
