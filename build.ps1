@@ -1,7 +1,10 @@
 param(
     [switch]$SkipTests,
     [switch]$BuildExe,
-    [switch]$KeepVenv
+    [switch]$KeepVenv,
+    [Alias("co")]
+    [switch]$CleanOnly,
+    [switch]$KeepFiles
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,75 +19,98 @@ function Write-Info { param($msg) Write-Host "   [INFO] $msg" -ForegroundColor G
 # Calculate total steps based on flags
 $totalSteps = 7
 if ($BuildExe) { $totalSteps = 8 }
+if ($CleanOnly) { $totalSteps = 1 }
 
 Write-Host "===================================================================" -ForegroundColor Cyan
 Write-Host "   Build Script - Factorio Mod Downloader" -ForegroundColor Cyan
 Write-Host "===================================================================" -ForegroundColor Cyan
 
+if ($CleanOnly) {
+    Write-Info "Clean-only mode: Will clean and exit"
+}
+if ($KeepFiles) {
+    Write-Info "Keep-files mode: Will preserve generated files during build"
+}
+
 # ===================================================================
 # Step 1: Clean all build artifacts
 # ===================================================================
-Write-Step "[1/$totalSteps] Cleaning build artifacts..."
+if (-not $KeepFiles) {
+    Write-Step "[1/$totalSteps] Cleaning build artifacts..."
 
-$foldersToRemove = @(
-    "dist", "build", "*.egg-info", ".eggs", "target", "__pycache__",
-    ".pytest_cache", ".mypy_cache", ".ruff_cache",
-    "src/factorio_mod_downloader/__pycache__",
-    "src/factorio_mod_downloader/cli/__pycache__",
-    "src/factorio_mod_downloader/core/__pycache__",
-    "src/factorio_mod_downloader/gui/__pycache__",
-    "src/factorio_mod_downloader/downloader/__pycache__",
-    "src/factorio_mod_downloader/infrastructure/__pycache__",
-    ".tox", ".nox", "htmlcov"
-)
+    $foldersToRemove = @(
+        "dist", "build", "*.egg-info", ".eggs", "target", "__pycache__",
+        ".pytest_cache", ".mypy_cache", ".ruff_cache",
+        "src/factorio_mod_downloader/__pycache__",
+        "src/factorio_mod_downloader/cli/__pycache__",
+        "src/factorio_mod_downloader/core/__pycache__",
+        "src/factorio_mod_downloader/gui/__pycache__",
+        "src/factorio_mod_downloader/downloader/__pycache__",
+        "src/factorio_mod_downloader/infrastructure/__pycache__",
+        ".tox", ".nox", "htmlcov"
+    )
 
-$filesToRemove = @(
-    # Compiled Python
-    "*.pyc", "*.pyo", "*.pyd",
-    
-    # Rust extension
-    "factorio_mod_downloader_rust.pyd",
-    "src/factorio_mod_downloader/factorio_mod_downloader_rust.pyd",
-    
-    # Lock files
-    "*.lock",
-    "Cargo.lock",
-    "poetry.lock",
-    "uv.lock",
-    
-    # Spec files
-    "*.spec",
-    
-    # Logs
-    "*.log",
-    
-    # OS files
-    ".DS_Store", "Thumbs.db",
-    
-    # Coverage
-    ".coverage", "coverage.xml"
-)
+    $filesToRemove = @(
+        # Compiled Python
+        "*.pyc", "*.pyo", "*.pyd",
+        
+        # Rust extension
+        "factorio_mod_downloader_rust.pyd",
+        "src/factorio_mod_downloader/factorio_mod_downloader_rust.pyd",
+        
+        # Lock files
+        "*.lock",
+        "Cargo.lock",
+        "poetry.lock",
+        "uv.lock",
+        
+        # Spec files
+        "*.spec",
+        
+        # Logs
+        "*.log",
+        
+        # OS files
+        ".DS_Store", "Thumbs.db",
+        
+        # Coverage
+        ".coverage", "coverage.xml"
+    )
 
-$filesRemoved = 0
-$foldersRemoved = 0
+    $filesRemoved = 0
+    $foldersRemoved = 0
 
-foreach ($pattern in $foldersToRemove) {
-    $items = Get-ChildItem -Path . -Filter $pattern -Recurse -Directory -ErrorAction SilentlyContinue
-    foreach ($item in $items) {
-        Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
-        $foldersRemoved++
+    foreach ($pattern in $foldersToRemove) {
+        $items = Get-ChildItem -Path . -Filter $pattern -Recurse -Directory -ErrorAction SilentlyContinue
+        foreach ($item in $items) {
+            Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            $foldersRemoved++
+        }
     }
+
+    foreach ($pattern in $filesToRemove) {
+        $items = Get-ChildItem -Path . -Filter $pattern -Recurse -File -ErrorAction SilentlyContinue
+        foreach ($item in $items) {
+            Remove-Item -Path $item.FullName -Force -ErrorAction SilentlyContinue
+            $filesRemoved++
+        }
+    }
+
+    Write-Success "Cleaned $foldersRemoved folders and $filesRemoved files"
+} else {
+    Write-Step "[1/$totalSteps] Skipping cleanup (KeepFiles mode)"
+    Write-Info "Preserving existing build artifacts"
 }
 
-foreach ($pattern in $filesToRemove) {
-    $items = Get-ChildItem -Path . -Filter $pattern -Recurse -File -ErrorAction SilentlyContinue
-    foreach ($item in $items) {
-        Remove-Item -Path $item.FullName -Force -ErrorAction SilentlyContinue
-        $filesRemoved++
-    }
+# Exit if CleanOnly mode
+if ($CleanOnly) {
+    Write-Host "`n===================================================================" -ForegroundColor Green
+    Write-Host "   Clean Complete!" -ForegroundColor Green
+    Write-Host "===================================================================" -ForegroundColor Green
+    Write-Host "`nCleaned project files. Ready for fresh build." -ForegroundColor Cyan
+    Write-Host "Run: .\build.ps1 -BuildExe" -ForegroundColor White
+    exit 0
 }
-
-Write-Success "Cleaned $foldersRemoved folders and $filesRemoved files"
 
 # ===================================================================
 # Step 2: Handle virtual environment
@@ -94,7 +120,25 @@ if (-not $KeepVenv) {
     
     if (Test-Path ".venv") {
         Write-Info "Removing existing .venv..."
-        Remove-Item -Path ".venv" -Recurse -Force -ErrorAction SilentlyContinue
+        
+        # Deactivate if active
+        if ($env:VIRTUAL_ENV) {
+            Write-Info "Deactivating current virtual environment..."
+            deactivate 2>$null
+        }
+        
+        # Wait a moment for processes to release
+        Start-Sleep -Milliseconds 500
+        
+        # Try to remove
+        try {
+            Remove-Item -Path ".venv" -Recurse -Force -ErrorAction Stop
+        } catch {
+            Write-Warning "Could not remove .venv (may be in use)"
+            Write-Warning "Please close all terminals using this venv and try again"
+            Write-Warning "Or run: .\build.ps1 -KeepVenv -BuildExe"
+            exit 1
+        }
     }
     
     Write-Info "Creating fresh virtual environment..."
@@ -138,11 +182,7 @@ Write-Success "Tools installed and upgraded"
 Write-Step "[4/$totalSteps] Installing Poetry dependencies..."
 
 Write-Info "Clearing Poetry cache..."
-try {
-    poetry cache clear pypi --all -n 2>&1 | Out-Null
-} catch {
-    # Ignore cache clear errors - not critical
-}
+$null = poetry cache clear pypi --all -n 2>&1
 
 Write-Info "Installing dependencies..."
 poetry install --no-root
@@ -211,7 +251,6 @@ Write-Success "Package installed"
 if (-not $SkipTests) {
     Write-Step "[7/$totalSteps] Running tests..."
     
-    # Test 1: Rust module import
     Write-Info "Testing Rust module import..."
     $testResult = python -c "import factorio_mod_downloader_rust; print('OK')" 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -221,7 +260,6 @@ if (-not $SkipTests) {
     }
     Write-Success "Rust module import test passed"
     
-    # Test 2: Package import and version
     Write-Info "Testing package import..."
     $testResult = python -c "from factorio_mod_downloader import __version__; print(f'v{__version__}')" 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -231,7 +269,6 @@ if (-not $SkipTests) {
     }
     Write-Success "Package import test passed: $testResult"
     
-    # Test 3: Run test_package.py if exists
     if (Test-Path "test_package.py") {
         Write-Info "Running package structure test..."
         poetry run python test_package.py
@@ -296,7 +333,7 @@ Write-Host "==================================================================="
 
 if ($BuildExe) {
     Write-Host "`nExecutable ready for distribution!" -ForegroundColor Cyan
-    $exePath = Get-ChildItem -Path "dist" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    $exePath = Get-ChildItem -Path "dist" -Filter "fmd-*.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($exePath) {
         Write-Host "  Location: $($exePath.FullName)" -ForegroundColor White
         Write-Host "  Size: $([math]::Round($exePath.Length / 1MB, 2)) MB" -ForegroundColor White
@@ -319,5 +356,8 @@ Write-Host "  .\build.ps1                      # Full build with tests" -Foregro
 Write-Host "  .\build.ps1 -BuildExe            # Build + create .exe" -ForegroundColor Gray
 Write-Host "  .\build.ps1 -SkipTests -BuildExe # Fast build to .exe" -ForegroundColor Gray
 Write-Host "  .\build.ps1 -KeepVenv -BuildExe  # Reuse venv, build .exe" -ForegroundColor Gray
+Write-Host "  .\build.ps1 -CleanOnly           # Clean project files only" -ForegroundColor Gray
+Write-Host "  .\build.ps1 -co                  # Same as -CleanOnly (alias)" -ForegroundColor Gray
+Write-Host "  .\build.ps1 -KeepFiles -BuildExe # Build without cleaning" -ForegroundColor Gray
 
 Write-Host ""
