@@ -1,12 +1,7 @@
-# ===================================================================
-# Build Script - Factorio Mod Downloader
-# Complete workspace cleanup and fresh build
-# ===================================================================
-
 param(
-    [switch]$SkipTests = $false,
-    [switch]$BuildExe = $false,
-    [switch]$KeepVenv = $false
+    [switch]$SkipTests,
+    [switch]$BuildExe,
+    [switch]$KeepVenv
 )
 
 $ErrorActionPreference = "Stop"
@@ -143,7 +138,11 @@ Write-Success "Tools installed and upgraded"
 Write-Step "[4/$totalSteps] Installing Poetry dependencies..."
 
 Write-Info "Clearing Poetry cache..."
-poetry cache clear pypi --all -n 2>$null
+try {
+    poetry cache clear pypi --all -n 2>&1 | Out-Null
+} catch {
+    # Ignore cache clear errors - not critical
+}
 
 Write-Info "Installing dependencies..."
 poetry install --no-root
@@ -253,44 +252,38 @@ if (-not $SkipTests) {
 # ===================================================================
 if ($BuildExe) {
     Write-Step "[8/$totalSteps] Building executable with PyInstaller..."
-    
-    Write-Info "Building with custom PyInstaller command..."
-    
-    # Build manually with all necessary flags
-    pyinstaller `
-        --onefile `
-        --name "fmd" `
-        --icon "factorio_downloader.ico" `
-        --add-data "factorio_downloader.ico;." `
-        --add-data "src/factorio_mod_downloader/factorio_mod_downloader_rust.pyd;." `
-        --collect-all factorio_mod_downloader `
-        --collect-all customtkinter `
-        --collect-all tkinter `
-        --hidden-import tkinter `
-        --hidden-import tkinter.ttk `
-        --hidden-import tkinter.messagebox `
-        --hidden-import tkinter.filedialog `
-        --hidden-import _tkinter `
-        --hidden-import factorio_mod_downloader_rust `
-        --console `
-        --noconfirm `
-        --clean `
-        "src/factorio_mod_downloader/__main__.py"
+    Write-Info "Deactivating Vertual Environment before build...."
+    deactivate
+    Write-Info "Running poetry build..."
+    poetry build
     
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "PyInstaller build failed!"
+        Write-Error "Poetry build failed!"
         exit 1
     }
     
     # Check if executable was created
-    $exePath = Get-Item "dist/fmd.exe" -ErrorAction SilentlyContinue
+    $exePath = Get-ChildItem -Path "dist\pyinstaller\win_amd64" -Filter "fmd-*.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+    
     if ($exePath) {
         Write-Success "Executable built successfully!"
         Write-Info "  Name: $($exePath.Name)"
         Write-Info "  Size: $([math]::Round($exePath.Length / 1MB, 2)) MB"
         Write-Info "  Path: $($exePath.FullName)"
+        
+        # Optional: Copy to dist root for easier access
+        $destPath = "dist\$($exePath.Name)"
+        Copy-Item $exePath.FullName $destPath -Force
+        Write-Info "  Copied to: $destPath"
     } else {
-        Write-Warning "Executable not found"
+        Write-Warning "Executable not found in dist\pyinstaller\win_amd64\"
+        
+        # Check if wheel was created instead
+        $wheelPath = Get-ChildItem -Path "dist" -Filter "*.whl" -File -ErrorAction SilentlyContinue
+        if ($wheelPath) {
+            Write-Info "Wheel package created: $($wheelPath.Name)"
+            Write-Warning "PyInstaller executable not created - check poetry-pyinstaller-plugin config"
+        }
     }
 }
 
