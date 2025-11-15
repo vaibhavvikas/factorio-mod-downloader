@@ -3,6 +3,9 @@ name = "factorio_mod_downloader_rust"
 version = "0.3.0"
 edition = "2021"
 
+[lints.rust]
+dead_code = "allow"
+
 [lib]
 name = "factorio_mod_downloader_rust"
 crate-type = ["cdylib"]

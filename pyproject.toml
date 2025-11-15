@@ -16,10 +16,8 @@ packages = [
     { include = "factorio_mod_downloader", from="src" },
 ]
 
-# Include the Rust extension
 include = [
     { path = "src/factorio_mod_downloader/factorio_mod_downloader_rust.pyd", format = ["sdist", "wheel"] },
-    { path = "src/factorio_mod_downloader/*.so", format = ["sdist", "wheel"] },
 ]
 
 [tool.poetry.urls]
@@ -27,22 +25,17 @@ Changelog = "https://github.com/vaibhav_vikas/factorio-mod-downloader/releases"
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.14"
-# Core dependencies
 requests = "^2.32.3"
 beautifulsoup4 = "^4.12.3"
 selenium = "^4.25.0"
 chromedriver-autoinstaller = "^0.6.4"
-# GUI dependencies
 pillow = "^11.0.0"
 customtkinter = "^5.2.2"
 ctkmessagebox = "^2.7"
-# CLI dependencies
 pyyaml = "^6.0.2"
 rich = "^13.9.4"
 colorama = "^0.4.6"
-# Build dependencies
 poetry-pyinstaller-plugin = "^1.4.0"
-pywin32-ctypes = "*"
 
 [tool.poetry.scripts]
 factorio-mod-downloader = "factorio_mod_downloader.__main__:main"
@@ -69,12 +62,8 @@ disable = [
 ]
 
 [build-system]
-requires = ["poetry-core", "setuptools"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
-[tool.poetry.build]
-script = "build.py"
-generate-setup-file = false
 
 [tool.poetry-pyinstaller-plugin]
 disable-upx = true
@@ -84,7 +73,7 @@ recursive-copy-metadata = [
     "selenium",
     "customtkinter",
     "rich",
-    "colorama"
+    "colorama",
 ]
 
 [tool.poetry-pyinstaller-plugin.scripts.fmd]
@@ -94,14 +83,19 @@ bundle = true
 add_version = true
 icon = "factorio_downloader.ico"
 console = true
-runtime_hooks = ["hook-factorio_mod_downloader_rust.py"]
 
 [tool.poetry-pyinstaller-plugin.collect]
-all = ['factorio_mod_downloader', 'mod_downloader']
+all = ['factorio_mod_downloader', 'customtkinter', 'tkinter']
 
 [tool.poetry-pyinstaller-plugin.include]
 "factorio_downloader.ico" = "."
-"src/factorio_mod_downloader/factorio_mod_downloader_rust.pyd" = "."
 
 [tool.poetry-pyinstaller-plugin.hidden-imports]
-hidden-imports = ["factorio_mod_downloader_rust"]
+hidden-imports = [
+    "factorio_mod_downloader_rust",
+    "tkinter",
+    "tkinter.ttk",
+    "tkinter.messagebox",
+    "tkinter.filedialog",
+    "_tkinter",
+]

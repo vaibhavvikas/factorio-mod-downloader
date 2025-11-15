@@ -36,21 +36,19 @@ def hide_console():
         if platform.system() != 'Windows':
             return
         
-        import ctypes
-        import ctypes.wintypes
+        # Use pure ctypes without any win32 dependencies
+        from ctypes import windll
         
-        # Get console window handle
-        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-        user32 = ctypes.WinDLL('user32', use_last_error=True)
+        # Constants
+        SW_HIDE = 0
         
-        hwnd = kernel32.GetConsoleWindow()
-        if hwnd:
-            # SW_HIDE = 0
-            user32.ShowWindow(hwnd, 0)
-    except Exception as e:
-        # If hiding fails, just continue
-        # Print to stderr in case console is still visible
-        print(f"Note: Could not hide console: {e}", file=sys.stderr)
+        # Get console window and hide it
+        hwnd = windll.kernel32.GetConsoleWindow()
+        if hwnd != 0:
+            windll.user32.ShowWindow(hwnd, SW_HIDE)
+            
+    except Exception:
+        # Silently fail - console hiding is not critical
         pass
 
 
