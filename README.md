@@ -39,18 +39,50 @@ It is really helpful if you want to download a mod or modpack containing various
 
 
 ### Development
-1. You can build and run the app yourself. I have written the code in python and implemented poetry for dependency management and easy build.
-2. Install python > v3.12 and install poetry, refer to [poetry official website](https://python-poetry.org/docs/#installation) for installation guide.
-3. Install dependencies via the command `poetry install`.
-4. To run the application use the command `poetry run factorio-mod-downloader`. This will run the application directly without building.
-5. To build the application, I am using pyinstaller (you need a **Windows x64** system to build it). Run the command `poetry build` to build the application. A new .exe file will be generated inside `/dist/pyinstaller/win_amd64`.
 
+#### Prerequisites
+
+Before you begin, ensure you have the following installed on your machine:
+
+1. **Python 3.12 or 3.13**
+   - Download from [python.org](https://python.org/downloads/)
+   - During installation, check "Add Python to PATH"
+   - Verify: `python --version`
+
+2. **Rust (for building the performance extension)**
+   - Download from [rustup.rs](https://rustup.rs/)
+   - Verify: `rustc --version`
+
+3. **Poetry (Python dependency manager)**
+   - Install via: `pip install poetry`
+   - Or follow [poetry official guide](https://python-poetry.org/docs/#installation)
+   - Verify: `poetry --version
+   - `poetry self add poetry-pyinstaller-plugin`(important)
+
+4. **Maturin (Rust-Python bridge)**
+   - Installed automatically by Poetry
+   - Or manually: `pip install maturin`
+
+#### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/vaibhavvikas/factorio-mod-downloader.git
+cd factorio-mod-downloader
+
+# Install dependencies and build Rust extension
+.\build.ps1 -BuildExe # additionally builds the `.exe` available at `\dist\fmd-0.4.0.exe`
+
+# Run the application (GUI mode)
+poetry run python -m factorio_mod_downloader --gui
+
+# Or run in CLI mode
+poetry run python -m factorio_mod_downloader --help
+```
 
 ### Note
 I have finally included optional dependencies as well. My advice is handle with care as it significantly increase the number and size of downloads.
-
 Also, download speed is based on re146, Its not super fast but its fine.
-
 Feel free to reach out to me or start a message in the discussions tab if you need some help. 
 
 

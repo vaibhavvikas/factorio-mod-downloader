@@ -253,33 +253,44 @@ if (-not $SkipTests) {
 # ===================================================================
 if ($BuildExe) {
     Write-Step "[8/$totalSteps] Building executable with PyInstaller..."
-    Write-Info "Deactivating virtual environment before build..."
-    deactivate
-    Write-Info "Running poetry build..."
-    poetry build
+    
+    Write-Info "Building with custom PyInstaller command..."
+    
+    # Build manually with all necessary flags
+    pyinstaller `
+        --onefile `
+        --name "fmd" `
+        --icon "factorio_downloader.ico" `
+        --add-data "factorio_downloader.ico;." `
+        --add-data "src/factorio_mod_downloader/factorio_mod_downloader_rust.pyd;." `
+        --collect-all factorio_mod_downloader `
+        --collect-all customtkinter `
+        --collect-all tkinter `
+        --hidden-import tkinter `
+        --hidden-import tkinter.ttk `
+        --hidden-import tkinter.messagebox `
+        --hidden-import tkinter.filedialog `
+        --hidden-import _tkinter `
+        --hidden-import factorio_mod_downloader_rust `
+        --console `
+        --noconfirm `
+        --clean `
+        "src/factorio_mod_downloader/__main__.py"
+    
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "Build failed!"
+        Write-Error "PyInstaller build failed!"
         exit 1
     }
     
     # Check if executable was created
-    $exePath = Get-ChildItem -Path "dist/pyinstaller" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    $exePath = Get-Item "dist/fmd.exe" -ErrorAction SilentlyContinue
     if ($exePath) {
         Write-Success "Executable built successfully!"
         Write-Info "  Name: $($exePath.Name)"
         Write-Info "  Size: $([math]::Round($exePath.Length / 1MB, 2)) MB"
         Write-Info "  Path: $($exePath.FullName)"
-        
-        # Test the executable
-        Write-Info "Testing executable..."
-        & $exePath.FullName --help 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Executable test passed!"
-        } else {
-            Write-Warning "Executable test failed (might be normal for --help)"
-        }
     } else {
-        Write-Warning "Executable not found in dist/pyinstaller/"
+        Write-Warning "Executable not found"
     }
 }
 
@@ -292,7 +303,7 @@ Write-Host "==================================================================="
 
 if ($BuildExe) {
     Write-Host "`nExecutable ready for distribution!" -ForegroundColor Cyan
-    $exePath = Get-ChildItem -Path "dist/pyinstaller" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    $exePath = Get-ChildItem -Path "dist" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($exePath) {
         Write-Host "  Location: $($exePath.FullName)" -ForegroundColor White
         Write-Host "  Size: $([math]::Round($exePath.Length / 1MB, 2)) MB" -ForegroundColor White

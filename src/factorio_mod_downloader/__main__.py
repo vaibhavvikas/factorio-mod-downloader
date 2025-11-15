@@ -29,29 +29,6 @@ def should_use_cli(args: List[str]) -> bool:
     return True
 
 
-def hide_console():
-    """Hide the console window on Windows when in GUI mode.""" 
-    try:
-        import platform
-        if platform.system() != 'Windows':
-            return
-        
-        # Use pure ctypes without any win32 dependencies
-        from ctypes import windll
-        
-        # Constants
-        SW_HIDE = 0
-        
-        # Get console window and hide it
-        hwnd = windll.kernel32.GetConsoleWindow()
-        if hwnd != 0:
-            windll.user32.ShowWindow(hwnd, SW_HIDE)
-            
-    except Exception:
-        # Silently fail - console hiding is not critical
-        pass
-
-
 def main():
     """Initialize and launch the application (CLI or GUI)."""
     args = sys.argv[1:]
@@ -61,11 +38,32 @@ def main():
         from factorio_mod_downloader.cli.app import cli_main
         sys.exit(cli_main(args))
     else:
-        # GUI mode - hide console window and import GUI dependencies
-        hide_console()
-        from factorio_mod_downloader.gui.app import App
-        app = App()
-        app.mainloop()
+        # GUI mode - import GUI dependencies
+        # Hide console only after GUI import succeeds
+        try:
+            from factorio_mod_downloader.gui.app import App
+            
+            # Try to hide console on Windows (non-critical)
+            try:
+                import platform
+                if platform.system() == 'Windows':
+                    from ctypes import windll
+                    hwnd = windll.kernel32.GetConsoleWindow()
+                    if hwnd != 0:
+                        windll.user32.ShowWindow(hwnd, 0)
+            except:
+                pass  # Silently ignore if hiding fails
+            
+            app = App()
+            app.mainloop()
+        except ImportError as e:
+            print(f"Error: Failed to load GUI components: {e}")
+            print("\nPossible causes:")
+            print("  - tkinter is not installed with Python")
+            print("  - customtkinter is not installed")
+            print("\nTry running in CLI mode instead:")
+            print("  fmd --help")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

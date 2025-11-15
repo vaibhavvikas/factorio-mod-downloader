@@ -83,9 +83,8 @@ bundle = true
 add_version = true
 icon = "factorio_downloader.ico"
 console = true
-
 [tool.poetry-pyinstaller-plugin.collect]
-all = ['factorio_mod_downloader', 'customtkinter', 'tkinter']
+all = ['factorio_mod_downloader', 'tkinter']
 
 [tool.poetry-pyinstaller-plugin.include]
 "factorio_downloader.ico" = "."
@@ -95,6 +94,7 @@ hidden-imports = [
     "factorio_mod_downloader_rust",
     "tkinter",
     "tkinter.ttk",
+    "tkinter.constants",
     "tkinter.messagebox",
     "tkinter.filedialog",
     "_tkinter",
