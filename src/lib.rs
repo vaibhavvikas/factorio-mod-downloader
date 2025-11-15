@@ -1,12 +1,20 @@
 use pyo3::prelude::*;
+use pyo3::exceptions::PyRuntimeError;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 use std::pin::Pin;
 use std::future::Future;
-use std::path::Path;
+
+mod shared;
+mod main_download;
+mod batch_download;
+
+use main_download::download_mod_with_deps_enhanced_py;
+use batch_download::batch_download_mods_enhanced_py;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct ModInfo {
@@ -57,17 +65,17 @@ struct Config {
 
 #[pyclass]
 #[derive(Clone)]
-struct DownloadResult {
+pub struct DownloadResult {
     #[pyo3(get)]
-    success: bool,
+    pub success: bool,
     #[pyo3(get)]
-    downloaded_mods: Vec<String>,
+    pub downloaded_mods: Vec<String>,
     #[pyo3(get)]
-    failed_mods: Vec<(String, String)>,
+    pub failed_mods: Vec<(String, String)>,
     #[pyo3(get)]
-    total_size: u64,
+    pub total_size: u64,
     #[pyo3(get)]
-    duration: f64,
+    pub duration: f64,
 }
 
 #[pymethods]
@@ -609,9 +617,18 @@ fn update_mod_list_json(
 /// Python module
 #[pymodule]
 fn factorio_mod_downloader_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    // Legacy functions (keep for compatibility)
     m.add_function(wrap_pyfunction!(download_mod_with_deps, m)?)?;
     m.add_function(wrap_pyfunction!(batch_download_mods, m)?)?;
+    
+    // New enhanced functions (export with clean names)
+    m.add_function(wrap_pyfunction!(download_mod_with_deps_enhanced_py, m)?)?;
+    m.add_function(wrap_pyfunction!(batch_download_mods_enhanced_py, m)?)?;
+    
+    // Utility functions
     m.add_function(wrap_pyfunction!(update_mod_list_json, m)?)?;
+    
+    // Classes
     m.add_class::<DownloadResult>()?;
     Ok(())
 }

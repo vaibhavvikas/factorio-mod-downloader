@@ -195,7 +195,6 @@ class CLIApp:
             mod_id, version = mod_url.split('@', 1)
             mod_url = f"https://mods.factorio.com/mod/{mod_id}"
             target_version = version
-            self.output.print_info(f"🚀 Using @VERSION syntax: {mod_id} version {version}")
         
         # Validate mod URL
         try:
@@ -311,35 +310,16 @@ class CLIApp:
                 
                 self.logger.debug(f"Download parameters: factorio_version={factorio_version}, include_optional={args.include_optional}, include_optional_all={include_optional_all}, target_mod_version={target_mod_version}")
                 
-                # Show progress spinner for Rust downloads
-                if not self.config.quiet and not self.config.json_output:
-                    from rich.console import Console
-                    from rich.spinner import Spinner
-                    from rich.live import Live
-                    
-                    console = Console()
-                    spinner = Spinner('dots', text='🚀 Downloading with Rust engine...')
-                    
-                    with Live(spinner, console=console, refresh_per_second=10):
-                        rust_result = self.rust_downloader.download_mod(
-                            mod_url=args.url,
-                            output_path=output_path,
-                            factorio_version=factorio_version,
-                            include_optional=args.include_optional,
-                            include_optional_all=include_optional_all,
-                            target_mod_version=target_mod_version,
-                            max_depth=10
-                        )
-                else:
-                    rust_result = self.rust_downloader.download_mod(
-                        mod_url=args.url,
-                        output_path=output_path,
-                        factorio_version=factorio_version,
-                        include_optional=args.include_optional,
-                        include_optional_all=include_optional_all,
-                        target_mod_version=target_mod_version,
-                        max_depth=10
-                    )
+                # Use enhanced Rust downloader with beautiful progress bars
+                rust_result = self.rust_downloader.download_mod_enhanced(
+                    mod_url=args.url,
+                    output_path=output_path,
+                    factorio_version=factorio_version,
+                    include_optional=args.include_optional,
+                    include_optional_all=include_optional_all,
+                    target_mod_version=target_mod_version,
+                    max_depth=10
+                )
                 
                 # Convert Rust result to Python result format
                 class RustResultAdapter:
@@ -793,38 +773,16 @@ class CLIApp:
                 factorio_version = getattr(args, 'factorio_version', None) or getattr(self.config, 'factorio_version', '2.0')
                 include_optional_all = getattr(args, 'include_optional_all', False)
                 
-                if not self.config.quiet:
-                    self.output.print_info("Using Rust batch downloader for maximum speed...")
-                
-                # Show progress spinner for Rust batch downloads
-                if not self.config.quiet and not self.config.json_output:
-                    from rich.console import Console
-                    from rich.spinner import Spinner
-                    from rich.live import Live
-                    
-                    console = Console()
-                    spinner = Spinner('dots', text=f'🚀 Batch downloading {len(unique_urls)} mods with Rust engine...')
-                    
-                    with Live(spinner, console=console, refresh_per_second=10):
-                        rust_result = self.rust_downloader.batch_download(
-                            mod_urls=unique_urls,
-                            output_path=output_path,
-                            factorio_version=factorio_version,
-                            include_optional=args.include_optional,
-                            include_optional_all=include_optional_all,
-                            max_depth=10,
-                            continue_on_error=args.continue_on_error
-                        )
-                else:
-                    rust_result = self.rust_downloader.batch_download(
-                        mod_urls=unique_urls,
-                        output_path=output_path,
-                        factorio_version=factorio_version,
-                        include_optional=args.include_optional,
-                        include_optional_all=include_optional_all,
-                        max_depth=10,
-                        continue_on_error=args.continue_on_error
-                    )
+                # Use enhanced Rust batch downloader with beautiful progress bars
+                rust_result = self.rust_downloader.batch_download_enhanced(
+                    mod_urls=unique_urls,
+                    output_path=output_path,
+                    factorio_version=factorio_version,
+                    include_optional=args.include_optional,
+                    include_optional_all=include_optional_all,
+                    max_depth=10,
+                    continue_on_error=args.continue_on_error
+                )
                 
                 # Update statistics
                 total_mods = len(rust_result.downloaded_mods) + len(rust_result.failed_mods)
