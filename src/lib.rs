@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-use pyo3::exceptions::PyRuntimeError;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -14,7 +13,7 @@ mod main_download;
 mod batch_download;
 
 use main_download::download_mod_with_deps_enhanced_py;
-use batch_download::batch_download_mods_enhanced_py;
+use batch_download::{batch_download_mods_enhanced_py, parse_batch_file_py};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct ModInfo {
@@ -352,7 +351,6 @@ fn download_mod_with_deps(
     runtime.block_on(async {
         let start_time = std::time::Instant::now();
         
-        // Extract mod ID
         let mod_id = match extract_mod_id(&mod_url) {
             Ok(id) => id,
             Err(e) => {
@@ -376,7 +374,6 @@ fn download_mod_with_deps(
         
         let mut visited = HashSet::new();
         
-        // Resolve dependencies
         let download_plan = match resolve_dependencies(
             &mod_id,
             &config,
@@ -396,7 +393,6 @@ fn download_mod_with_deps(
             }
         };
         
-        // Remove duplicates
         let mut unique_plan: Vec<DownloadPlan> = Vec::new();
         let mut seen_mods: HashSet<String> = HashSet::new();
         
@@ -417,13 +413,11 @@ fn download_mod_with_deps(
             });
         }
         
-        // Download mods in parallel
         let mut downloaded_mods = Vec::new();
         let mut failed_mods = Vec::new();
         let mut total_size = 0u64;
         
-        // Use parallel downloads with semaphore for rate limiting
-        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(4)); // Max 4 concurrent downloads
+        let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(4));
         let mut tasks = Vec::new();
         
         for plan in unique_plan {
@@ -449,7 +443,6 @@ fn download_mod_with_deps(
             tasks.push(task);
         }
         
-        // Wait for all downloads to complete
         for task in tasks {
             match task.await {
                 Ok(Ok((mod_name, size))) => {
@@ -499,7 +492,6 @@ fn batch_download_mods(
         let mut total_size = 0u64;
         
         for mod_url in mod_urls {
-            // Use spawn_blocking to avoid nested runtime issue
             let mod_url_clone = mod_url.clone();
             let output_path_clone = output_path.clone();
             let _factorio_version_clone = factorio_version.to_string();
@@ -507,7 +499,6 @@ fn batch_download_mods(
             let result = tokio::task::spawn_blocking(move || -> Result<DownloadResult, String> {
                 let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
                 rt.block_on(async {
-                    // Simple single mod download without dependencies for batch
                     let mod_id = extract_mod_id(&mod_url_clone).map_err(|e| e.to_string())?;
                     let mod_info = get_mod_info(&mod_id).await.map_err(|e| e.to_string())?;
                     
@@ -563,7 +554,6 @@ fn update_mod_list_json(
     
     let mod_list_path = PathBuf::from(&mods_directory).join("mod-list.json");
     
-    // Read existing mod-list.json or create new structure
     let mut mod_list: serde_json::Value = if mod_list_path.exists() {
         let content = std::fs::read_to_string(&mod_list_path)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyIOError, _>(e.to_string()))?;
@@ -573,7 +563,6 @@ fn update_mod_list_json(
         serde_json::json!({"mods": []})
     };
     
-    // Get existing mod names
     let existing_mods: HashSet<String> = mod_list["mods"]
         .as_array()
         .unwrap_or(&vec![])
@@ -581,14 +570,11 @@ fn update_mod_list_json(
         .filter_map(|m| m["name"].as_str().map(|s| s.to_string()))
         .collect();
     
-    // Add new mods
     let mods_array = mod_list["mods"].as_array_mut().unwrap();
     let mut added_count = 0;
     
     for mod_name in mod_names {
-        // Extract mod name from filename if it contains version
         let clean_mod_name = if mod_name.contains('_') && mod_name.ends_with(".zip") {
-            // Format: "mod-name_version.zip" -> "mod-name"
             mod_name.split('_').next().unwrap_or(&mod_name).to_string()
         } else {
             mod_name.clone()
@@ -603,7 +589,6 @@ fn update_mod_list_json(
         }
     }
     
-    // Write updated mod-list.json
     if added_count > 0 {
         let content = serde_json::to_string_pretty(&mod_list)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
@@ -617,16 +602,17 @@ fn update_mod_list_json(
 /// Python module
 #[pymodule]
 fn factorio_mod_downloader_rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    // Legacy functions (keep for compatibility)
+    // Legacy functions
     m.add_function(wrap_pyfunction!(download_mod_with_deps, m)?)?;
     m.add_function(wrap_pyfunction!(batch_download_mods, m)?)?;
     
-    // New enhanced functions (export with clean names)
+    // Enhanced functions
     m.add_function(wrap_pyfunction!(download_mod_with_deps_enhanced_py, m)?)?;
     m.add_function(wrap_pyfunction!(batch_download_mods_enhanced_py, m)?)?;
     
     // Utility functions
     m.add_function(wrap_pyfunction!(update_mod_list_json, m)?)?;
+    m.add_function(wrap_pyfunction!(parse_batch_file_py, m)?)?;
     
     // Classes
     m.add_class::<DownloadResult>()?;

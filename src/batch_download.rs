@@ -1,5 +1,4 @@
 use crate::shared::*;
-// Use the DownloadResult from lib.rs
 pub use crate::DownloadResult;
 use std::collections::HashSet;
 use std::time::Instant;
@@ -8,13 +7,14 @@ use console::style;
 use pyo3::prelude::*;
 use serde_json::Value;
 
+// BatchFile structure for parsing JSON batch files
 #[derive(Debug, serde::Deserialize)]
-struct BatchFile {
-    name: Option<String>,
-    description: Option<String>,
-    version: Option<String>,
-    author: Option<String>,
-    mods: Vec<String>,
+pub struct BatchFile {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub version: Option<String>,
+    pub author: Option<String>,
+    pub mods: Vec<String>,
 }
 
 pub async fn batch_download_mods_enhanced(
@@ -66,7 +66,6 @@ pub async fn batch_download_mods_enhanced(
     let mut all_plans = Vec::new();
     let mut resolve_errors = Vec::new();
     
-    // Resolve dependencies for each mod URL
     for mod_url in &mod_urls {
         match extract_mod_id(mod_url) {
             Ok(mod_id) => {
@@ -80,7 +79,6 @@ pub async fn batch_download_mods_enhanced(
         }
     }
     
-    // Remove duplicates across all mods
     let mut unique_plan: Vec<DownloadPlan> = Vec::new();
     let mut seen_mods: HashSet<String> = HashSet::new();
     
@@ -135,7 +133,6 @@ pub async fn batch_download_mods_enhanced(
         failed: Vec::new(),
     };
     
-    // Add resolve errors to failed list
     for (url, error) in resolve_errors {
         stats.failed.push((url, error));
     }
@@ -177,13 +174,12 @@ pub async fn batch_download_mods_enhanced(
     install_pb.enable_steady_tick(std::time::Duration::from_millis(80));
     install_pb.set_message("🔧 Installing packages...");
     
-    // Simulate install time (files are already written)
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
     
     let install_time = download_start.elapsed();
     install_pb.finish_and_clear();
     
-    // === ENHANCED BATCH SUMMARY ===
+    // === SUMMARY ===
     println!("{} {} in {:.0}ms ({:.2} MB/s)",
         style("📥 Downloaded").bold().green(),
         style(format!("{} packages", stats.installed.len())).cyan().bold(),
@@ -199,7 +195,6 @@ pub async fn batch_download_mods_enhanced(
         install_time.as_millis()
     );
     
-    // Show installed packages (UV-style + format with enhanced colors)
     if !stats.installed.is_empty() {
         println!("\n{} Installed packages:", style("📦").green().bold());
         for (name, version) in &stats.installed {
@@ -211,7 +206,6 @@ pub async fn batch_download_mods_enhanced(
         }
     }
     
-    // Show failures if any with enhanced error display
     if !stats.failed.is_empty() {
         println!("\n{} Failed downloads:", style("⚠").yellow().bold());
         for (name, error) in &stats.failed {
@@ -223,22 +217,11 @@ pub async fn batch_download_mods_enhanced(
         }
     }
     
-    // Show batch statistics
-    println!("\n{} Batch Summary:",
-        style("📊").blue().bold()
-    );
-    println!("  • Total URLs processed: {}",
-        style(mod_urls.len()).cyan().bold()
-    );
-    println!("  • Unique packages resolved: {}",
-        style(unique_plan.len()).cyan().bold()
-    );
-    println!("  • Successfully installed: {}",
-        style(stats.installed.len()).green().bold()
-    );
-    println!("  • Failed: {}",
-        style(stats.failed.len()).red().bold()
-    );
+    println!("\n{} Batch Summary:", style("📊").blue().bold());
+    println!("  • Total URLs processed: {}", style(mod_urls.len()).cyan().bold());
+    println!("  • Unique packages resolved: {}", style(unique_plan.len()).cyan().bold());
+    println!("  • Successfully installed: {}", style(stats.installed.len()).green().bold());
+    println!("  • Failed: {}", style(stats.failed.len()).red().bold());
     
     if total_bytes > 0 {
         println!("  • Total downloaded: {} ({:.2} MB/s average)",
@@ -258,19 +241,19 @@ pub async fn batch_download_mods_enhanced(
     })
 }
 
-// Helper function to parse JSON batch file
+/// Parse batch file JSON - supports both structured format and simple URL arrays
 pub fn parse_batch_file(json_content: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    // Try to parse as structured batch file first
+    // Try structured batch file first
     if let Ok(batch_file) = serde_json::from_str::<BatchFile>(json_content) {
         return Ok(batch_file.mods);
     }
     
-    // Fallback: try to parse as simple array of strings
+    // Fallback: simple array of strings
     if let Ok(urls) = serde_json::from_str::<Vec<String>>(json_content) {
         return Ok(urls);
     }
     
-    // Last resort: try to parse as generic JSON and extract URLs
+    // Last resort: generic JSON with mods field
     if let Ok(value) = serde_json::from_str::<Value>(json_content) {
         if let Some(mods) = value.get("mods") {
             if let Some(mods_array) = mods.as_array() {
@@ -286,7 +269,14 @@ pub fn parse_batch_file(json_content: &str) -> Result<Vec<String>, Box<dyn std::
     Err("Could not parse batch file - expected JSON with 'mods' array or simple array of URLs".into())
 }
 
-// PyO3 wrapper function
+// PyO3 wrapper for parse_batch_file
+#[pyfunction(name = "parse_batch_file")]
+pub fn parse_batch_file_py(json_content: &str) -> PyResult<Vec<String>> {
+    parse_batch_file(json_content)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(format!("Parse error: {}", e)))
+}
+
+// PyO3 wrapper for batch_download_mods_enhanced
 #[pyfunction(name = "batch_download_mods_enhanced")]
 #[pyo3(signature = (mod_urls, output_path, factorio_version="2.0", include_optional=true, include_optional_all=false, max_depth=10, continue_on_error=true))]
 pub fn batch_download_mods_enhanced_py(

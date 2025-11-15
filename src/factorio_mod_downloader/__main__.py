@@ -12,10 +12,10 @@ def should_use_cli(args: List[str]) -> bool:
     """Determine if CLI mode should be used based on arguments.
     
     Args:
-        args: Command-line arguments (excluding program name).
+        args: Command-line arguments (excluding program name). 
         
     Returns:
-        True if CLI mode should be used, False for GUI mode.
+        True if CLI mode should be used, False for GUI mode.   
     """
     # No arguments means GUI mode
     if not args:
@@ -30,23 +30,34 @@ def should_use_cli(args: List[str]) -> bool:
 
 
 def hide_console():
-    """Hide the console window on Windows when in GUI mode."""
+    """Hide the console window on Windows when in GUI mode.""" 
     try:
+        import platform
+        if platform.system() != 'Windows':
+            return
+        
         import ctypes
+        import ctypes.wintypes
+        
         # Get console window handle
-        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
+        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+        user32 = ctypes.WinDLL('user32', use_last_error=True)
+        
+        hwnd = kernel32.GetConsoleWindow()
         if hwnd:
-            # Hide the console window
-            ctypes.windll.user32.ShowWindow(hwnd, 0)
-    except Exception:
+            # SW_HIDE = 0
+            user32.ShowWindow(hwnd, 0)
+    except Exception as e:
         # If hiding fails, just continue
+        # Print to stderr in case console is still visible
+        print(f"Note: Could not hide console: {e}", file=sys.stderr)
         pass
 
 
 def main():
     """Initialize and launch the application (CLI or GUI)."""
     args = sys.argv[1:]
-    
+
     if should_use_cli(args):
         # CLI mode - import CLI dependencies only when needed
         from factorio_mod_downloader.cli.app import cli_main
