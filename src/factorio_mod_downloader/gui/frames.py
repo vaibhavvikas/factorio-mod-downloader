@@ -394,7 +394,17 @@ class BodyFrame(customtkinter.CTkFrame):
             # Import here to avoid circular imports
             from factorio_mod_downloader.downloader.mod_downloader import ModDownloader
 
-            mod_downloader = ModDownloader(mod_url, download_path, self)
+            # Get config and logger from the main app
+            config = None
+            logger = None
+            
+            # Try to get config and logger from master (the main App)
+            if hasattr(self.master, 'config_manager'):
+                config = self.master.config_manager.config
+            if hasattr(self.master, 'logger'):
+                logger = self.master.logger
+
+            mod_downloader = ModDownloader(mod_url, download_path, self, logger=logger, config=config)
             mod_downloader.start()
 
         except Exception as e:

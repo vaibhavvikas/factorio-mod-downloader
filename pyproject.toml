@@ -1,30 +1,41 @@
 [tool.poetry]
-name = "factorio-mod-downloader"
+name = "fmd"
 version = "0.3.0"
-description = "One Downloader for all your factorio mods."
+description = "Download Factorio mods from the command line or GUI with full dependency resolution."
 authors = ["Vaibhav Vikas <vbhvvikas@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 classifiers = [
     "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: X11 Applications",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Games/Entertainment",
 ]
 packages = [
     { include = "factorio_mod_downloader", from="src" },
+]
+
+include = [
+    { path = "src/factorio_mod_downloader/factorio_mod_downloader_rust.pyd", format = ["sdist", "wheel"] },
 ]
 
 [tool.poetry.urls]
 Changelog = "https://github.com/vaibhav_vikas/factorio-mod-downloader/releases"
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.14"
+python = ">=3.12,<3.13"
 requests = "^2.32.3"
+beautifulsoup4 = "^4.12.3"
+selenium = "^4.25.0"
+chromedriver-autoinstaller = "^0.6.4"
 pillow = "^11.0.0"
 customtkinter = "^5.2.2"
 ctkmessagebox = "^2.7"
-chromedriver-autoinstaller = "^0.6.4"
-selenium = "^4.25.0"
+pyyaml = "^6.0.2"
+rich = "^13.9.4"
+colorama = "^0.4.6"
 poetry-pyinstaller-plugin = "^1.4.0"
-beautifulsoup4 = "^4.12.3"
 
 [tool.poetry.scripts]
 factorio-mod-downloader = "factorio_mod_downloader.__main__:main"
@@ -34,6 +45,7 @@ pylint = "^3.3.1"
 pyinstaller = "^6.13.0"
 isort = ">=5.10.1"
 black = "^24.10.0"
+maturin = "^1.7.0"
 
 [tool.isort]
 profile = "black"
@@ -59,14 +71,31 @@ recursive-copy-metadata = [
     "requests",
     "chromedriver_autoinstaller",
     "selenium",
-    "customtkinter"
+    "customtkinter",
+    "rich",
+    "colorama",
 ]
 
-[tool.poetry-pyinstaller-plugin.scripts]
-factorio_mod_downloader = { source = "src/factorio_mod_downloader/__main__.py", type = "onefile", bundle = true, add_version = true, icon = "factorio_downloader.ico", windowed = true }
-
+[tool.poetry-pyinstaller-plugin.scripts.fmd]
+source = "src/factorio_mod_downloader/__main__.py"
+type = "onefile"
+bundle = true
+add_version = true
+icon = "factorio_downloader.ico"
+console = true
 [tool.poetry-pyinstaller-plugin.collect]
-all = ['factorio_mod_downloader', 'mod_downloader']
+all = ['factorio_mod_downloader', 'tkinter']
 
 [tool.poetry-pyinstaller-plugin.include]
 "factorio_downloader.ico" = "."
+
+[tool.poetry-pyinstaller-plugin.hidden-imports]
+hidden-imports = [
+    "factorio_mod_downloader_rust",
+    "tkinter",
+    "tkinter.ttk",
+    "tkinter.constants",
+    "tkinter.messagebox",
+    "tkinter.filedialog",
+    "_tkinter",
+]
