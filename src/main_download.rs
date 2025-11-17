@@ -16,15 +16,23 @@ pub async fn download_single_mod_enhanced(
     include_optional_all: bool,
     target_mod_version: Option<String>,
     max_depth: usize,
+    update_mod_list: bool,
 ) -> Result<DownloadResult, Box<dyn std::error::Error>> {
     let start_time = Instant::now();
     
-    // Extract mod ID
     let mod_id = extract_mod_id(&mod_url)?;
+    
+    // Handle version specification from ModID format
+    let version_spec = extract_version_spec(&mod_url);
+    let final_target_version = match version_spec {
+        Some(spec) if spec == "latest" => None, // latest means get latest compatible version
+        Some(spec) => Some(spec), // specific version requested
+        None => target_mod_version, // use version from CLI args if any
+    };
     
     let config = Config {
         target_factorio_version: factorio_version.clone(),
-        target_mod_version,
+        target_mod_version: final_target_version,
         install_optional_deps: include_optional,
         install_optional_all_deps: include_optional_all,
         max_depth,
@@ -188,6 +196,27 @@ pub async fn download_single_mod_enhanced(
         );
     }
     
+    // Update mod-list.json if requested
+    if update_mod_list && !stats.installed.is_empty() {
+        let mod_names: Vec<String> = stats.installed.iter().map(|(name, _)| name.clone()).collect();
+        match crate::update_mod_list_json(mod_names, output_path.clone(), true) {
+            Ok(updated) => {
+                if updated {
+                    println!("\n{} Updated mod-list.json with {} new mod(s)",
+                        style("✓").green().bold(),
+                        stats.installed.len()
+                    );
+                }
+            }
+            Err(e) => {
+                println!("\n{} Failed to update mod-list.json: {}",
+                    style("⚠").yellow().bold(),
+                    e
+                );
+            }
+        }
+    }
+    
     Ok(DownloadResult {
         success: stats.failed.is_empty(),
         downloaded_mods: stats.installed.iter().map(|(name, _)| name.clone()).collect(),
@@ -199,7 +228,7 @@ pub async fn download_single_mod_enhanced(
 
 // PyO3 wrapper function
 #[pyfunction(name = "download_mod_with_deps_enhanced")]
-#[pyo3(signature = (mod_url, output_path, factorio_version="2.0", include_optional=true, include_optional_all=false, target_mod_version=None, max_depth=10))]
+#[pyo3(signature = (mod_url, output_path, factorio_version="2.0", include_optional=true, include_optional_all=false, target_mod_version=None, max_depth=10, update_mod_list=false))]
 pub fn download_mod_with_deps_enhanced_py(
     mod_url: String,
     output_path: String,
@@ -208,6 +237,7 @@ pub fn download_mod_with_deps_enhanced_py(
     include_optional_all: bool,
     target_mod_version: Option<String>,
     max_depth: usize,
+    update_mod_list: bool,
 ) -> PyResult<DownloadResult> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     
@@ -219,5 +249,6 @@ pub fn download_mod_with_deps_enhanced_py(
         include_optional_all,
         target_mod_version,
         max_depth,
+        update_mod_list,
     )).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Download error: {}", e)))
 }

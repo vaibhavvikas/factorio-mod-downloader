@@ -408,7 +408,7 @@ The mod URL should be in the format: https://mods.factorio.com/mod/<mod-name>
     
     download_parser.add_argument(
         'url',
-        help='URL of the mod to download (e.g., https://mods.factorio.com/mod/Krastorio2)'
+        help='Mod URL or ModID to download (e.g., https://mods.factorio.com/mod/Krastorio2, Krastorio2, Krastorio2@1.3.25, Krastorio2@latest)'
     )
     
     download_parser.add_argument(

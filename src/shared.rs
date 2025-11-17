@@ -58,8 +58,20 @@ pub struct DownloadStats {
 }
 
 // Shared utility functions
-pub fn extract_mod_id(mod_url: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let url_parts: Vec<&str> = mod_url.split('/').collect();
+pub fn extract_mod_id(input: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let input = input.trim();
+    
+    // Handle ModID formats: modID, modID@version, modID@latest
+    if !input.contains("://") {
+        // Direct mod ID format
+        let mod_id = input.split('@').next().unwrap_or(input);
+        if !mod_id.is_empty() {
+            return Ok(mod_id.to_string());
+        }
+    }
+    
+    // Handle URL formats
+    let url_parts: Vec<&str> = input.split('/').collect();
     if let Some(mod_part) = url_parts.iter().find(|&&part| part.starts_with("mod")) {
         if let Some(mod_id) = mod_part.strip_prefix("mod/") {
             return Ok(mod_id.split('?').next().unwrap_or(mod_id).to_string());
@@ -74,7 +86,17 @@ pub fn extract_mod_id(mod_url: &str) -> Result<String, Box<dyn std::error::Error
         }
     }
     
-    Err("Could not extract mod ID from URL".into())
+    Err("Could not extract mod ID from input".into())
+}
+
+pub fn extract_version_spec(input: &str) -> Option<String> {
+    if !input.contains("://") && input.contains('@') {
+        let parts: Vec<&str> = input.split('@').collect();
+        if parts.len() == 2 {
+            return Some(parts[1].to_string());
+        }
+    }
+    None
 }
 
 pub async fn get_mod_info(mod_id: &str) -> Result<ModInfo, Box<dyn std::error::Error>> {
@@ -181,11 +203,14 @@ pub fn find_compatible_release<'a>(
         }
     }
     
-    // Find latest compatible release
-    for release in &mod_info.releases {
-        if is_version_compatible(&release.info_json.factorio_version, &config.target_factorio_version) {
-            return Ok(release);
-        }
+    // Find latest compatible release (get LAST compatible version, not first)
+    let compatible_releases: Vec<&Release> = mod_info.releases
+        .iter()
+        .filter(|r| is_version_compatible(&r.info_json.factorio_version, &config.target_factorio_version))
+        .collect();
+    
+    if let Some(latest_release) = compatible_releases.last() {
+        return Ok(latest_release);
     }
     
     Err(format!("No compatible release found for mod {} (Factorio {})", mod_info.name, config.target_factorio_version).into())

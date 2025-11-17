@@ -186,15 +186,13 @@ class CLIApp:
         Returns:
             Exit code (0 for success, non-zero for failure).
         """
-        # Parse URL for @VERSION syntax (e.g., FNEI@2.0.10)
+        # Pass the original input directly to Rust - let Rust handle ModID parsing
         mod_url = args.url
         target_version = args.target_mod_version
         
-        if '@' in mod_url and not mod_url.startswith('http'):
-            # Handle MOD_ID@VERSION syntax
-            mod_id, version = mod_url.split('@', 1)
-            mod_url = f"https://mods.factorio.com/mod/{mod_id}"
-            target_version = version
+        # Update args with original values (Rust will handle ModID@version parsing)
+        args.url = mod_url
+        args.target_mod_version = target_version
         
         # Validate mod URL
         try:
@@ -318,7 +316,8 @@ class CLIApp:
                     include_optional=args.include_optional,
                     include_optional_all=include_optional_all,
                     target_mod_version=target_mod_version,
-                    max_depth=10
+                    max_depth=10,
+                    update_mod_list=using_default_path
                 )
                 
                 # Convert Rust result to Python result format

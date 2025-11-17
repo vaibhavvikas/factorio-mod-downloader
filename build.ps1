@@ -1,5 +1,6 @@
 param(
     [switch]$SkipTests,
+    [Alias("be")]
     [switch]$BuildExe,
     [switch]$KeepVenv,
     [Alias("co")]
@@ -141,16 +142,28 @@ if (-not $KeepVenv) {
         }
     }
     
-    Write-Info "Creating fresh virtual environment..."
-    python -m venv .venv
+    Write-Info "Creating fresh virtual environment with Python 3.12..."
+    # Use py launcher to explicitly select Python 3.12
+    py -3.12 -m venv .venv
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Failed to create virtual environment!"
+        Write-Error "Make sure Python 3.12 is installed: py -3.12 --version"
         exit 1
     }
-    Write-Success "Virtual environment created"
+    Write-Success "Virtual environment created (Python 3.12)"
 } else {
     Write-Step "[2/$totalSteps] Keeping existing virtual environment..."
-    Write-Warning "Using existing .venv"
+    
+    # Verify the venv is using Python 3.12
+    if (Test-Path ".venv\Scripts\python.exe") {
+        $venvVersion = & .\.venv\Scripts\python.exe --version 2>&1
+        Write-Warning "Using existing .venv ($venvVersion)"
+        
+        if ($venvVersion -notmatch "3\.12") {
+            Write-Warning "WARNING: venv is using $venvVersion, but project requires 3.12"
+            Write-Warning "Consider running without -KeepVenv to recreate with correct version"
+        }
+    }
 }
 
 # ===================================================================
@@ -159,6 +172,18 @@ if (-not $KeepVenv) {
 Write-Step "[3/$totalSteps] Activating virtual environment and upgrading tools..."
 
 & .\.venv\Scripts\Activate.ps1
+
+# Verify we're using Python 3.12
+Write-Info "Verifying Python version..."
+$pythonVersion = python --version 2>&1
+Write-Info "Active Python: $pythonVersion"
+
+if ($pythonVersion -notmatch "3\.12") {
+    Write-Error "Virtual environment is using wrong Python version: $pythonVersion"
+    Write-Error "Expected: Python 3.12.x"
+    Write-Error "Run without -KeepVenv to recreate with correct version"
+    exit 1
+}
 
 Write-Info "Upgrading pip, setuptools, wheel..."
 python -m pip install --upgrade pip setuptools wheel --quiet
@@ -289,8 +314,12 @@ if (-not $SkipTests) {
 # ===================================================================
 if ($BuildExe) {
     Write-Step "[8/$totalSteps] Building executable with PyInstaller..."
-    Write-Info "Deactivating Vertual Environment before build...."
-    deactivate
+    
+    Write-Info "Deactivating virtual environment before build..."
+    if ($env:VIRTUAL_ENV) {
+        deactivate 2>$null
+    }
+    
     Write-Info "Running poetry build..."
     poetry build
     
@@ -303,15 +332,21 @@ if ($BuildExe) {
     $exePath = Get-ChildItem -Path "dist\pyinstaller\win_amd64" -Filter "fmd-*.exe" -File -ErrorAction SilentlyContinue | Select-Object -First 1
     
     if ($exePath) {
+        $exeSize = [math]::Round($exePath.Length / 1MB, 2)
         Write-Success "Executable built successfully!"
         Write-Info "  Name: $($exePath.Name)"
-        Write-Info "  Size: $([math]::Round($exePath.Length / 1MB, 2)) MB"
-        Write-Info "  Path: $($exePath.FullName)"
+        Write-Info "  Size: $exeSize MB"
         
-        # Optional: Copy to dist root for easier access
+        # Move to dist root for easier distribution
         $destPath = "dist\$($exePath.Name)"
-        Copy-Item $exePath.FullName $destPath -Force
-        Write-Info "  Copied to: $destPath"
+        Move-Item $exePath.FullName $destPath -Force
+        Write-Success "Moved to: dist\$($exePath.Name)"
+        
+        # Clean up empty pyinstaller folder structure (optional)
+        if ((Get-ChildItem "dist\pyinstaller\win_amd64" -ErrorAction SilentlyContinue).Count -eq 0) {
+            Remove-Item "dist\pyinstaller" -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Info "  Cleaned up empty pyinstaller folder"
+        }
     } else {
         Write-Warning "Executable not found in dist\pyinstaller\win_amd64\"
         

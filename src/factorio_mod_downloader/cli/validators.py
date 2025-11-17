@@ -8,10 +8,10 @@ from factorio_mod_downloader.infrastructure.errors import ValidationError
 
 
 def validate_mod_url(url: str) -> Tuple[bool, str]:
-    """Validate that a URL matches the expected Factorio mod portal pattern.
+    """Validate that a URL matches the expected Factorio mod portal pattern or ModID format.
     
     Args:
-        url: URL to validate.
+        url: URL or ModID to validate.
         
     Returns:
         Tuple of (is_valid, error_message). error_message is empty if valid.
@@ -19,15 +19,34 @@ def validate_mod_url(url: str) -> Tuple[bool, str]:
     if not url:
         return False, "URL cannot be empty"
     
-    # Expected pattern: https://mods.factorio.com/mod/<mod_name>
-    # Accept: URL-encoded characters (%20, etc), query parameters (?from=search), and paths
-    pattern = r'^https?://mods\.factorio\.com/mod/[a-zA-Z0-9_\-%]+(/[a-zA-Z0-9_\-/]*)?(\?.*)?$'
+    # Check if it's a ModID format (modID, modID@version, modID@latest)
+    if not url.startswith(('http://', 'https://')):
+        # ModID pattern: alphanumeric, hyphens, underscores, optional @version
+        modid_pattern = r'^[a-zA-Z0-9_\-]+(@[a-zA-Z0-9_\.\-]+)?$'
+        if re.match(modid_pattern, url):
+            return True, ""
+        else:
+            return False, (
+                f"Invalid ModID format: {url}\n"
+                "Expected formats:\n"
+                "  ModID: Krastorio2\n"
+                "  ModID@version: Krastorio2@1.3.25\n"
+                "  ModID@latest: Krastorio2@latest\n"
+                "  URL: https://mods.factorio.com/mod/Krastorio2"
+            )
     
-    if not re.match(pattern, url):
+    # Expected URL pattern: https://mods.factorio.com/mod/<mod_name>
+    # Accept: URL-encoded characters (%20, etc), query parameters (?from=search), and paths
+    url_pattern = r'^https?://mods\.factorio\.com/mod/[a-zA-Z0-9_\-%]+(/[a-zA-Z0-9_\-/]*)?(\?.*)?$'
+    
+    if not re.match(url_pattern, url):
         return False, (
             f"Invalid mod URL format: {url}\n"
-            "Expected format: https://mods.factorio.com/mod/<mod_name>\n"
-            "Example: https://mods.factorio.com/mod/Krastorio2"
+            "Expected formats:\n"
+            "  ModID: Krastorio2\n"
+            "  ModID@version: Krastorio2@1.3.25\n"
+            "  ModID@latest: Krastorio2@latest\n"
+            "  URL: https://mods.factorio.com/mod/Krastorio2"
         )
     
     return True, ""

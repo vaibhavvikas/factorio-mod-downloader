@@ -1,7 +1,5 @@
 """Rust-powered download engine wrapper."""
 
-import os
-from pathlib import Path
 from typing import List, Optional, Tuple
 from dataclasses import dataclass
 
@@ -104,7 +102,8 @@ class RustDownloader:
         include_optional: bool = True,
         include_optional_all: bool = False,
         target_mod_version: Optional[str] = None,
-        max_depth: int = 10
+        max_depth: int = 10,
+        update_mod_list: bool = False
     ) -> RustDownloadResult:
         """Download a mod with dependencies using enhanced Rust downloader with beautiful progress bars."""
         self.logger.debug(f"Using enhanced Rust downloader for: {mod_url}")
@@ -116,7 +115,8 @@ class RustDownloader:
             include_optional=include_optional,
             include_optional_all=include_optional_all,
             target_mod_version=target_mod_version,
-            max_depth=max_depth
+            max_depth=max_depth,
+            update_mod_list=update_mod_list
         )
         
         return RustDownloadResult(
