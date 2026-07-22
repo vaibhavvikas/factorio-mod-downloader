@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "apps/cli",
+    "apps/gui/native",
+    "apps/gui/ui/src-tauri",
+    "crates/factorio",
+    "crates/downloader",
+    "crates/storage",
+    "crates/utils", 
+    "crates/parser",
+]
+
+[workspace.package]
+authors = ["Vaibhav Vikas <vaibhavvikas@users.noreply.github.com>"]
+license = "MIT"
+repository = "https://github.com/vaibhavvikas/factorio-mod-downloader"
+edition = "2024"
