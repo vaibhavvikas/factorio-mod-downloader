@@ -1,1 +1,0 @@
-"""Factorio Mod Downloader."""

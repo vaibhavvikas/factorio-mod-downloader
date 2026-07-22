@@ -15,14 +15,12 @@ It is really helpful if you want to download a mod or modpack containing various
 ![Factorio Mod Downloader](factorio_mod_downloader.png)
 
 
-### Features
-1. Added Dark Mode
-2. Added progress bars and logs to see what files are being downloaded.
-3. Added a seperate downloads section to track each file with custom progress and success icons.
-4. Added speed and progress bar specific updates while file is getting downloaded.
-5. Added multithreading downloads, i.e. file will be getting downloaded in background while new dependencies are being analyzed.
-6. Updated to add the option to downlaod optional dependencies as well (Use with caution as it may significantly increase number of files getting downloaded).
-7. Completely interactive and requires no other dependency. 100% standalone app.
+### Features (In Development)
+1. Revamp app with re-written code with Rust
+2. New design with version selection and mod selection
+3. Dependency management
+4. Cli support
+5. Cross platform support
 
 
 ### How to download
@@ -38,19 +36,7 @@ It is really helpful if you want to download a mod or modpack containing various
 5. Once completed the application will show a download complete dialog.
 
 
-### Development
-1. You can build and run the app yourself. I have written the code in python and implemented poetry for dependency management and easy build.
-2. Install python > v3.12 and install poetry, refer to [poetry official website](https://python-poetry.org/docs/#installation) for installation guide.
-3. Install dependencies via the command `poetry install`.
-4. To run the application use the command `poetry run factorio-mod-downloader`. This will run the application directly without building.
-5. To build the application, I am using pyinstaller (you need a **Windows x64** system to build it). Run the command `poetry build` to build the application. A new .exe file will be generated inside `/dist/pyinstaller/win_amd64`.
-
-
 ### Note
-I have finally included optional dependencies as well. My advice is handle with care as it significantly increase the number and size of downloads.
-
-Also, download speed is based on re146, Its not super fast but its fine.
-
 Feel free to reach out to me or start a message in the discussions tab if you need some help. 
 
 
