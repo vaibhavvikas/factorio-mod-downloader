@@ -1,3 +1,0 @@
-"""
-Downloader package initialization
-"""

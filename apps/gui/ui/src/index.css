@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 1. Lock the root window frame to prevent the entire app from bouncing */
+html,
+body {
+  background-color: transparent !important;
+  overscroll-behavior: none !important;
+  overscroll-behavior-x: none !important;
+  overflow-x: hidden !important;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  border-radius: 12px;
+}
+
+/* 1b. Smooth app entrance – prevents layout shift flash */
+@keyframes app-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.app-ready {
+  opacity: 0;
+  animation: app-fade-in 0.25s ease-out 0.05s forwards;
+}
+
+/* 2. Target your scrollable workspace/sidebar containers to stop internal rubber-banding */
+.overflow-y-auto,
+.overflow-auto {
+  overscroll-behavior-y: none !important;
+}
+
+/* 3. High-performance GPU transitions for smooth 120fps rendering */
+.transition-gpu {
+  transition-property: transform, opacity, background-color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  will-change: transform, opacity, background-color;
+}
+
+/* 4. Animated laser shimmer effect for active download progress bars */
+@keyframes shimmer {
+  0% {
+    background-position: 200% center;
+  }
+
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 2.5s infinite linear;
+}
+
+.divider {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.divider:hover {
+  background: rgba(100, 100, 100, 0.2);
+}
+
+/* Optional glass-morphism for sidebar root */
+.sidebar-root {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dark .sidebar-root {
+  background: rgba(0, 0, 0, 0.9);
+}
