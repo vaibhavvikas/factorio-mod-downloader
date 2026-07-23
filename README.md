@@ -57,7 +57,7 @@ Simply paste a Factorio Mod Portal URL or mod ID, inspect version constraints an
 
 ### Prerequisites
 - [Rust](https://www.rust-lang.org/tools/install) (1.75+)
-- [Node.js](https://nodejs.org/) (v18+)
+- [Node.js](https://nodejs.org/) (v24+)
 - Platform build toolchains (Xcode tools for macOS, Visual Studio C++ build tools for Windows, or `libgtk-3-dev` / `libwebkit2gtk-4.1-dev` for Linux).
 
 ### Build Desktop GUI

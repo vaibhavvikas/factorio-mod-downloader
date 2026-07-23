@@ -1,14 +1,22 @@
 name: CI Test Pipeline
 
 on:
+  # Validate main directly; feature branches are covered when a PR to main is opened/updated.
   push:
     branches:
-      - '**'
+      - main
     tags-ignore:
       - 'v*'
   pull_request:
     branches:
       - main
+
+# Cancel superseded runs for the same PR / branch so rapid pushes
+# don't stack builds. Combined with artifact overwrite + short retention,
+# storage stays bounded (one artifact set per open PR, expires in 3 days).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-and-validate:
@@ -27,7 +35,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: 'apps/gui/ui/package-lock.json'
 
@@ -36,6 +44,8 @@ jobs:
 
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './ -> target'
 
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
@@ -48,8 +58,59 @@ jobs:
           cargo check --workspace
           cargo test --workspace
 
+      - name: Install Frontend Dependencies
+        working-directory: apps/gui/ui
+        run: npm ci
+
       - name: Validate Frontend TypeScript Build
+        working-directory: apps/gui/ui
+        run: npm run build
+
+      # Full desktop build + artifacts only for PRs targeting main.
+      # --no-bundle produces the platform executable (no .dmg/.msi/.deb).
+      - name: Build Tauri Desktop App
+        if: github.event_name == 'pull_request'
+        working-directory: apps/gui/ui
+        run: npx tauri build --no-bundle
+
+      - name: Collect Executable Artifact
+        if: github.event_name == 'pull_request'
+        shell: bash
         run: |
-          cd apps/gui/ui
-          npm ci
-          npm run build
+          set -euo pipefail
+          mkdir -p pr-artifacts
+          RELEASE_DIR="target/release"
+
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            SRC="$RELEASE_DIR/app.exe"
+            DEST="pr-artifacts/factorio-mod-downloader-windows-x64.exe"
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            SRC="$RELEASE_DIR/app"
+            DEST="pr-artifacts/factorio-mod-downloader-macos"
+          else
+            SRC="$RELEASE_DIR/app"
+            DEST="pr-artifacts/factorio-mod-downloader-linux-x64"
+          fi
+
+          if [ ! -f "$SRC" ]; then
+            echo "Executable not found at $SRC"
+            find "$RELEASE_DIR" -maxdepth 2 -type f 2>/dev/null | head -100 || true
+            exit 1
+          fi
+
+          cp -f "$SRC" "$DEST"
+          chmod +x "$DEST" || true
+          ls -lah pr-artifacts
+
+      - name: Upload PR Build Artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          # Stable name per PR + OS so each new commit overwrites the previous
+          # artifact instead of accumulating one set per push.
+          name: pr-${{ github.event.pull_request.number }}-gui-${{ matrix.os }}
+          path: pr-artifacts/*
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+          compression-level: 6
