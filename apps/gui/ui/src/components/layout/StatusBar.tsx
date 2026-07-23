@@ -35,6 +35,7 @@ export const StatusBar: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
+
                 {queue.length > 0 ? (
                     <div className="flex items-center gap-1.5 text-slate-500 dark:text-zinc-400 select-none">
                         {isDownloading ? (
