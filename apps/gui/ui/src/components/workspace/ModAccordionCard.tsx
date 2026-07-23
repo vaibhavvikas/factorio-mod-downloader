@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Download, Trash2, ExternalLink, Calendar } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { ChevronDown, Download, Trash2, ExternalLink, Calendar } from 'lucide-react';
 import { DependencyTree } from './DependencyTree';
 import type { TreeNode } from './DependencyTree';
+import { formatCategoryLabel, getCategoryBadgeStyle } from './modCategory';
 
 export interface ModVersionRelease {
     version: string;
-    factorio_version: string;
+    factorio_version?: string;
     released_at?: string;
+    dependencies: {
+        required: { id: string; ineq: string; version: string }[];
+        recommended: { id: string; ineq: string; version: string }[];
+        optional: { id: string; ineq: string; version: string }[];
+        incompatible: { id: string; ineq: string; version: string }[];
+    };
 }
 
 export interface TargetModItem {
@@ -37,6 +45,8 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
     onSelectVersion,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
     const formatVer = (ver?: string) => {
         if (!ver || !ver.trim()) return '';
@@ -45,58 +55,82 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
     };
 
     const currentRelease = availableReleases.find(r => r.version === selectedVersion);
-    const displayLabel = currentRelease 
+    const displayLabel = currentRelease && currentRelease.factorio_version
         ? `${formatVer(currentRelease.version)} (Factorio ${currentRelease.factorio_version})` 
         : formatVer(selectedVersion);
 
-    return (
-        <div className="relative z-30">
-            {isOpen && (
-                <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setIsOpen(false)} />
-            )}
+    const handleToggle = () => {
+        if (!isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            const dropdownHeight = 280; // max-h-[280px]
+            const spaceBelow = window.innerHeight - rect.bottom;
+            
+            if (spaceBelow < dropdownHeight + 12 && rect.top > dropdownHeight) {
+                // Not enough space below — flip upward
+                setDropdownPos({ top: rect.top - dropdownHeight - 6, left: rect.left });
+            } else {
+                // Default — open downward
+                setDropdownPos({ top: rect.bottom + 6, left: rect.left });
+            }
+        }
+        setIsOpen(!isOpen);
+    };
 
+    return (
+        <div className="relative">
             <button
+                ref={buttonRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-950 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+                onClick={handleToggle}
+                className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-950 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900 transition-colors cursor-pointer max-w-[300px]"
+                title={displayLabel}
             >
-                <span className="text-[10px] text-slate-400 font-normal">Ver:</span>
-                <span>{displayLabel}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <span className="text-[10px] text-slate-400 font-normal shrink-0">Ver:</span>
+                <span className="truncate max-w-[240px]">{displayLabel}</span>
+                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Custom Floating Selection Window Capped at 10 items max height (max-h-[280px]) */}
-            {isOpen && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 w-64 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-fade-in">
-                    <div className="max-h-[280px] overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800/60 text-xs font-mono">
-                        {availableReleases && availableReleases.length > 0 ? (
-                            availableReleases.map(rel => {
-                                const isSelected = rel.version === selectedVersion;
-                                return (
-                                    <div
-                                        key={rel.version}
-                                        onClick={() => {
-                                            onSelectVersion(rel.version);
-                                            setIsOpen(false);
-                                        }}
-                                        className={`px-3 py-2 flex items-center justify-between cursor-pointer transition-colors ${
-                                            isSelected 
-                                                ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold' 
-                                                : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800'
-                                        }`}
-                                    >
-                                        <span>{formatVer(rel.version)}</span>
-                                        <span className="text-[10px] text-slate-400">Factorio {rel.factorio_version}</span>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div className="px-3 py-2 text-slate-700 dark:text-zinc-200 font-bold">
-                                {formatVer(selectedVersion)}
-                            </div>
-                        )}
+            {/* Portal-rendered dropdown — escapes sticky/overflow-hidden ancestors */}
+            {isOpen && createPortal(
+                <>
+                    <div className="fixed inset-0 z-[100] bg-transparent" onClick={() => setIsOpen(false)} />
+                    <div 
+                        className="fixed z-[101] w-64 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-fade-in"
+                        style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                    >
+                        <div className="max-h-[280px] overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-800/60 text-xs font-mono">
+                            {availableReleases && availableReleases.length > 0 ? (
+                                availableReleases.map(rel => {
+                                    const isSelected = rel.version === selectedVersion;
+                                    return (
+                                        <div
+                                            key={rel.version}
+                                            onClick={() => {
+                                                onSelectVersion(rel.version);
+                                                setIsOpen(false);
+                                            }}
+                                            className={`px-3 py-2 flex items-center justify-between cursor-pointer transition-colors ${
+                                                isSelected 
+                                                    ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold' 
+                                                    : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800'
+                                            }`}
+                                        >
+                                            <span>{formatVer(rel.version)}</span>
+                                            {rel.factorio_version && (
+                                                <span className="text-[10px] text-slate-400">Factorio {rel.factorio_version}</span>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="px-3 py-2 text-slate-700 dark:text-zinc-200 font-bold">
+                                    {formatVer(selectedVersion)}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </>,
+                document.body
             )}
         </div>
     );
@@ -104,6 +138,8 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
 
 interface ModAccordionCardProps {
     mod: TargetModItem;
+    isExpanded?: boolean;
+    onToggleExpand?: () => void;
     onToggleDep: (modId: string, depId: string) => void;
     onToggleSection: (modId: string, type: 'recommended' | 'optional', selectAll: boolean) => void;
     onSelectVersion: (id: string, version: string) => void;
@@ -112,25 +148,18 @@ interface ModAccordionCardProps {
 
 export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     mod,
+    isExpanded,
+    onToggleExpand,
     onToggleDep,
     onToggleSection,
     onSelectVersion,
     onRemove,
 }) => {
-    const [expanded, setExpanded] = useState(true);
+    const [localExpanded, setLocalExpanded] = useState(false);
     const [imgError, setImgError] = useState(false);
 
-    const countActiveDeps = (nodes: TreeNode[]): number => {
-        let count = 0;
-        nodes.forEach(n => {
-            if (n.isShared) return;
-            if (mod.selectedDepIds.includes(n.id)) count++;
-            if (n.children) count += countActiveDeps(n.children);
-        });
-        return count;
-    };
-
-    const activeDepCount = countActiveDeps(mod.dependencies);
+    const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
+    const toggleExpanded = onToggleExpand || (() => setLocalExpanded(!localExpanded));
 
     // Per-section counts for collapsed summary
     const requiredCount = mod.dependencies.filter(n => n.type === 'required').length;
@@ -145,11 +174,12 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
         : null;
 
     const initialLetter = (mod.title || mod.name || 'M').charAt(0).toUpperCase();
+    const categoryBadgeStyle = getCategoryBadgeStyle(mod.category);
 
     return (
-        <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl shadow-sm transition-all overflow-hidden">
-            {/* Main Header / Top Section */}
-            <div className="p-4 flex flex-col gap-3">
+        <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl shadow-xs hover:border-slate-300 dark:hover:border-zinc-700/80 hover:shadow-md transition-all duration-200 overflow-hidden">
+            {/* Sticky Header — pins to top of scroll container like VS Code sticky scroll */}
+            <div className="p-4 flex flex-col gap-3 sticky top-0 z-10 bg-white dark:bg-zinc-900/90 rounded-t-2xl">
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 overflow-hidden">
                         {/* Mod Thumbnail image with initial letter fallback */}
@@ -171,14 +201,14 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
                                     {mod.title || mod.name}
                                 </h3>
-                                <span className="text-[10px] font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-zinc-700/60">
+                                <span className="max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
                                     {mod.name}
                                 </span>
-                                <span className="text-[9.5px] uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800/60">
-                                    {mod.category || 'mod'}
+                                <span className={`panel-pill tracking-wide border ${categoryBadgeStyle}`}>
+                                    {formatCategoryLabel(mod.category)}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-2.5 text-[11px] text-slate-500 dark:text-zinc-400 mt-1 flex-wrap">
+                            <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-zinc-400 mt-1 flex-wrap">
                                 <span>by <strong className="text-slate-700 dark:text-zinc-300 font-semibold">{mod.author || 'Author'}</strong></span>
                                 <span>•</span>
                                 <span className="flex items-center gap-1">
@@ -238,19 +268,19 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                         {/* Separator */}
                         <span className="text-slate-200 dark:text-zinc-800 select-none">|</span>
 
-                        {/* Dep count badges — always visible */}
+                        {/* Dep count badges — always visible with desaturated dark mode colors */}
                         {requiredCount > 0 && (
-                            <span className="text-[9px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/60 select-none">
+                            <span className="panel-pill panel-pill-mono bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300/90 border border-emerald-200/60 dark:border-emerald-800/40 select-none">
                                 {requiredCount} required
                             </span>
                         )}
                         {recommendedNodes.length > 0 && (
-                            <span className="text-[9px] font-mono font-bold bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full border border-indigo-200/60 dark:border-indigo-800/60 select-none">
+                            <span className="panel-pill panel-pill-mono bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300/90 border border-indigo-200/60 dark:border-indigo-800/40 select-none">
                                 {recommendedSelected}/{recommendedNodes.length} recommended
                             </span>
                         )}
                         {optionalNodes.length > 0 && (
-                            <span className="text-[9px] font-mono font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800/60 select-none">
+                            <span className="panel-pill panel-pill-mono bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-300/80 border border-amber-200/60 dark:border-amber-800/30 select-none">
                                 {optionalSelected}/{optionalNodes.length} optional
                             </span>
                         )}
@@ -258,7 +288,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 
                     {/* Expand/Collapse toggle — clean icon button */}
                     <button
-                        onClick={() => setExpanded(!expanded)}
+                        onClick={toggleExpanded}
                         className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer select-none"
                         title="Toggle Dependencies List"
                     >

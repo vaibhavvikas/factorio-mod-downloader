@@ -1,6 +1,6 @@
 use crate::models::{Dependencies, Dependency};
 
-const IGNORED_MOD_IDS: &[&str] = &["base", "space-age", "quality"];
+const IGNORED_MOD_IDS: &[&str] = &["base", "space-age", "quality", "elevated-rails", "recycler"];
 
 pub fn parse_dependencies(dependencies: &Option<Vec<String>>) -> Dependencies {
     let reg = regex::Regex::new(
@@ -21,7 +21,7 @@ pub fn parse_dependencies(dependencies: &Option<Vec<String>>) -> Dependencies {
         let ineq = caps.name("ineq").map_or("", |m| m.as_str());
         let version = caps.name("version").map_or("", |m| m.as_str());
 
-        if IGNORED_MOD_IDS.contains(&id) {
+        if IGNORED_MOD_IDS.contains(&id.to_lowercase().as_str()) {
             continue;
         }
 

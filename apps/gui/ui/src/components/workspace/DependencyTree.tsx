@@ -61,22 +61,22 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
             {/* Section 1: Required Dependencies */}
             {requiredNodes.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between px-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 select-none">
+                    <div className="flex items-center justify-between px-1 text-xs font-bold text-emerald-600 dark:text-emerald-300 select-none">
                         <div className="flex items-center gap-2">
                             <input 
                                 type="checkbox" 
                                 checked={true} 
                                 disabled 
                                 readOnly 
-                                className="w-3.5 h-3.5 rounded border-emerald-400 text-emerald-600 cursor-not-allowed opacity-80" 
+                                className="w-3.5 h-3.5 rounded border-emerald-400 dark:border-emerald-600 text-emerald-600 dark:text-emerald-500 cursor-not-allowed opacity-80" 
                             />
                             <span>Required Dependencies ({requiredNodes.length})</span>
                         </div>
                         <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Always Included</span>
                     </div>
-                    <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-xl divide-y divide-slate-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs ">
+                    <div className="bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 rounded-xl divide-y divide-slate-100 dark:divide-zinc-800/60 overflow-hidden shadow-2xs">
                         {requiredNodes.map(node => (
-                            <div key={node.id} className="flex items-center justify-between p-2.5 text-xs">
+                            <div key={node.id} className="flex items-center justify-between p-2.5 text-xs select-none cursor-default bg-slate-50/30 dark:bg-zinc-900/40">
                                 <div className="flex items-center gap-2.5 overflow-hidden">
                                     <input 
                                         type="checkbox" 
@@ -87,7 +87,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                     />
                                     <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
                                     {formatVersionLabel(node.version) && (
-                                        <span className="text-[10px] font-mono text-slate-400">{formatVersionLabel(node.version)}</span>
+                                        <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{formatVersionLabel(node.version)}</span>
                                     )}
                                     {node.isShared && (
                                         <span className="flex items-center gap-1 text-[9px] bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 px-1.5 py-0.2 rounded font-mono font-medium shrink-0">

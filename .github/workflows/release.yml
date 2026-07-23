@@ -1,0 +1,175 @@
+name: Release Build & Publish
+
+on:
+  push:
+    branches:
+      - 'release/**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version (e.g. v0.3.1 or 0.3.1)'
+        required: false
+        default: ''
+      overwrite_release:
+        description: 'Overwrite existing GitHub release tag if re-run'
+        type: boolean
+        required: false
+        default: true
+
+jobs:
+  cleanup-existing-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Determine Target Version
+        id: get_version
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              VERSION="$TAG_NAME"
+            elif [[ "$BRANCH_NAME" == release/* ]]; then
+              VERSION="${BRANCH_NAME#release/}"
+            else
+              VERSION="v0.3.1"
+            fi
+          fi
+          if [[ "$VERSION" != v* ]]; then
+            VERSION="v$VERSION"
+          fi
+          echo "TARGET_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Target version set to: $VERSION"
+
+      - name: Delete Existing Release Tag (If Overwrite Selected)
+        if: ${{ github.event.inputs.overwrite_release != 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "$TARGET_VERSION" --yes --cleanup-tag || true
+
+  build-and-release:
+    needs: cleanup-existing-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            args: ''
+          - platform: 'windows-latest'
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Determine Target Version
+        id: get_version
+        shell: bash
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              VERSION="$TAG_NAME"
+            elif [[ "$BRANCH_NAME" == release/* ]]; then
+              VERSION="${BRANCH_NAME#release/}"
+            else
+              VERSION="v0.3.1"
+            fi
+          fi
+          if [[ "$VERSION" != v* ]]; then
+            VERSION="v$VERSION"
+          fi
+          RAW_VERSION="${VERSION#v}"
+          echo "TARGET_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "RAW_VERSION=$RAW_VERSION" >> $GITHUB_ENV
+
+      - name: Sync App Version Files
+        shell: bash
+        run: |
+          echo "Propagating version $RAW_VERSION into config files..."
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/package.json || true
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/src-tauri/tauri.conf.json || true
+          sed -i.bak "s/^version = \".*\"/version = \"$RAW_VERSION\"/" apps/gui/ui/src-tauri/Cargo.toml || true
+          rm -f apps/gui/ui/package.json.bak apps/gui/ui/src-tauri/tauri.conf.json.bak apps/gui/ui/src-tauri/Cargo.toml.bak
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'apps/gui/ui/package-lock.json'
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './ -> target'
+
+      - name: Install Linux Dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd apps/gui/ui
+          npm ci
+
+      - name: Build CLI Binary
+        run: |
+          cargo build --release --bin factorio-mod-downloader-cli
+
+      - name: Package CLI Binary Artifacts
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp target/release/factorio-mod-downloader-cli.exe artifacts/factorio-mod-downloader-cli-windows-x64.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            cp target/release/factorio-mod-downloader-cli artifacts/factorio-mod-downloader-cli-macos
+          else
+            cp target/release/factorio-mod-downloader-cli artifacts/factorio-mod-downloader-cli-linux-x64
+          fi
+
+      - name: Build Tauri Desktop GUI App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: './apps/gui/ui'
+          tagName: ${{ env.TARGET_VERSION }}
+          releaseName: 'Factorio Mod Downloader ${{ env.TARGET_VERSION }}'
+          releaseBody: 'Release ${{ env.TARGET_VERSION }} containing cross-platform desktop GUI installers and standalone CLI binaries.'
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
+
+      - name: Upload CLI Artifacts to Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TARGET_VERSION }}
+          files: artifacts/*
