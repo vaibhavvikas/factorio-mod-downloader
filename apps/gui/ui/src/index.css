@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -5,6 +6,7 @@
 /* 1. Lock the root window frame to prevent the entire app from bouncing */
 html,
 body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: transparent !important;
   overscroll-behavior: none !important;
   overscroll-behavior-x: none !important;
@@ -12,6 +14,7 @@ body {
 }
 
 #root {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   height: 100vh;
   width: 100vw;
   margin: 0;
@@ -19,14 +22,21 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+  -moz-user-select: none;
   border-radius: 12px;
 }
 
 /* 1b. Smooth app entrance – prevents layout shift flash */
 @keyframes app-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
+
 .app-ready {
   opacity: 0;
   animation: app-fade-in 0.25s ease-out 0.05s forwards;
@@ -36,6 +46,37 @@ body {
 .overflow-y-auto,
 .overflow-auto {
   overscroll-behavior-y: none !important;
+  scrollbar-gutter: stable;
+}
+
+/* Custom 2-line WebKit line clamp class */
+.line-clamp-2-custom {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  /* autoprefixer: ignore next */
+  -webkit-box-orient: vertical !important;
+  line-height: 1.4em !important;
+  max-height: 2.8em !important;
+  overflow: hidden !important;
+  word-break: break-word !important;
+}
+
+/* Shared compact label treatment for mod cards. Controls such as dropdowns
+   intentionally keep their own sizing because they are interactive. */
+.panel-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+}
+
+.panel-pill-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 /* 3. High-performance GPU transitions for smooth 120fps rendering */
@@ -60,6 +101,42 @@ body {
 .animate-shimmer {
   background-size: 200% auto;
   animation: shimmer 2.5s infinite linear;
+}
+
+@keyframes loading-bar {
+  0%, 100% {
+    transform: scaleY(0.45);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.loading-bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+}
+
+.loading-bars i {
+  display: block;
+  width: 3px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgb(99 102 241);
+  animation: loading-bar 0.8s ease-in-out infinite;
+}
+
+.loading-bars i:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.loading-bars i:nth-child(3) {
+  animation-delay: 0.24s;
 }
 
 .divider {

@@ -26,10 +26,8 @@ impl<'client> Resolver<'client> {
 
     pub async fn fetch_mod(&mut self, mod_id: &str) -> Result<ModInfo, Box<dyn std::error::Error>> {
         if let Some(cache_info) = self.cache.get(mod_id) {
-            println!("Cache hit for mod: {}", mod_id);
             return Ok(cache_info.clone());
         }
-        println!("Fetching mod infor: {}", mod_id);
         let mod_info = get_mod(self.api_client, mod_id).await?;
         self.cache.insert(mod_id.to_string(), mod_info.clone());
         Ok(mod_info)
@@ -124,9 +122,15 @@ impl<'client> Resolver<'client> {
 mod tests {
     use super::*;
     use crate::client::ApiClient;
+    use crate::utils::is_ci;
 
     #[tokio::test]
     async fn test_resolve_krastorio2_deps() {
+        if is_ci() {
+            eprintln!("skipping network test in CI: test_resolve_krastorio2_deps");
+            return;
+        }
+
         let api_client = ApiClient::new();
         let mut resolver = Resolver::new(&api_client);
 

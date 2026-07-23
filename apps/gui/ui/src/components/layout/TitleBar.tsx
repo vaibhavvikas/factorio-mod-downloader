@@ -28,8 +28,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
     // Render macOS style traffic light buttons
     const renderMacControls = () => (
-        <div 
-            className="flex items-center gap-1.5 mr-4 h-6" 
+        <div
+            className="flex items-center gap-1.5 mr-4 h-6"
             onMouseEnter={() => setHoverControls(true)}
             onMouseLeave={() => setHoverControls(false)}
             onMouseDown={(e) => e.stopPropagation()}
@@ -112,7 +112,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             {/* Centered Brand Title for Mac */}
             {isMac && (
                 <div className="flex items-center gap-2 text-xs font-bold tracking-wide pointer-events-none absolute left-1/2 -translate-x-1/2">
-                    <div className="w-3 h-3 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50" />
                     <span className="text-slate-900 dark:text-zinc-50">Factorio Mod Downloader</span>
                 </div>
             )}
@@ -132,23 +131,21 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 </button>
 
                 {/* Downloads manager icon trigger */}
-                 <button
+                <button
                     onClick={() => toggleSidebar()}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${
-                        sidebarOpen 
-                            ? (isDownloading ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100/50 dark:bg-indigo-900/20' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20') 
-                            : (isDownloading ? 'text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400' : 'text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400')
-                    }`}
+                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${sidebarOpen
+                        ? (isDownloading ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100/50 dark:bg-indigo-900/20' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20')
+                        : (isDownloading ? 'text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400' : 'text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400')
+                        }`}
                     title="Toggle Downloads Manager"
                 >
                     <Download className="w-4 h-4" />
                     {queue.length > 0 && (
-                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-zinc-950 shadow-sm ${
-                            isDownloading 
-                                ? 'bg-indigo-500 text-white animate-pulse' 
-                                : 'bg-emerald-500 text-white'
-                        }`}>
+                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-zinc-950 shadow-sm ${isDownloading
+                            ? 'bg-indigo-500 text-white animate-pulse'
+                            : 'bg-emerald-500 text-white'
+                            }`}>
                             {queue.length}
                         </span>
                     )}
@@ -158,15 +155,14 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 <button
                     onClick={() => setProfileOpen(!profileOpen)}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${
-                        profileOpen 
-                            ? 'text-rose-600 dark:text-rose-455' 
-                            : 'text-slate-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-455'
-                    }`}
+                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${profileOpen
+                        ? 'text-rose-600 dark:text-rose-455'
+                        : 'text-slate-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-455'
+                        }`}
                     title="Developer Profile & Support"
                 >
                     <Heart className={`w-3.5 h-3.5 transition-all ${profileOpen ? 'fill-rose-500 text-rose-600 dark:text-rose-450' : 'fill-transparent'}`} />
-                    
+
                     {/* Pulsing Amber Update Dot Notification */}
                     <span className="absolute top-0.5 right-0.5 flex h-1.5 w-1.5 pointer-events-none">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -175,7 +171,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 </button>
 
                 {/* 3-way Theme Pill Switcher */}
-                <div 
+                <div
                     onMouseDown={(e) => e.stopPropagation()}
                     className="flex bg-slate-200/50 dark:bg-zinc-900 p-0.5 rounded-lg border border-slate-200/80 dark:border-zinc-800/80 text-slate-500 dark:text-zinc-400"
                 >

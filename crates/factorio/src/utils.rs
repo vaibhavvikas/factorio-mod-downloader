@@ -10,6 +10,12 @@ pub fn generate_rand() -> String {
     format!("0{}", number)
 }
 
+/// True when running under CI (GitHub Actions sets `CI=true`).
+/// Use this to skip network-dependent integration tests in pipelines.
+pub fn is_ci() -> bool {
+    matches!(std::env::var("CI").ok().as_deref(), Some("true") | Some("1"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

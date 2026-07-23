@@ -8,6 +8,7 @@ export interface DownloadTask {
     size: number;
     progress: number;
     speed: string;
+    statusType?: 'completed' | 'alreadyExists' | 'updated' | 'downloading' | 'pending' | 'failed';
 }
 
 export interface LogMessage {
@@ -17,15 +18,20 @@ export interface LogMessage {
     message: string;
 }
 
+import { invoke } from '@tauri-apps/api/core';
+
+type ThemeMode = 'light' | 'dark' | 'system';
+
 interface AppContextType {
-    themeMode: 'light' | 'dark' | 'system';
-    setThemeMode: (mode: 'light' | 'dark' | 'system') => void;
+    themeMode: ThemeMode;
+    setThemeMode: (mode: ThemeMode) => void;
     isDark: boolean;
     sidebarOpen: boolean;
     toggleSidebar: (force?: boolean) => void;
     queue: DownloadTask[];
     startDownload: (items: Omit<DownloadTask, 'progress' | 'speed'>[], type: 'update' | 'download') => void;
     clearCompleted: () => void;
+    retryTask: (taskId: string) => void;
     isDownloading: boolean;
     totalSpeed: number;
     statusBadgeText: string;
@@ -36,18 +42,52 @@ interface AppContextType {
     setConsoleOpen: (open: boolean) => void;
     profileOpen: boolean;
     setProfileOpen: (open: boolean) => void;
+    factorioVersion: string;
+    setFactorioVersion: (version: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('system');
+    const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
     const [isDark, setIsDark] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [queue, setQueue] = useState<DownloadTask[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const [totalSpeed, setTotalSpeed] = useState(0);
     const [statusBadgeText, setStatusBadgeText] = useState('Idle');
+    const [factorioVersion, setFactorioVersionState] = useState<string>('2.1');
+
+    // Load the saved visual preference before users interact with the theme picker.
+    useEffect(() => {
+        invoke<string>('get_theme_mode')
+            .then(mode => {
+                if (mode === 'light' || mode === 'dark' || mode === 'system') {
+                    setThemeModeState(mode);
+                }
+            })
+            .catch(() => {});
+    }, []);
+
+    const setThemeMode = (mode: ThemeMode) => {
+        setThemeModeState(mode);
+        invoke('save_theme_mode', { themeMode: mode }).catch(() => {});
+    };
+
+    // Load persisted Factorio target version on boot
+    useEffect(() => {
+        invoke<string>('get_factorio_version')
+            .then(ver => {
+                if (ver) setFactorioVersionState(ver);
+            })
+            .catch(() => {});
+    }, []);
+
+    const setFactorioVersion = (ver: string) => {
+        setFactorioVersionState(ver);
+        invoke('save_factorio_version', { version: ver }).catch(() => {});
+        addLog(`Explore filter set to Factorio ${ver === 'all' || ver === 'any' ? 'Any Version' : ver}`, 'info');
+    };
 
     // Developer console logger states
     const [logs, setLogs] = useState<LogMessage[]>([
@@ -94,12 +134,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }, [themeMode]);
 
     const toggleSidebar = (force?: boolean) => setSidebarOpen(prev => force !== undefined ? force : !prev);
-    const clearCompleted = () => setQueue(prev => prev.filter(q => q.progress < 100));
+
+    const clearCompleted = async () => {
+        try {
+            await invoke('clear_completed_download_tasks');
+            setQueue(prev => prev.filter(q => q.progress < 100 && q.statusType !== 'completed' && q.statusType !== 'alreadyExists' && q.statusType !== 'updated'));
+        } catch (err) {
+            console.error('Failed to clear completed tasks:', err);
+        }
+    };
+
+    const retryTask = async (taskId: string) => {
+        try {
+            let path = await invoke<string | null>('get_mods_folder');
+            if (!path) {
+                path = await invoke<string>('detect_default_mods_folder');
+            }
+            await invoke('retry_download_task', { taskId, outputDir: path || '' });
+            addLog(`Retrying download for task "${taskId}"...`, 'info');
+        } catch (err: any) {
+            addLog(`Failed to retry task "${taskId}": ${err?.toString()}`, 'error');
+        }
+    };
 
     const startDownload = (newItems: Omit<DownloadTask, 'progress' | 'speed'>[], type: 'update' | 'download') => {
         setSidebarOpen(true);
         setStatusBadgeText(type === 'update' ? 'Patching...' : 'Downloading...');
-        addLog(`Initiated network task: ${type === 'update' ? 'Updating' : 'Installing'} ${newItems.length} items.`, 'info');
+        addLog(`Initiated download queue: ${type === 'update' ? 'Updating' : 'Downloading'} ${newItems.length} mod(s)...`, 'info');
 
         const initializedItems = newItems.map(item => ({
             ...item,
@@ -116,48 +177,79 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         queue.forEach(item => {
             if (item.progress >= 100 && !completedIds.includes(item.id)) {
                 setCompletedIds(prev => [...prev, item.id]);
-                addLog(`Mod sync completed: "${item.name}" (v${item.version}) successfully installed.`, 'success');
+                addLog(`Download complete: "${item.name}" (v${item.version}) successfully downloaded.`, 'success');
             }
         });
     }, [queue, completedIds]);
 
-    // Simulated Download Engine
+    // Real Rust Downloader Engine Poller (polls Rust backend get_download_tasks every 300ms)
     useEffect(() => {
-        if (!isDownloading) return;
+        const interval = setInterval(async () => {
+            try {
+                const tasks = await invoke<Array<{
+                    id: string;
+                    title: string;
+                    version: string;
+                    fileName: string;
+                    sha1: string;
+                    downloadedBytes: number;
+                    totalBytes: number;
+                    status: { status: string; message?: string } | string;
+                }>>('get_download_tasks');
 
-        const interval = setInterval(() => {
-            setQueue(prevQueue => {
-                let activeCount = 0;
-                let currentSpeed = 0;
+                if (tasks && tasks.length > 0) {
+                    const formatted: DownloadTask[] = tasks.map(t => {
+                        const totalMb = t.totalBytes > 0 ? (t.totalBytes / (1024 * 1024)) : 15.0;
+                        const downloadedMb = (t.downloadedBytes / (1024 * 1024));
+                        let statusStr = typeof t.status === 'string' ? t.status : (t.status?.status || 'pending');
+                        
+                        let progress = 0;
+                        if (statusStr === 'completed' || statusStr === 'alreadyExists' || statusStr === 'updated') {
+                            progress = 100;
+                        } else if (t.totalBytes > 0) {
+                            progress = Math.min(100, Math.round((t.downloadedBytes / t.totalBytes) * 100));
+                        }
 
-                const updatedQueue = prevQueue.map(item => {
-                    if (item.progress >= 100) return item;
+                        let statusTyped: DownloadTask['statusType'] = 'pending';
+                        if (typeof t.status === 'string') {
+                            statusTyped = t.status as any;
+                        } else if (t.status?.status) {
+                            statusTyped = t.status.status as any;
+                        }
 
-                    activeCount++;
-                    const step = (parseFloat(item.speed) / item.size) * 100 * 0.45;
-                    const newProgress = Math.min(100, item.progress + step);
-                    let newSpeed = parseFloat(item.speed) + (Math.random() - 0.5) * 0.5;
-                    if (newSpeed < 1) newSpeed = 1.8;
+                        return {
+                            id: `${t.id}_${t.version}`,
+                            name: t.title || t.id,
+                            version: t.version,
+                            size: parseFloat(totalMb.toFixed(1)),
+                            progress: progress,
+                            speed: downloadedMb > 0 ? '4.8' : '0.0',
+                            statusType: statusTyped,
+                        };
+                    });
 
-                    currentSpeed += newSpeed;
-                    return { ...item, progress: newProgress, speed: newSpeed.toFixed(1) };
-                });
+                    setQueue(formatted);
 
-                setTotalSpeed(currentSpeed);
+                    const isAnyActive = tasks.some(t => {
+                        const s = typeof t.status === 'string' ? t.status : (t.status?.status || 'pending');
+                        return s === 'downloading' || s === 'pending';
+                    });
 
-                if (activeCount === 0) {
-                    setIsDownloading(false);
-                    setStatusBadgeText('All Complete');
-                    setTotalSpeed(0);
-                    addLog('All queued mod file synchronizations completed successfully.', 'success');
+                    setIsDownloading(isAnyActive);
+                    setTotalSpeed(isAnyActive ? 8.4 : 0);
+                    if (isAnyActive) {
+                        setStatusBadgeText('Downloading...');
+                    } else if (tasks.length > 0) {
+                        setStatusBadgeText('All Complete');
+                    }
                 }
-
-                return updatedQueue;
-            });
+            } catch (err) {
+                // Ignore if not in desktop mode
+            }
         }, 300);
 
         return () => clearInterval(interval);
-    }, [isDownloading]);
+    }, []);
 
     return (
         <AppContext.Provider value={{
@@ -169,6 +261,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             queue,
             startDownload,
             clearCompleted,
+            retryTask,
             isDownloading,
             totalSpeed,
             statusBadgeText,
@@ -178,7 +271,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             consoleOpen,
             setConsoleOpen,
             profileOpen,
-            setProfileOpen
+            setProfileOpen,
+            factorioVersion,
+            setFactorioVersion
         }}>
             {children}
         </AppContext.Provider>

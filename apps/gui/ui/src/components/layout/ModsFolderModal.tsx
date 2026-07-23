@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Folder, FolderOpen, Check, AlertCircle, FolderSearch, X } from 'lucide-react';
+import { Folder, FolderOpen, Check, AlertCircle, FolderSearch, FolderOutput, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 
 interface ModsFolderModalProps {
@@ -118,14 +118,32 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                             />
                         </div>
 
-                        {/* Browse Native Dialog Button */}
+                        {/* Browse Folder Picker Icon Button */}
                         <button
+                            type="button"
                             onClick={handleBrowseFolder}
-                            className="px-3 py-2 bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer border border-slate-300/60 dark:border-zinc-700/60"
-                            title="Browse OS Folder Picker"
+                            className="p-2 bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 rounded-xl transition-colors shrink-0 cursor-pointer border border-slate-300/60 dark:border-zinc-700/60"
+                            title="Browse folder..."
                         >
                             <FolderSearch className="w-4 h-4 text-indigo-500" />
-                            <span>Browse...</span>
+                        </button>
+
+                        {/* Open Folder in OS File Manager / Finder */}
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                if (!modsPath.trim()) return;
+                                try {
+                                    await invoke('open_folder_in_explorer', { path: modsPath.trim() });
+                                } catch (err) {
+                                    console.error('Failed to open folder:', err);
+                                }
+                            }}
+                            disabled={!modsPath.trim()}
+                            className="p-2 bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 rounded-xl transition-colors shrink-0 cursor-pointer border border-slate-300/60 dark:border-zinc-700/60 disabled:opacity-40"
+                            title="Open folder in Finder / File Explorer"
+                        >
+                            <FolderOutput className="w-4 h-4 text-indigo-500" />
                         </button>
                     </div>
 
