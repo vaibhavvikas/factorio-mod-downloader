@@ -9,6 +9,25 @@ export interface DownloadTask {
     progress: number;
     speed: string;
     statusType?: 'completed' | 'alreadyExists' | 'updated' | 'downloading' | 'pending' | 'failed';
+    errorMessage?: string;
+}
+
+export interface InstalledModItem {
+    name: string;
+    title: string;
+    version: string;
+    author?: string;
+    factorioVersion?: string;
+    category?: string;
+    fileName: string;
+    filePath: string;
+    thumbnail?: string;
+    dependencies: string[];
+    hasUpdate: boolean;
+    latestVersion?: string;
+    newerVersions: string[];
+    selectedTargetVersion?: string;
+    selectedForUpdate?: boolean;
 }
 
 export interface LogMessage {
@@ -44,6 +63,13 @@ interface AppContextType {
     setProfileOpen: (open: boolean) => void;
     factorioVersion: string;
     setFactorioVersion: (version: string) => void;
+    installedMods: InstalledModItem[];
+    setInstalledMods: React.Dispatch<React.SetStateAction<InstalledModItem[]>>;
+    folderPath: string;
+    setFolderPath: (path: string) => void;
+    refreshInstalledMods: (customPath?: string) => Promise<void>;
+    loadingInstalled: boolean;
+    isCheckingUpdates: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -57,6 +83,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [totalSpeed, setTotalSpeed] = useState(0);
     const [statusBadgeText, setStatusBadgeText] = useState('Idle');
     const [factorioVersion, setFactorioVersionState] = useState<string>('2.1');
+    const [installedMods, setInstalledMods] = useState<InstalledModItem[]>([]);
+    const [folderPath, setFolderPath] = useState<string>('');
+    const [loadingInstalled, setLoadingInstalled] = useState<boolean>(false);
+    const [isCheckingUpdates, setIsCheckingUpdates] = useState<boolean>(false);
 
     // Load the saved visual preference before users interact with the theme picker.
     useEffect(() => {
@@ -95,7 +125,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ]);
     const [consoleOpen, setConsoleOpen] = useState(false);
     const [profileOpen, setProfileOpen] = useState(false);
-    const [completedIds, setCompletedIds] = useState<string[]>([]);
 
     const addLog = (message: string, level: 'info' | 'warn' | 'success' | 'error' = 'info') => {
         setLogs(prev => [
@@ -110,6 +139,66 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     const clearLogs = () => setLogs([]);
+
+    const refreshInstalledMods = async (customPath?: string) => {
+        let path = customPath || folderPath;
+        if (!path) {
+            try {
+                const detected = await invoke<string | null>('get_mods_folder');
+                path = detected || await invoke<string>('detect_default_mods_folder');
+            } catch (err) {
+                console.error('Failed to get mods folder path:', err);
+                return;
+            }
+        }
+        if (!path) return;
+
+        setFolderPath(path);
+        setLoadingInstalled(true);
+        setIsCheckingUpdates(true);
+
+        try {
+            addLog('Scanning installed mods...', 'info');
+            const rawList = await invoke<InstalledModItem[]>('get_installed_mods_info', { modsFolder: path });
+            const listWithSelection = rawList.map(item => ({
+                ...item,
+                selectedForUpdate: item.hasUpdate,
+                selectedTargetVersion: item.newerVersions[0] || item.version
+            }));
+            setInstalledMods(listWithSelection);
+
+            addLog(`Loaded ${rawList.length} installed mod(s). Checking for updates...`, 'info');
+            const checkedList = await invoke<InstalledModItem[]>('check_mod_updates', { installedMods: rawList });
+            const checkedWithSelection = checkedList.map(item => ({
+                ...item,
+                selectedForUpdate: item.hasUpdate,
+                selectedTargetVersion: item.newerVersions[0] || item.version
+            }));
+            setInstalledMods(checkedWithSelection);
+            
+            const updatesCount = checkedList.filter(item => item.hasUpdate).length;
+            addLog(`Installed mods scan complete. ${updatesCount} updates available.`, 'success');
+        } catch (err: any) {
+            addLog(`Failed to scan installed mods: ${err?.toString() || 'Unknown error'}`, 'error');
+        } finally {
+            setLoadingInstalled(false);
+            setIsCheckingUpdates(false);
+        }
+    };
+
+    // Trigger initial scan on mount
+    useEffect(() => {
+        refreshInstalledMods();
+    }, []);
+
+    // Trigger refresh when download queue transitions to idle
+    const [prevDownloading, setPrevDownloading] = useState(false);
+    useEffect(() => {
+        if (prevDownloading && !isDownloading) {
+            refreshInstalledMods();
+        }
+        setPrevDownloading(isDownloading);
+    }, [isDownloading, prevDownloading]);
 
     // Handle Theme mode application and tracking
     useEffect(() => {
@@ -172,15 +261,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsDownloading(true);
     };
 
-    // Tracking completed tasks for logs
+    // Tracking completed and failed tasks for logs
+    const [loggedTaskIds, setLoggedTaskIds] = useState<string[]>([]);
     useEffect(() => {
         queue.forEach(item => {
-            if (item.progress >= 100 && !completedIds.includes(item.id)) {
-                setCompletedIds(prev => [...prev, item.id]);
-                addLog(`Download complete: "${item.name}" (v${item.version}) successfully downloaded.`, 'success');
+            if (!loggedTaskIds.includes(item.id)) {
+                if (item.progress >= 100 || item.statusType === 'completed' || item.statusType === 'alreadyExists' || item.statusType === 'updated') {
+                    setLoggedTaskIds(prev => [...prev, item.id]);
+                    addLog(`Download complete: "${item.name}" (v${item.version}) successfully downloaded.`, 'success');
+                } else if (item.statusType === 'failed') {
+                    setLoggedTaskIds(prev => [...prev, item.id]);
+                    const is404 = item.errorMessage?.includes('404');
+                    if (is404) {
+                        addLog(`Mod "${item.name}" (v${item.version}) was not found on server (404). It might be recently added and not yet available on the mirror storage.`, 'warn');
+                    } else {
+                        addLog(`Download failed for "${item.name}" (v${item.version}): ${item.errorMessage || 'Network request failed after retries'}`, 'error');
+                    }
+                }
             }
         });
-    }, [queue, completedIds]);
+    }, [queue, loggedTaskIds]);
 
     // Real Rust Downloader Engine Poller (polls Rust backend get_download_tasks every 300ms)
     useEffect(() => {
@@ -211,10 +311,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         }
 
                         let statusTyped: DownloadTask['statusType'] = 'pending';
+                        let errorMsg: string | undefined = undefined;
                         if (typeof t.status === 'string') {
                             statusTyped = t.status as any;
                         } else if (t.status?.status) {
                             statusTyped = t.status.status as any;
+                            errorMsg = t.status.message;
                         }
 
                         return {
@@ -225,6 +327,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                             progress: progress,
                             speed: downloadedMb > 0 ? '4.8' : '0.0',
                             statusType: statusTyped,
+                            errorMessage: errorMsg,
                         };
                     });
 
@@ -273,7 +376,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             profileOpen,
             setProfileOpen,
             factorioVersion,
-            setFactorioVersion
+            setFactorioVersion,
+            installedMods,
+            setInstalledMods,
+            folderPath,
+            setFolderPath,
+            refreshInstalledMods,
+            loadingInstalled,
+            isCheckingUpdates
         }}>
             {children}
         </AppContext.Provider>

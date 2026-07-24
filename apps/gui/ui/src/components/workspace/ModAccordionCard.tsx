@@ -4,6 +4,7 @@ import { ChevronDown, Download, Trash2, ExternalLink, Calendar } from 'lucide-re
 import { DependencyTree } from './DependencyTree';
 import type { TreeNode } from './DependencyTree';
 import { formatCategoryLabel, getCategoryBadgeStyle } from './modCategory';
+import { useAppContext } from '../../context/AppContext';
 
 export interface ModVersionRelease {
     version: string;
@@ -82,12 +83,12 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-950 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900 transition-colors cursor-pointer max-w-[300px]"
-                title={displayLabel}
+                className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-950 px-1.5 py-0.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900 transition-colors cursor-pointer max-w-[300px]"
+
             >
-                <span className="text-[10px] text-slate-400 font-normal shrink-0">Ver:</span>
+                <span className="text-[9px] text-slate-400 font-normal shrink-0">Ver:</span>
                 <span className="truncate max-w-[240px]">{displayLabel}</span>
-                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Portal-rendered dropdown — escapes sticky/overflow-hidden ancestors */}
@@ -157,6 +158,8 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 }) => {
     const [localExpanded, setLocalExpanded] = useState(false);
     const [imgError, setImgError] = useState(false);
+    const { installedMods } = useAppContext();
+    const installed = installedMods.find(m => m.name === mod.name);
 
     const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
     const toggleExpanded = onToggleExpand || (() => setLocalExpanded(!localExpanded));
@@ -173,7 +176,8 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
         ? new Date(mod.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
         : null;
 
-    const initialLetter = (mod.title || mod.name || 'M').charAt(0).toUpperCase();
+    const lettersOnly = (mod.title || mod.name || '').replace(/[^a-zA-Z\s]/g, '').trim();
+    const initialLetter = lettersOnly ? lettersOnly[0].toUpperCase() : 'M';
     const categoryBadgeStyle = getCategoryBadgeStyle(mod.category);
 
     return (
@@ -201,7 +205,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
                                     {mod.title || mod.name}
                                 </h3>
-                                <span className="max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
+                                <span className="shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
                                     {mod.name}
                                 </span>
                                 <span className={`panel-pill tracking-wide border ${categoryBadgeStyle}`}>
@@ -265,22 +269,34 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             onSelectVersion={(v) => onSelectVersion(mod.id, v)}
                         />
 
+                        {installed && (
+                            installed.version === mod.selectedVersion ? (
+                                <span className="panel-pill bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/40 font-semibold text-[10px] select-none">
+                                    Installed: v{installed.version}
+                                </span>
+                            ) : (
+                                <span className="panel-pill bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/40 font-semibold text-[10px] select-none">
+                                    Installed: v{installed.version} (Update Available)
+                                </span>
+                            )
+                        )}
+
                         {/* Separator */}
                         <span className="text-slate-200 dark:text-zinc-800 select-none">|</span>
 
                         {/* Dep count badges — always visible with desaturated dark mode colors */}
                         {requiredCount > 0 && (
-                            <span className="panel-pill panel-pill-mono bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300/90 border border-emerald-200/60 dark:border-emerald-800/40 select-none">
+                            <span className="panel-pill panel-pill-mono bg-sky-100 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300/90 border border-sky-200/60 dark:border-sky-800/40 select-none">
                                 {requiredCount} required
                             </span>
                         )}
                         {recommendedNodes.length > 0 && (
-                            <span className="panel-pill panel-pill-mono bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300/90 border border-indigo-200/60 dark:border-indigo-800/40 select-none">
+                            <span className="panel-pill panel-pill-mono bg-indigo-100 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300/90 border border-indigo-200/60 dark:border-indigo-800/40 select-none">
                                 {recommendedSelected}/{recommendedNodes.length} recommended
                             </span>
                         )}
                         {optionalNodes.length > 0 && (
-                            <span className="panel-pill panel-pill-mono bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-300/80 border border-amber-200/60 dark:border-amber-800/30 select-none">
+                            <span className="panel-pill panel-pill-mono bg-violet-100 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300/90 border border-violet-200/60 dark:border-violet-800/40 select-none">
                                 {optionalSelected}/{optionalNodes.length} optional
                             </span>
                         )}

@@ -22,12 +22,17 @@ export const Workspace: React.FC = () => {
         }
     }, [logs, consoleOpen]);
 
+    const targetModsRef = useRef<TargetModItem[]>([]);
+    useEffect(() => {
+        targetModsRef.current = targetMods;
+    }, [targetMods]);
+
     // Shared mod adder triggered from SearchTab or input bar
     const handleAddModToQueue = async (modName: string, goToQueue: boolean = false) => {
         const trimmed = modName.trim();
         if (!trimmed) return;
 
-        if (targetMods.some(m => m.name.toLowerCase() === trimmed.toLowerCase())) {
+        if (targetModsRef.current.some(m => m.name === trimmed)) {
             addLog(`Mod "${trimmed}" is already in your Mod Queue`, 'info');
             if (goToQueue) setActiveTab('queue');
             return;
@@ -102,54 +107,119 @@ export const Workspace: React.FC = () => {
         }
     };
 
+    const handleParseAndAddMods = async (text: string) => {
+        addLog(`Analyzing query: "${text.slice(0, 50)}${text.length > 50 ? '...' : ''}"`, 'info');
+        const rawEntries = text.split(/[\n\r,]+/);
+        const newModNames: string[] = [];
+
+        rawEntries.forEach(entry => {
+            const trimmed = entry.trim();
+            if (!trimmed) return;
+
+            let modName = trimmed;
+            try {
+                if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+                    const url = new URL(trimmed);
+                    const pathParts = url.pathname.split('/').filter(Boolean);
+                    const modIdx = pathParts.indexOf('mod');
+                    if (modIdx !== -1 && pathParts[modIdx + 1]) {
+                        modName = pathParts[modIdx + 1];
+                    } else {
+                        modName = pathParts[pathParts.length - 1];
+                    }
+                }
+            } catch (e) {
+                // Ignore URL parsing errors
+            }
+
+            modName = modName.split(/[?#]/)[0].trim();
+            if (modName && !newModNames.includes(modName)) {
+                newModNames.push(modName);
+            }
+        });
+
+        if (newModNames.length === 0) {
+            addLog('No valid mod names or URLs identified.', 'warn');
+            return;
+        }
+
+        addingInFlightRef.current += 1;
+        setLoading(true);
+
+        try {
+            for (const modId of newModNames) {
+                await handleAddModToQueue(modId, false);
+            }
+        } finally {
+            addingInFlightRef.current = Math.max(0, addingInFlightRef.current - 1);
+            if (addingInFlightRef.current === 0) {
+                setLoading(false);
+            }
+        }
+    };
+
     return (
         <div className="flex-1 flex flex-col min-w-[450px] bg-slate-100 dark:bg-zinc-950 transition-colors relative overflow-hidden">
-            <div className="h-14 flex items-center bg-slate-50/60 dark:bg-zinc-900/40 backdrop-blur-sm px-6 shrink-0 transition-colors">
-                <div className="flex gap-1 bg-slate-200/60 dark:bg-zinc-900/60 p-1 rounded-xl border border-slate-200/50 dark:border-zinc-800/40 text-xs font-bold w-fit">
-                    {/* Tab 1: Explore (Search & Discovery) */}
+            {/* Primary App Navigation Header Bar */}
+            <div className="h-12 flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 border-b border-slate-200 dark:border-zinc-800/90 px-4 shrink-0 transition-colors select-none">
+                <nav className="flex items-center gap-1.5 h-full -mb-px">
+                    {/* Tab 1: Explore */}
                     <button
                         onClick={() => setActiveTab('search')}
-                        className={`px-4 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${activeTab === 'search'
-                            ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm border-slate-200/50 dark:border-zinc-700/60'
-                            : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                            }`}
+                        className={`relative h-full px-3.5 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
+                            activeTab === 'search'
+                                ? 'text-indigo-600 dark:text-indigo-400'
+                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                        }`}
                     >
-                        <Compass className="w-3.5 h-3.5" />
+                        <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                         <span>Explore</span>
-                    </button>
-
-                    {/* Tab 2: Mod Queue (Dependency Resolver & Download Queue) */}
-                    <button
-                        onClick={() => setActiveTab('queue')}
-                        className={`px-4 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${activeTab === 'queue'
-                            ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm border-slate-200/50 dark:border-zinc-700/60'
-                            : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                            }`}
-                    >
-                        <Package className="w-3.5 h-3.5" />
-                        <span>Mod Queue</span>
-                        {targetMods.length > 0 && (
-                            <span className={`inline-flex h-4 min-w-4 self-center items-center justify-center rounded-full px-1.5 text-[9px] font-mono font-bold leading-none ${activeTab === 'queue'
-                                ? 'bg-indigo-500 text-white'
-                                : 'bg-slate-300 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
-                                }`}>
-                                {targetMods.length}
-                            </span>
+                        {activeTab === 'search' && (
+                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
                         )}
                     </button>
 
-                    {/* Tab 3: Installed Mods */}
+                    {/* Tab 2: Mod Queue */}
+                    <button
+                        onClick={() => setActiveTab('queue')}
+                        className={`relative h-full px-3.5 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
+                            activeTab === 'queue'
+                                ? 'text-indigo-600 dark:text-indigo-400'
+                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                        }`}
+                    >
+                        <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                        <span>Mod Queue</span>
+                        {targetMods.length > 0 && (
+                            <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1.5 text-[9.5px] font-mono font-bold leading-none ${
+                                activeTab === 'queue'
+                                    ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                                    : 'bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                            }`}>
+                                {targetMods.length}
+                            </span>
+                        )}
+                        {activeTab === 'queue' && (
+                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                        )}
+                    </button>
+
+                    {/* Tab 3: Mod Manager */}
                     <button
                         onClick={() => setActiveTab('installed')}
-                        className={`px-4 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer ${activeTab === 'installed'
-                            ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm border-slate-200/50 dark:border-zinc-700/60'
-                            : 'border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                            }`}
+                        className={`relative h-full px-3.5 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
+                            activeTab === 'installed'
+                                ? 'text-indigo-600 dark:text-indigo-400'
+                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                        }`}
                     >
-                        <HardDrive className="w-3.5 h-3.5" />
+                        <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                         <span>Mod Manager</span>
+                        {activeTab === 'installed' && (
+                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                        )}
                     </button>
-                </div>
+                </nav>
             </div>
 
             {/* Content Rendering and Console wrapper */}
@@ -166,6 +236,7 @@ export const Workspace: React.FC = () => {
                             targetMods={targetMods}
                             setTargetMods={setTargetMods}
                             loading={loading}
+                            parseAndAddMods={handleParseAndAddMods}
                         />
                     </div>
                     <div className={activeTab === 'installed' ? 'h-full' : 'hidden'}>
@@ -175,7 +246,7 @@ export const Workspace: React.FC = () => {
 
                 {/* System Console Logs Panel — Bottom Docked Persistent Window pushing content up */}
                 {consoleOpen && (
-                    <div className="h-[206px] shrink-0 w-full px-6 pb-3 pt-2 bg-slate-100 dark:bg-zinc-950 transition-all duration-200">
+                    <div className="h-[206px] shrink-0 w-full px-4 pb-3 pt-2 bg-slate-100 dark:bg-zinc-950 transition-all duration-200">
                         <div className="h-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 shadow-xl flex flex-col overflow-hidden">
                             {/* Console Header */}
                             <div className="h-8.5 px-3.5 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/40 border-b border-slate-200 dark:border-zinc-800 shrink-0 select-none">
