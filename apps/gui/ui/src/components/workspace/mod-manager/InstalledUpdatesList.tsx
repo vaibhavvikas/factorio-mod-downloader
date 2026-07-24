@@ -140,8 +140,8 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                             </div>
 
                                             <div className="mt-auto flex items-center gap-1.5 flex-wrap pl-7">
-                                                <span className="panel-pill panel-pill-mono bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 font-semibold select-none">
-                                                    Installed: v{mod.version} (Update Available)
+                                                <span className="panel-pill panel-pill-mono bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-semibold text-[10px] select-none">
+                                                    Installed: v{mod.version}
                                                 </span>
                                                 <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" aria-hidden="true" />
                                                 <InstalledVersionDropdown

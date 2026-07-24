@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { LAYER, BORDER } from '../../../theme/layers';
 
+
 export interface VersionDropdownProps {
     versions: string[];
     selectedVersion: string;
@@ -49,11 +50,10 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                 type="button"
                 onClick={toggleOpen}
                 disabled={disabled}
-                className={`flex items-center gap-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50 font-mono font-bold ${
-                    compact
-                        ? `${LAYER.pillSurface} ${BORDER.tabActive} text-[11px] px-1.5 py-0.5 text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900/90 max-w-[300px]`
-                        : `${LAYER.pillSurface} ${BORDER.tabActive} text-[11px] px-1.5 py-0.5 text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900/90 max-w-[300px]`
-                }`}
+                className={`flex items-center gap-1 rounded-lg transition-colors cursor-pointer disabled:opacity-50 font-mono font-bold ${compact
+                    ? `${LAYER.pillSurface} ${BORDER.tabActive} text-[11px] px-1.5 py-0.5 text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900/90 max-w-[300px]`
+                    : `${LAYER.pillSurface} ${BORDER.tabActive} text-[11px] px-1.5 py-0.5 text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900/90 max-w-[300px]`
+                    }`}
             >
                 <span className="text-[9px] text-slate-400 font-normal shrink-0">{label}</span>
                 <span className={`truncate ${valueClassName} ${compact ? 'max-w-[180px]' : 'max-w-[240px]'}`}>v{selectedVersion}</span>
@@ -64,7 +64,7 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                 <>
                     <div className="fixed inset-0 z-[100] bg-transparent" onClick={() => setIsOpen(false)} />
                     <div
-                        className={`fixed z-[101] ${compact ? 'w-56' : 'w-64'} ${LAYER.contentCard} ${BORDER.toolbar} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
+                        className={`fixed z-[101] w-64 ${LAYER.contentCard} ${BORDER.toolbar} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
                         style={{ top: dropdownPos.top, left: dropdownPos.left }}
                     >
                         <div className="max-h-[280px] overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-700/50 text-xs font-mono">
@@ -77,11 +77,10 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                                             onSelect(ver);
                                             setIsOpen(false);
                                         }}
-                                        className={`px-3 py-2 flex items-center justify-between cursor-pointer transition-colors ${
-                                            isSelected
-                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                                                : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700/80'
-                                        }`}
+                                        className={`px-3 py-2 flex items-center justify-between cursor-pointer transition-colors ${isSelected
+                                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                                            : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700/80'
+                                            }`}
                                     >
                                         <span>v{ver}</span>
                                     </div>
