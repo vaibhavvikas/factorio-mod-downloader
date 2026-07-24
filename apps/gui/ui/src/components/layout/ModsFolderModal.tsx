@@ -70,7 +70,7 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div 
-                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col gap-4 p-6 text-slate-800 dark:text-zinc-100 relative"
+                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-[92vw] min-w-[360px] max-w-md md:max-w-lg overflow-hidden flex flex-col gap-4 p-6 text-slate-800 dark:text-zinc-100 relative transition-all"
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}

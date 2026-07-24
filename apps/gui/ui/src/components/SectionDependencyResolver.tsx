@@ -58,18 +58,18 @@ export const SectionedDependencyResolver: React.FC = () => {
             {/* SECTION 1: REQUIRED (Locked) */}
             {requiredDeps.length > 0 && (
                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between px-1 text-xs font-bold tracking-wider uppercase text-red-400">
+                    <div className="flex items-center justify-between px-1 text-xs font-bold tracking-wider uppercase text-sky-400">
                         <span className="flex items-center gap-1.5">
                             <Lock className="w-3.5 h-3.5" /> Required Dependencies ({requiredDeps.length})
                         </span>
                         <span className="text-[11px] font-normal text-zinc-500 lowercase">mandatory for mod execution</span>
                     </div>
 
-                    <div className="border border-red-500/20 rounded-xl overflow-hidden bg-red-500/[0.02] divide-y divide-zinc-800/60">
+                    <div className="border border-sky-500/20 rounded-xl overflow-hidden bg-sky-500/[0.02] divide-y divide-zinc-800/60">
                         {requiredDeps.map(dep => (
                             <div key={dep.id} className="flex items-center justify-between p-3.5 bg-zinc-900/40 opacity-80 cursor-not-allowed">
                                 <div className="flex items-center gap-3">
-                                    <input type="checkbox" checked disabled className="w-4 h-4 rounded border-zinc-700 bg-zinc-950 text-red-500 opacity-60" />
+                                    <input type="checkbox" checked disabled className="w-4 h-4 rounded border-zinc-700 bg-zinc-950 text-sky-500 opacity-60" />
                                     <span className="text-sm font-medium text-zinc-200">{dep.name}</span>
                                     <span className="text-xs font-mono text-zinc-500">v{dep.version}</span>
                                 </div>
@@ -83,17 +83,17 @@ export const SectionedDependencyResolver: React.FC = () => {
             {/* SECTION 2: RECOMMENDED */}
             {recommendedDeps.length > 0 && (
                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between px-1 text-xs font-bold tracking-wider uppercase text-blue-400">
+                    <div className="flex items-center justify-between px-1 text-xs font-bold tracking-wider uppercase text-indigo-400">
                         <span>Recommended ({recommendedDeps.filter(d => d.selected).length}/{recommendedDeps.length} selected)</span>
                         <button
                             onClick={() => setCategorySelection('recommended', !recommendedDeps.every(d => d.selected))}
-                            className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/20 transition-colors cursor-pointer lowercase"
+                            className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/20 transition-colors cursor-pointer lowercase"
                         >
                             {recommendedDeps.every(d => d.selected) ? 'deselect all' : 'select all'}
                         </button>
                     </div>
 
-                    <div className="border border-blue-500/20 rounded-xl overflow-hidden bg-zinc-900/30 divide-y divide-zinc-800/60">
+                    <div className="border border-indigo-500/20 rounded-xl overflow-hidden bg-zinc-900/30 divide-y divide-zinc-800/60">
                         {recommendedDeps.map(dep => (
                             <div key={dep.id} onClick={() => toggleDependency(dep.id)} className="flex items-center justify-between p-3.5 hover:bg-zinc-800/40 transition-colors cursor-pointer">
                                 <div className="flex items-center gap-3">
@@ -101,7 +101,7 @@ export const SectionedDependencyResolver: React.FC = () => {
                                         type="checkbox"
                                         checked={dep.selected}
                                         onChange={() => { }}
-                                        className="w-4 h-4 rounded border-zinc-700 text-blue-500 focus:ring-0 bg-zinc-950 cursor-pointer"
+                                        className="w-4 h-4 rounded border-zinc-700 text-indigo-500 focus:ring-0 bg-zinc-950 cursor-pointer"
                                     />
                                     <span className="text-sm font-medium text-zinc-200">{dep.name}</span>
                                     <span className="text-xs font-mono text-zinc-500">v{dep.version}</span>
@@ -116,17 +116,17 @@ export const SectionedDependencyResolver: React.FC = () => {
             {/* SECTION 3: OPTIONAL */}
             {optionalDeps.length > 0 && (
                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between px-1 text-xs font-bold tracking-wider uppercase text-zinc-400">
+                    <div className="flex items-center justify-between px-1 text-xs font-bold tracking-wider uppercase text-violet-400">
                         <span>Optional ({optionalDeps.filter(d => d.selected).length}/{optionalDeps.length} selected)</span>
                         <button
                             onClick={() => setCategorySelection('optional', !optionalDeps.every(d => d.selected))}
-                            className="text-[11px] font-semibold text-zinc-400 hover:text-zinc-200 flex items-center gap-1 bg-zinc-800 hover:bg-zinc-700 px-2 py-0.5 rounded border border-zinc-700 transition-colors cursor-pointer lowercase"
+                            className="text-[11px] font-semibold text-violet-400 hover:text-violet-300 flex items-center gap-1 bg-violet-500/10 hover:bg-violet-500/20 px-2 py-0.5 rounded border border-violet-500/20 transition-colors cursor-pointer lowercase"
                         >
                             {optionalDeps.every(d => d.selected) ? 'deselect all' : 'select all'}
                         </button>
                     </div>
 
-                    <div className="border border-zinc-800 rounded-xl overflow-hidden bg-zinc-900/10 divide-y divide-zinc-800/40">
+                    <div className="border border-violet-500/20 rounded-xl overflow-hidden bg-zinc-900/10 divide-y divide-zinc-800/40">
                         {optionalDeps.map(dep => (
                             <div key={dep.id} onClick={() => toggleDependency(dep.id)} className="flex items-center justify-between p-3.5 hover:bg-zinc-800/30 transition-colors cursor-pointer">
                                 <div className="flex items-center gap-3">
@@ -134,7 +134,7 @@ export const SectionedDependencyResolver: React.FC = () => {
                                         type="checkbox"
                                         checked={dep.selected}
                                         onChange={() => { }}
-                                        className="w-4 h-4 rounded border-zinc-700 text-amber-500 focus:ring-0 bg-zinc-950 cursor-pointer"
+                                        className="w-4 h-4 rounded border-zinc-700 text-violet-500 focus:ring-0 bg-zinc-950 cursor-pointer"
                                     />
                                     <span className="text-sm font-medium text-zinc-300">{dep.name}</span>
                                     <span className="text-xs font-mono text-zinc-600">v{dep.version}</span>

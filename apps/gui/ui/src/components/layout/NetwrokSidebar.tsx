@@ -104,29 +104,34 @@ export const NetworkSidebar: React.FC = () => {
                                 <div className="flex items-center justify-between text-[10px] font-bold tracking-wider uppercase text-rose-600 dark:text-rose-400 select-none px-1">
                                     <span>Failed ({failedItems.length})</span>
                                 </div>
-                                {failedItems.map(item => (
-                                    <div key={item.id} className="relative pl-4.5 p-3 bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/60 rounded-xl flex flex-col gap-2 shadow-xs">
-                                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500 rounded-l-xl" />
-                                        <div className="flex justify-between items-center gap-2">
-                                            <div className="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2 overflow-hidden">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                                                <span className="truncate">{item.name}</span>
+                                {failedItems.map(item => {
+                                    const is404 = item.errorMessage?.includes('404');
+                                    return (
+                                        <div key={item.id} className="relative pl-4.5 p-3 bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/60 rounded-xl flex flex-col gap-2 shadow-xs">
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500 rounded-l-xl" />
+                                            <div className="flex justify-between items-center gap-2">
+                                                <div className="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2 overflow-hidden">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                                                    <span className="truncate">{item.name}</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => retryTask(item.id)}
+                                                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
+                                                    title="Retry downloading this mod"
+                                                >
+                                                    <RotateCcw className="w-3 h-3" />
+                                                    <span>Retry</span>
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => retryTask(item.id)}
-                                                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
-                                                title="Retry downloading this mod"
-                                            >
-                                                <RotateCcw className="w-3 h-3" />
-                                                <span>Retry</span>
-                                            </button>
+                                            <div className="flex justify-between text-[9px] font-mono text-rose-600/80 dark:text-rose-400/80 select-none gap-2">
+                                                <span>v{item.version}</span>
+                                                <span className="font-bold truncate max-w-[200px]" title={item.errorMessage || 'Download Failed'}>
+                                                    {is404 ? 'Mod not found on server (recently added?)' : (item.errorMessage || 'Download Failed')}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between text-[9px] font-mono text-rose-600/80 dark:text-rose-400/80 select-none">
-                                            <span>v{item.version}</span>
-                                            <span className="font-bold">Download Failed (3 Retries)</span>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
 

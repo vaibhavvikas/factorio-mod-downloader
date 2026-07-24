@@ -119,7 +119,11 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             <div className="flex items-center gap-2.5 ml-auto z-10">
                 {/* Factorio Mods Folder Settings trigger */}
                 <button
-                    onClick={() => onOpenFolderModal && onOpenFolderModal()}
+                    onClick={() => {
+                        toggleSidebar(false);
+                        setProfileOpen(false);
+                        onOpenFolderModal && onOpenFolderModal();
+                    }}
                     onMouseDown={(e) => e.stopPropagation()}
                     className="p-1.5 rounded-md text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-800/60 transition-all cursor-pointer flex items-center justify-center relative"
                     title={configuredModsFolder ? `Mods Folder: ${configuredModsFolder}` : 'Configure Factorio Mods Folder'}
@@ -132,7 +136,10 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
                 {/* Downloads manager icon trigger */}
                 <button
-                    onClick={() => toggleSidebar()}
+                    onClick={() => {
+                        setProfileOpen(false);
+                        toggleSidebar();
+                    }}
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${sidebarOpen
                         ? (isDownloading ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100/50 dark:bg-indigo-900/20' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20')
@@ -153,7 +160,13 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
                 {/* Developer Profile & Support Trigger */}
                 <button
-                    onClick={() => setProfileOpen(!profileOpen)}
+                    onClick={() => {
+                        const next = !profileOpen;
+                        setProfileOpen(next);
+                        if (next) {
+                            toggleSidebar(false);
+                        }
+                    }}
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${profileOpen
                         ? 'text-rose-600 dark:text-rose-455'

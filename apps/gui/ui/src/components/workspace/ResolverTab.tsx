@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FileText, Download, Inbox, Loader2, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Download, Inbox, Loader2, Search, ChevronDown, Layers, LayoutGrid } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
@@ -45,6 +45,138 @@ interface BackendResolvedDownloadItem {
     sha1: string;
 }
 
+interface DependencyTreeNodeProps {
+    name: string;
+    versionReq: string;
+    type?: DependencyType | 'root';
+    targetMods: TargetModItem[];
+    treeCache: Record<string, TargetModItem>;
+    visited: Set<string>;
+    depth: number;
+}
+
+const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
+    name,
+    versionReq,
+    type = 'root',
+    targetMods,
+    treeCache,
+    visited,
+    depth,
+}) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+    
+    // Find if we have details (a card) for this dependency in our targetMods queue or treeCache
+    const modDetails = targetMods.find(m => m.name === name) || treeCache[name];
+    
+    // Determine title
+    const displayTitle = modDetails ? (modDetails.title || modDetails.name) : name;
+    
+    // Detect recursion cycles
+    const hasCycle = visited.has(name);
+    const newVisited = new Set(visited).add(name);
+    
+    // Get sub-dependencies from details if present (excluding incompatible)
+    const directDeps = modDetails 
+        ? modDetails.dependencies.filter(d => d.type !== 'incompatible')
+        : [];
+        
+    // Filter sub-dependencies to only show checked ones in cards
+    const activeSubDeps = directDeps.filter(d => {
+        if (d.type === 'required') return true;
+        // If it is recommended or optional, it must be selected in the card's checkbox
+        return modDetails?.selectedDepIds.includes(d.id);
+    });
+
+    // Sort sub-dependencies alphabetically by display title
+    const sortedSubDeps = [...activeSubDeps].sort((a, b) => {
+        const titleA = (targetMods.find(m => m.name === a.name) || treeCache[a.name])?.title || a.name;
+        const titleB = (targetMods.find(m => m.name === b.name) || treeCache[b.name])?.title || b.name;
+        return titleA.localeCompare(titleB);
+    });
+
+    const hasChildren = sortedSubDeps.length > 0 && !hasCycle;
+
+    const iconColorClass = {
+        root: 'text-slate-400 dark:text-zinc-500',
+        required: 'text-sky-500 dark:text-sky-400',
+        recommended: 'text-indigo-500 dark:text-indigo-400',
+        optional: 'text-violet-500 dark:text-violet-400',
+        incompatible: 'text-rose-500 dark:text-rose-400',
+    }[type];
+
+    return (
+        <div className="flex flex-col">
+            {/* Tree Node Row */}
+            <div 
+                className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-900/40 rounded-lg px-2 group cursor-pointer select-none transition-colors" 
+                onClick={(e) => { 
+                    e.stopPropagation(); 
+                    if (hasChildren) setIsExpanded(!isExpanded); 
+                }}
+            >
+                {/* Chevron spacing / VS Code guide lines */}
+                <div className="flex items-center justify-center w-4 h-4 shrink-0">
+                    {hasChildren ? (
+                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                    ) : (
+                        <div className="w-3.5 h-3.5" />
+                    )}
+                </div>
+
+                {/* Folder/Package Icon */}
+                <span className={`shrink-0 ${iconColorClass}`}>
+                    <Layers className="w-3.5 h-3.5" />
+                </span>
+
+                {/* Mod Title */}
+                <span className="text-xs font-bold text-slate-900 dark:text-zinc-50 truncate max-w-[320px]">
+                    {displayTitle}
+                </span>
+
+                {/* Mod ID / Name Code style */}
+                <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500 bg-slate-100/80 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-zinc-800/40 truncate">
+                    {name}
+                </span>
+
+                {/* Version Requirement Badge */}
+                {versionReq && (
+                    <span className="text-[10px] font-mono text-indigo-500 dark:text-indigo-400">
+                        {versionReq}
+                    </span>
+                )}
+
+
+
+                {/* Recursion / Cycle warning */}
+                {hasCycle && (
+                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono">
+                        cycle detected
+                    </span>
+                )}
+            </div>
+
+            {/* Sub-dependencies Indented rendering */}
+            {hasChildren && isExpanded && (
+                <div className="pl-4.5 border-l border-slate-200/80 dark:border-zinc-800/60 ml-3.5 flex flex-col">
+                    {sortedSubDeps.map(dep => (
+                        <DependencyTreeNode
+                            key={dep.id}
+                            name={dep.name}
+                            versionReq={dep.version}
+                            type={dep.type}
+                            targetMods={targetMods}
+                            treeCache={treeCache}
+                            visited={newVisited}
+                            depth={depth + 1}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export interface ResolverTabProps {
     targetMods?: TargetModItem[];
     setTargetMods?: React.Dispatch<React.SetStateAction<TargetModItem[]>>;
@@ -60,15 +192,137 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 }) => {
     const { startDownload, addLog } = useAppContext();
     const [localTargetMods, setLocalTargetMods] = useState<TargetModItem[]>([]);
-    const [expandedModId, setExpandedModId] = useState<string | null>(null);
-    const [inputText, setInputText] = useState('');
-    const [localLoading, setLocalLoading] = useState(false);
-    const [isResolvingBatch, setIsResolvingBatch] = useState(false);
-
     const targetMods = externalTargetMods !== undefined ? externalTargetMods : localTargetMods;
     const setTargetMods = externalSetTargetMods || setLocalTargetMods;
+    const [localLoading, setLocalLoading] = useState(false);
     const loading = externalLoading !== undefined ? externalLoading : localLoading;
     const setLoading = setLocalLoading;
+    const [expandedModId, setExpandedModId] = useState<string | null>(null);
+    const [inputText, setInputText] = useState('');
+    const [isResolvingBatch, setIsResolvingBatch] = useState(false);
+    const [viewMode, setViewMode] = useState<'cards' | 'tree'>('cards');
+    const [treeCache, setTreeCache] = useState<Record<string, TargetModItem>>({});
+    const [isLoadingTree, setIsLoadingTree] = useState(false);
+
+    // Auto-clear cache when targetMods is cleared
+    useEffect(() => {
+        if (targetMods.length === 0) {
+            setTreeCache({});
+        }
+    }, [targetMods.length]);
+
+    // On-demand tree resolving trigger
+    useEffect(() => {
+        if (viewMode === 'tree') {
+            resolveAndFetchTreeDeps();
+        }
+    }, [viewMode, targetMods]);
+
+    const resolveAndFetchTreeDeps = async () => {
+        if (targetMods.length === 0 || isLoadingTree) return;
+        setIsLoadingTree(true);
+        addLog('Resolving dependency tree for graph explorer...', 'info');
+
+        try {
+            // 1. Prepare inputs for resolver:
+            const mainMods = targetMods.map(t => ({
+                id: t.name,
+                title: t.title || t.name,
+                version: t.selectedVersion,
+                file_name: `${t.name}_${t.selectedVersion}.zip`,
+                sha1: '',
+            }));
+
+            const directDeps: BackendDependency[] = [];
+            targetMods.forEach(t => {
+                t.dependencies.forEach(d => {
+                    if (t.selectedDepIds.includes(d.id)) {
+                        directDeps.push({
+                            id: d.name,
+                            ineq: '=',
+                            version: d.version,
+                        });
+                    }
+                });
+            });
+
+            // 2. Call backend resolve_download_batch to get all resolved items:
+            const resolvedBatch = await invoke<BackendResolvedDownloadItem[]>('resolve_download_batch', {
+                mainMods,
+                directDeps,
+                includeRecommended: true
+            });
+
+            // 3. Find which resolved items are not in targetMods and not in treeCache:
+            const missingNames = resolvedBatch.filter(item => {
+                const inTargetMods = targetMods.some(m => m.name === item.id);
+                const inCache = !!treeCache[item.id];
+                return !inTargetMods && !inCache;
+            });
+
+            if (missingNames.length > 0) {
+                addLog(`Fetching details for ${missingNames.length} tree dependencies...`, 'info');
+                
+                // Fetch in parallel:
+                const fetchedDetails = await Promise.all(
+                    missingNames.map(async (item) => {
+                        try {
+                            const details = await invoke<BackendModDetails>('fetch_mod_details', { modId: item.id });
+                            return details;
+                        } catch (e) {
+                            addLog(`Failed to fetch tree dependency "${item.id}": ${e}`, 'warn');
+                            return null;
+                        }
+                    })
+                );
+
+                // Convert details to TargetModItem and put in cache:
+                const newCacheUpdates: Record<string, TargetModItem> = {};
+                
+                fetchedDetails.forEach(details => {
+                    if (!details) return;
+                    
+                    const reversedReleases = details.releases.slice().reverse();
+                    const latestVersion = reversedReleases[0]?.version || 'latest';
+                    
+                    const treeDeps = convertBackendDepsToTree(details.default_dependencies);
+                    const initialSelectedIds = treeDeps
+                        .filter(d => d.type === 'required' || d.type === 'recommended')
+                        .map(d => d.id);
+                        
+                    newCacheUpdates[details.name] = {
+                        id: 'tree-' + details.name + '-' + Math.random(),
+                        name: details.name,
+                        title: details.title || details.name,
+                        author: details.owner || 'Author',
+                        category: details.category || 'content',
+                        summary: details.summary || '',
+                        thumbnail: details.thumbnail,
+                        updatedAt: details.updated_at,
+                        downloadsCount: details.downloads_count || 0,
+                        selectedVersion: latestVersion,
+                        availableReleases: reversedReleases.map(r => ({
+                            version: r.version,
+                            factorio_version: r.factorio_version,
+                            released_at: r.released_at,
+                            dependencies: r.dependencies,
+                        })),
+                        selectedDepIds: initialSelectedIds,
+                        dependencies: treeDeps
+                    };
+                });
+
+                setTreeCache(prev => ({ ...prev, ...newCacheUpdates }));
+            }
+            
+            addLog('Dependency tree resolved successfully.', 'success');
+        } catch (e) {
+            addLog(`Failed to resolve dependency tree: ${e}`, 'error');
+        } finally {
+            setIsLoadingTree(false);
+        }
+    };
+
     const isBusy = isResolvingBatch || loading || externalLoading === true;
 
     // Convert flat backend dependencies to tree nodes
@@ -334,11 +588,98 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         }
     };
 
+    const getRootMods = () => {
+        // Collect all dependency names that are checked/selected in the cards
+        const allDepNames = new Set<string>();
+        targetMods.forEach(m => {
+            m.dependencies.forEach(d => {
+                if (d.type === 'required' || m.selectedDepIds.includes(d.id)) {
+                    allDepNames.add(d.name);
+                }
+            });
+        });
+        
+        // Also check treeCache to see what is required
+        Object.values(treeCache).forEach(m => {
+            m.dependencies.forEach(d => {
+                if (d.type === 'required' || m.selectedDepIds.includes(d.id)) {
+                    allDepNames.add(d.name);
+                }
+            });
+        });
+        
+        // Root mods are targetMods whose name is NOT in allDepNames
+        const roots = targetMods.filter(m => !allDepNames.has(m.name));
+        
+        // If there's a cycle or empty, fall back to all targetMods
+        if (roots.length === 0) return targetMods;
+        return roots;
+    };
+
+    const renderDependencyTreePanel = () => {
+        if (isLoadingTree) {
+            return (
+                <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900/90 rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 shadow-xs h-full min-h-0 items-center justify-center p-6 text-slate-400 dark:text-zinc-550 gap-3 select-none">
+                    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                    <div className="flex flex-col gap-1 text-center max-w-[320px]">
+                        <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">
+                            Resolving Dependency Graph
+                        </span>
+                        <span className="text-[11px] leading-relaxed text-slate-500 dark:text-zinc-500">
+                            Fetching details for sub-dependencies to build the complete recursive graph...
+                        </span>
+                    </div>
+                </div>
+            );
+        }
+
+        const rootMods = getRootMods();
+        
+        return (
+            <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 shadow-xs h-full min-h-0 overflow-hidden rounded-2xl animate-fade-in">
+                {/* Header section identical to Download Manager */}
+                <div className="h-8.5 px-3.5 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/40 shrink-0 select-none">
+                    <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
+                        <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>Dependency Graph Explorer</span>
+                        <span className="bg-slate-200/70 dark:bg-zinc-800 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300">
+                            {targetMods.length + Object.keys(treeCache).length} resolved
+                        </span>
+                    </div>
+
+                    {/* Inline Color Legend */}
+                    <div className="flex items-center gap-3 text-[10px] text-slate-400 dark:text-zinc-500 font-medium select-none ml-auto mr-1.5 shrink-0">
+                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-zinc-500 shrink-0" /> Root</span>
+                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" /> Required</span>
+                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" /> Recommended</span>
+                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" /> Optional</span>
+                    </div>
+                </div>
+
+                {/* Scrollable Tree Workspace */}
+                <div className="flex-1 overflow-y-auto pt-4 px-4 pb-4 mb-2 flex flex-col gap-1 min-h-0">
+                    {[...rootMods].sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name)).map(m => (
+                        <DependencyTreeNode
+                            key={m.id}
+                            name={m.name}
+                            versionReq={m.selectedVersion}
+                            type="root"
+                            targetMods={targetMods}
+                            treeCache={treeCache}
+                            visited={new Set()}
+                            depth={0}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="flex h-full min-h-0 flex-col bg-slate-100 dark:bg-zinc-950 relative">
             {/* Input Bar Section */}
-            <div className="pt-3 px-6 pb-2 shrink-0 flex flex-col gap-4">
-                <div className="h-10 px-3.5 py-1.5 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-center justify-between shadow-xs gap-3">
+            <div className="pt-3 px-4 pb-0 shrink-0 flex flex-col gap-4">
+                <div className="h-10 pl-3.5 pr-1.5 py-1.5 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-center justify-between shadow-xs gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
                     <div className="flex-1 min-w-0 flex items-center gap-2">
                         <Search className="w-4 h-4 text-slate-400 shrink-0" />
                         <input
@@ -378,40 +719,79 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                         onChange={handleFileChange}
                     />
                 </div>
+
+                {targetMods.length > 0 && (
+                    <div className="flex items-center text-xs select-none">
+                        {/* Segmented Control for View Switcher */}
+                        <div className="inline-flex gap-0.5 bg-slate-200/50 dark:bg-zinc-900/80 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800/80 text-xs font-bold">
+                            <button
+                                onClick={() => setViewMode('cards')}
+                                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none ${
+                                    viewMode === 'cards'
+                                        ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
+                                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                }`}
+                            >
+                                <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                <span>Mod Cards</span>
+                            </button>
+                            <button
+                                onClick={() => setViewMode('tree')}
+                                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none ${
+                                    viewMode === 'tree'
+                                        ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
+                                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                }`}
+                            >
+                                <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                <span>Dependency Tree</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Only cards scroll; the queue input remains persistent above them. */}
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-4 pb-6">
-                <div className="flex flex-col gap-4">
-                    {targetMods.length === 0 ? (
-                        <div className="text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
-                            <div className="p-4 rounded-full bg-slate-200/50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-indigo-500">
-                                <Inbox className="w-8 h-8 stroke-[1.2]" />
-                            </div>
-                            <div className="flex flex-col gap-1 max-w-[280px] text-center select-none">
-                                <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">No target mods added</span>
-                                <span className="text-[11px] leading-relaxed text-slate-500 dark:text-zinc-500">Paste mod URLs or import a text file to inspect target mods, toggle recommended/optional dependencies, and download.</span>
-                            </div>
+            {/* Content view workspace */}
+            <div className="relative flex flex-col flex-1 min-h-0 px-4 pt-4 pb-2">
+                <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white/40 dark:bg-zinc-900/30">
+                    <div className="relative flex-1 min-h-0">
+                        <div className="h-full overflow-y-auto p-4">
+                            {targetMods.length === 0 ? (
+                                <div className="text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
+                                    <div className="p-4 rounded-full bg-slate-200/50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-indigo-500">
+                                        <Inbox className="w-8 h-8 stroke-[1.2]" />
+                                    </div>
+                                    <div className="flex flex-col gap-1 max-w-[280px] text-center select-none">
+                                        <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">No target mods added</span>
+                                        <span className="text-[11px] leading-relaxed text-slate-500 dark:text-zinc-500">Paste mod URLs or import a text file to inspect target mods, toggle recommended/optional dependencies, and download.</span>
+                                    </div>
+                                </div>
+                            ) : viewMode === 'tree' ? (
+                                <div className="flex-1 min-h-0 flex flex-col gap-4 relative">
+                                    {renderDependencyTreePanel()}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-4">
+                                    {[...targetMods]
+                                        .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
+                                        .map((mod: TargetModItem) => (
+                                            <ModAccordionCard
+                                                key={mod.id}
+                                                mod={mod}
+                                                isExpanded={expandedModId === mod.id}
+                                                onToggleExpand={() => setExpandedModId(expandedModId === mod.id ? null : mod.id)}
+                                                onToggleDep={handleToggleDep}
+                                                onToggleSection={handleToggleSection}
+                                                onSelectVersion={handleSelectVersion}
+                                                onRemove={handleRemoveMod}
+                                            />
+                                        ))}
+                                </div>
+                            )}
                         </div>
-                    ) : (
-                        <>
-                            {[...targetMods]
-                                .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
-                                .map((mod: TargetModItem) => (
-                                    <ModAccordionCard
-                                        key={mod.id}
-                                        mod={mod}
-                                        isExpanded={expandedModId === mod.id}
-                                        onToggleExpand={() => setExpandedModId(expandedModId === mod.id ? null : mod.id)}
-                                        onToggleDep={handleToggleDep}
-                                        onToggleSection={handleToggleSection}
-                                        onSelectVersion={handleSelectVersion}
-                                        onRemove={handleRemoveMod}
-                                    />
-                                ))}
 
-                            {/* Sticky Compact Download Action Button */}
-                            <div className="sticky bottom-1 z-20 flex flex-col items-end gap-2 pt-1 pointer-events-none">
+                        {targetMods.length > 0 && (
+                            <div className="sticky bottom-1 z-20 flex flex-col items-end gap-2 pointer-events-none pb-2 absolute bottom-0 right-0">
                                 <button
                                     onClick={handleStartDownloadAll}
                                     disabled={isBusy}
@@ -421,8 +801,8 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                     <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
                                 </button>
                             </div>
-                        </>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

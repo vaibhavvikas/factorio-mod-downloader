@@ -39,9 +39,13 @@ where
         .map_err(|e| format!("HTTP request failed for {}: {}", mod_id, e))?;
 
     if !response.status().is_success() {
+        let status = response.status();
+        if status == reqwest::StatusCode::NOT_FOUND {
+            return Err(format!("HTTP 404: Mod file not found on server (may be recently added) for {}", mod_id));
+        }
         return Err(format!(
             "Download failed with HTTP status {} for {}",
-            response.status(),
+            status,
             mod_id
         ));
     }
