@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../context/AppContext';
 import type { InstalledModItem } from '../../context/AppContext';
 import { Checkbox } from '../ui/Checkbox';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../theme/layers';
 
 interface ConflictModalData {
     targetUpdates: { name: string; title: string; version: string }[];
@@ -408,7 +409,7 @@ export const InstalledTab: React.FC = () => {
     const allUpdatesSelected = updateCount > 0 && selectedUpdateCount === updateCount;
 
     return (
-        <div className="flex-1 flex flex-col overflow-hidden h-full bg-slate-100 dark:bg-zinc-950 relative">
+        <div className={`flex-1 flex flex-col overflow-hidden h-full ${LAYER.appCanvas} relative`}>
             {/* Exclusive Dependency Chain Deletion Confirmation Modal */}
             {deleteModalData && (
                 <div 
@@ -596,7 +597,7 @@ export const InstalledTab: React.FC = () => {
 
             {/* Top Toolbar Header */}
             <div className="pt-3 px-4 pb-0 shrink-0 flex flex-col gap-4">
-                <div className="h-10 pl-3.5 pr-1.5 py-1.5 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-center justify-between text-xs shadow-xs">
+                <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between text-xs shadow-xs`}>
                     <div className="flex items-center gap-2.5 text-slate-600 dark:text-zinc-300 overflow-hidden">
                         <FolderOpen className="w-4 h-4 text-indigo-500 shrink-0" />
                         <span className="font-semibold text-slate-400 dark:text-zinc-500">Mods Path:</span>
@@ -608,7 +609,7 @@ export const InstalledTab: React.FC = () => {
                                 e.currentTarget.blur();
                                 handleBrowseFolder();
                             }}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800/80 cursor-pointer transition-colors"
+                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-700/60 cursor-pointer transition-colors"
                             title="Browse / Change Folder"
                         >
                             <FolderSearch className="w-3.5 h-3.5 text-indigo-500" />
@@ -624,7 +625,7 @@ export const InstalledTab: React.FC = () => {
                                     console.error('Failed to open folder:', err);
                                 }
                             }}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800/80 cursor-pointer transition-colors"
+                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-700/60 cursor-pointer transition-colors"
                             title="Open folder in Finder / File Explorer"
                         >
                             <FolderOutput className="w-3.5 h-3.5 text-indigo-500" />
@@ -636,7 +637,7 @@ export const InstalledTab: React.FC = () => {
                                 loadInstalledMods(folderPath);
                             }}
                             disabled={isAnyLoading}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800/80 cursor-pointer transition-colors disabled:opacity-50"
+                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-700/60 cursor-pointer transition-colors disabled:opacity-50"
                             title="Refresh Installed Mods"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${isAnyLoading ? 'animate-spin' : ''}`} />
@@ -644,56 +645,63 @@ export const InstalledTab: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Mod Manager Navigation & Controls */}
-                <div className="flex justify-between items-center">
-                    <div className="inline-flex gap-0.5 bg-slate-200/50 dark:bg-zinc-900/80 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800/80 text-xs font-bold select-none">
-                        <button
-                            onClick={() => setActiveTab('installed')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                activeTab === 'installed'
-                                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                            }`}
-                        >
-                            <Package className={`w-3.5 h-3.5 ${activeTab === 'installed' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
-                            <span>Installed Mods</span>
-                            <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 dark:bg-zinc-700/60 text-slate-600 dark:text-zinc-300">
-                                {installedMods.length}
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('updates')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                                activeTab === 'updates'
-                                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                            }`}
-                        >
-                            <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
-                            <span>Updates Available</span>
-                            {updateCount > 0 && (
-                                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                                    {updateCount}
-                                </span>
-                            )}
-                        </button>
-                    </div>
 
-                    {activeTab === 'updates' && updateCount > 0 && (
-                        <button
-                            onClick={() => handleSelectAll(!allUpdatesSelected)}
-                            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 cursor-pointer select-none"
-                        >
-                            {allUpdatesSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                            <span>{allUpdatesSelected ? 'Deselect All' : 'Select All Outdated'}</span>
-                        </button>
-                    )}
-                </div>
             </div>
 
             {/* Scrollable Mod List */}
             <div className="relative flex flex-col flex-1 min-h-0 px-4 pt-4 pb-2">
-                <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white/40 dark:bg-zinc-900/30">
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
+                    {installedMods.length > 0 && (
+                        <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.viewportHeader} px-4 pt-3 pb-0 flex items-start justify-between`}>
+                            <div className="inline-flex gap-6 text-xs font-bold select-none -mb-px">
+                                <button
+                                    onClick={() => setActiveTab('installed')}
+                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                        activeTab === 'installed'
+                                            ? 'text-indigo-600 dark:text-indigo-400'
+                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                    }`}
+                                >
+                                    <Package className={`w-3.5 h-3.5 ${activeTab === 'installed' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                    <span>Installed Mods</span>
+                                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${activeTab === 'installed' ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-zinc-700/60 text-slate-600 dark:text-zinc-300'}`}>
+                                        {installedMods.length}
+                                    </span>
+                                    {activeTab === 'installed' && (
+                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('updates')}
+                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                        activeTab === 'updates'
+                                            ? 'text-indigo-600 dark:text-indigo-400'
+                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                    }`}
+                                >
+                                    <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                    <span>Updates Available</span>
+                                    {updateCount > 0 && (
+                                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                            {updateCount}
+                                        </span>
+                                    )}
+                                    {activeTab === 'updates' && (
+                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                                    )}
+                                </button>
+                            </div>
+                            {activeTab === 'updates' && updateCount > 0 && (
+                                <button
+                                    onClick={() => handleSelectAll(!allUpdatesSelected)}
+                                    className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 cursor-pointer select-none pb-3"
+                                >
+                                    {allUpdatesSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                    <span>{allUpdatesSelected ? 'Deselect All' : 'Select All Outdated'}</span>
+                                </button>
+                            )}
+                        </div>
+                    )}
                     <div className="relative flex-1 min-h-0">
                         <div className="h-full overflow-y-auto p-4">
                             {installedMods.length === 0 ? (
@@ -710,7 +718,7 @@ export const InstalledTab: React.FC = () => {
                                             const isDependentLocked = dependents.length > 0;
 
                                             return (
-                                                <div key={mod.name} className="p-4 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all">
+                                                <div key={mod.name} className={`p-4 ${LAYER.contentCard} ${BORDER.card} rounded-2xl flex items-center justify-between shadow-xs ${HOVER_BORDER.card} transition-all`}>
                                                     <div className="flex items-center gap-4 min-w-0">
                                                         {/* Mod Thumbnail / Initials Avatar Box */}
                                                         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-xs text-indigo-600 dark:text-indigo-400 shrink-0 shadow-inner overflow-hidden">
@@ -727,7 +735,7 @@ export const InstalledTab: React.FC = () => {
                                                                 <span className="panel-pill panel-pill-mono bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 rounded-full px-2.5 py-0.5">v{mod.version}</span>
                                                             </div>
 
-                                                            <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-zinc-400 font-mono">
+                                                            <div className={`flex items-center gap-3 text-[11px] ${TEXT.secondary} font-mono`}>
                                                                 <span>Author: {mod.author || 'Unknown'}</span>
                                                                 <span>•</span>
                                                                 <span className="truncate">{mod.fileName}</span>
@@ -759,114 +767,116 @@ export const InstalledTab: React.FC = () => {
                                 </div>
                             ) : (
                                 /* UPDATES AVAILABLE TAB */
-                                <div className="grid grid-cols-[repeat(auto-fit,minmax(28rem,1fr))] gap-2.5">
+                                <>
                                     {isCheckingUpdates ? (
-                                        <div className="col-span-full text-center py-20 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
+                                        <div className="text-center py-20 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
                                             <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
                                             <span>Checking for online updates...</span>
                                         </div>
                                     ) : installedMods.filter(m => m.hasUpdate).length === 0 ? (
-                                        <div className="col-span-full text-center py-16 text-slate-400 dark:text-zinc-600 text-xs select-none">
+                                        <div className="text-center py-16 text-slate-400 dark:text-zinc-600 text-xs select-none">
                                             All installed mods are up to date!
                                         </div>
                                     ) : (
-                                        [...installedMods]
-                                            .filter(m => m.hasUpdate)
-                                            .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
-                                            .map(mod => {
-                                                const activeDownloading = isModDownloading(mod.name);
+                                        <>
+                                            <div className="grid grid-cols-[repeat(auto-fit,minmax(28rem,1fr))] gap-2.5">
+                                                {[...installedMods]
+                                                    .filter(m => m.hasUpdate)
+                                                    .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
+                                                    .map(mod => {
+                                                        const activeDownloading = isModDownloading(mod.name);
 
-                                                return (
-                                                    <div
-                                                        key={mod.name}
-                                                        onClick={() => handleToggleSelect(mod.name)}
-                                                        className={`h-full cursor-pointer bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl shadow-xs hover:border-slate-300 dark:hover:border-zinc-700/80 hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}
-                                                    >
-                                                        <div className="h-full p-4 flex flex-col gap-3">
-                                                            <div className="flex items-start justify-between gap-3">
-                                                                <div className="flex min-w-0 items-start gap-3 overflow-hidden">
-                                                                    <Checkbox
-                                                                        checked={mod.selectedForUpdate || false}
-                                                                        onChange={() => handleToggleSelect(mod.name)}
-                                                                        disabled={activeDownloading}
-                                                                        size="md"
-                                                                        accent="indigo"
-                                                                        className="mt-[13px]"
-                                                                        aria-label={`Select ${mod.title || mod.name} for update`}
-                                                                    />
+                                                        return (
+                                                            <div
+                                                                key={mod.name}
+                                                                onClick={() => handleToggleSelect(mod.name)}
+                                                                className={`h-full cursor-pointer ${LAYER.groupPanel} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardSoft} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
+                                                                <div className="h-full p-4 flex flex-col gap-3">
+                                                                    <div className="flex items-start justify-between gap-3">
+                                                                        <div className="flex min-w-0 items-start gap-3 overflow-hidden">
+                                                                            <Checkbox
+                                                                                checked={mod.selectedForUpdate || false}
+                                                                                onChange={() => handleToggleSelect(mod.name)}
+                                                                                disabled={activeDownloading}
+                                                                                size="md"
+                                                                                accent="indigo"
+                                                                                className="mt-[13px]"
+                                                                                aria-label={`Select ${mod.title || mod.name} for update`}
+                                                                            />
 
-                                                                    {mod.thumbnail ? (
-                                                                        <img src={mod.thumbnail} alt={mod.title} className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-zinc-800 shadow-sm shrink-0 mt-0.5" />
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs shrink-0 mt-0.5 select-none shadow-xs">
-                                                                            {getInitials(mod.title || mod.name)}
-                                                                        </div>
-                                                                    )}
+                                                                            {mod.thumbnail ? (
+                                                                                <img src={mod.thumbnail} alt={mod.title} className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-zinc-800 shadow-sm shrink-0 mt-0.5" />
+                                                                            ) : (
+                                                                                <div className="w-10 h-10 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs shrink-0 mt-0.5 select-none shadow-xs">
+                                                                                    {getInitials(mod.title || mod.name)}
+                                                                                </div>
+                                                                            )}
 
-                                                                    <div className="flex flex-col min-w-0">
-                                                                        <div className="flex min-w-0 items-center gap-2">
-                                                                            <h3 className="min-w-0 truncate text-sm font-bold text-slate-900 dark:text-white">{mod.title || mod.name}</h3>
-                                                                            <span className="max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
-                                                                                {mod.name}
-                                                                            </span>
+                                                                            <div className="flex flex-col min-w-0">
+                                                                                <div className="flex min-w-0 items-center gap-2">
+                                                                                    <h3 className="min-w-0 truncate text-sm font-bold text-slate-900 dark:text-white">{mod.title || mod.name}</h3>
+                                                                                    <span className="max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
+                                                                                        {mod.name}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className={`mt-1 text-xs ${TEXT.secondary}`}>
+                                                                                    <span>by </span>
+                                                                                    <strong className="inline-block max-w-[180px] truncate align-bottom text-slate-700 dark:text-zinc-300 font-semibold" title={mod.author || 'Unknown'}>
+                                                                                        {mod.author || 'Unknown'}
+                                                                                    </strong>
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
-                                                                            <span>by </span>
-                                                                            <strong className="inline-block max-w-[180px] truncate align-bottom text-slate-700 dark:text-zinc-300 font-semibold" title={mod.author || 'Unknown'}>
-                                                                                {mod.author || 'Unknown'}
-                                                                            </strong>
-                                                                        </div>
+
+                                                                        <a
+                                                                            href={`https://mods.factorio.com/mod/${mod.name}`}
+                                                                            target="_blank"
+                                                                            rel="noreferrer"
+                                                                            onClick={event => event.stopPropagation()}
+                                                                            title={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
+                                                                            aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
+                                                                            className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
+                                                                        >
+                                                                            <ExternalLink className="w-4 h-4" />
+                                                                        </a>
+                                                                    </div>
+
+                                                                    <div className="mt-auto flex items-center gap-2 flex-wrap pl-7">
+                                                                        <span className="w-fit whitespace-nowrap px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-950 text-xs font-mono font-normal text-slate-400 dark:text-zinc-400 select-none">
+                                                                            Installed v{mod.version}
+                                                                        </span>
+                                                                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+                                                                        <CustomVersionDropdown
+                                                                            versions={mod.newerVersions}
+                                                                            selectedVersion={mod.selectedTargetVersion || mod.latestVersion || mod.version}
+                                                                            onSelect={ver => handleSelectVersion(mod.name, ver)}
+                                                                            disabled={activeDownloading}
+                                                                            label="Update:"
+                                                                            valueClassName="font-extrabold text-emerald-600 dark:text-emerald-400"
+                                                                        />
                                                                     </div>
                                                                 </div>
-
-                                                                <a
-                                                                    href={`https://mods.factorio.com/mod/${mod.name}`}
-                                                                    target="_blank"
-                                                                    rel="noreferrer"
-                                                                    onClick={event => event.stopPropagation()}
-                                                                    title={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                                                    aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                                                    className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
-                                                                >
-                                                                    <ExternalLink className="w-4 h-4" />
-                                                                </a>
                                                             </div>
-
-                                                            <div className="mt-auto flex items-center gap-2 flex-wrap pl-7">
-                                                                <span className="w-fit whitespace-nowrap px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-950 text-xs font-mono font-normal text-slate-400 dark:text-zinc-400 select-none">
-                                                                    Installed v{mod.version}
-                                                                </span>
-                                                                <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
-                                                                <CustomVersionDropdown
-                                                                    versions={mod.newerVersions}
-                                                                    selectedVersion={mod.selectedTargetVersion || mod.latestVersion || mod.version}
-                                                                    onSelect={ver => handleSelectVersion(mod.name, ver)}
-                                                                    disabled={activeDownloading}
-                                                                    label="Update:"
-                                                                    valueClassName="font-extrabold text-emerald-600 dark:text-emerald-400"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
+                                                        );
+                                                    })}
+                                            </div>
+                                            {updateCount > 0 && (
+                                                <div className="sticky bottom-0 z-20 flex flex-col items-end gap-2.5 pt-2.5 pb-0 bg-transparent pointer-events-none">
+                                                    <button
+                                                        onClick={handleStartUpdateBatch}
+                                                        disabled={isAnyLoading || selectedUpdateCount === 0}
+                                                        className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                                    >
+                                                        {isAnyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                                        <span>{isAnyLoading ? 'Resolving Batch...' : `Update Selected Mods (${selectedUpdateCount})`}</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
                                     )}
-                                </div>
+                                </>
                             )}
                         </div>
-
-                        {updateCount > 0 && (
-                            <div className="sticky bottom-1 z-20 flex flex-col items-end gap-2 pointer-events-none pb-2 absolute bottom-0 right-0">
-                                <button
-                                    onClick={handleStartUpdateBatch}
-                                    disabled={isAnyLoading || selectedUpdateCount === 0}
-                                    className="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 border border-indigo-400/20 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60 pointer-events-auto"
-                                >
-                                    {isAnyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                                    <span>{isAnyLoading ? 'Resolving Batch...' : `Update Selected Mods (${selectedUpdateCount})`}</span>
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

@@ -5,6 +5,7 @@ import { useAppContext } from '../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
+import { LAYER, BORDER, DIVIDER } from '../../theme/layers';
 
 interface BackendDependency {
     id: string;
@@ -109,7 +110,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
         <div className="flex flex-col">
             {/* Tree Node Row */}
             <div 
-                className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-900/40 rounded-lg px-2 group cursor-pointer select-none transition-colors" 
+                className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 group cursor-pointer select-none transition-colors" 
                 onClick={(e) => { 
                     e.stopPropagation(); 
                     if (hasChildren) setIsExpanded(!isExpanded); 
@@ -135,7 +136,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                 </span>
 
                 {/* Mod ID / Name Code style */}
-                <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500 bg-slate-100/80 dark:bg-zinc-900/60 px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-zinc-800/40 truncate">
+                <span className={`text-[11px] font-mono text-slate-400 dark:text-zinc-500 ${LAYER.pillSurface} px-1.5 py-0.5 rounded ${BORDER.pill} truncate`}>
                     {name}
                 </span>
 
@@ -619,7 +620,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     const renderDependencyTreePanel = () => {
         if (isLoadingTree) {
             return (
-                <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900/90 rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 shadow-xs h-full min-h-0 items-center justify-center p-6 text-slate-400 dark:text-zinc-550 gap-3 select-none">
+                <div className={`flex flex-col ${LAYER.groupPanel} rounded-2xl ${BORDER.card} shadow-xs items-center justify-center p-6 text-slate-400 dark:text-zinc-550 gap-3 select-none`}>
                     <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
                     <div className="flex flex-col gap-1 text-center max-w-[320px]">
                         <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">
@@ -636,9 +637,9 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         const rootMods = getRootMods();
         
         return (
-            <div className="flex-1 flex flex-col bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 shadow-xs h-full min-h-0 overflow-hidden rounded-2xl animate-fade-in">
+            <div className={`flex flex-col ${LAYER.groupPanel} ${BORDER.card} shadow-xs overflow-hidden rounded-2xl animate-fade-in`}>
                 {/* Header section identical to Download Manager */}
-                <div className="h-8.5 px-3.5 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/40 shrink-0 select-none">
+                <div className="h-8.5 px-3.5 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/55 shrink-0 select-none">
                     <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                         <Layers className="w-3.5 h-3.5 text-indigo-500" />
                         <span>Dependency Graph Explorer</span>
@@ -657,7 +658,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                 </div>
 
                 {/* Scrollable Tree Workspace */}
-                <div className="flex-1 overflow-y-auto pt-4 px-4 pb-4 mb-2 flex flex-col gap-1 min-h-0">
+                <div className="overflow-y-auto pt-4 px-4 pb-4 flex flex-col gap-1">
                     {[...rootMods].sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name)).map(m => (
                         <DependencyTreeNode
                             key={m.id}
@@ -676,10 +677,10 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     };
 
     return (
-        <div className="flex h-full min-h-0 flex-col bg-slate-100 dark:bg-zinc-950 relative">
+        <div className={`flex h-full min-h-0 flex-col ${LAYER.appCanvas} relative`}>
             {/* Input Bar Section */}
             <div className="pt-3 px-4 pb-0 shrink-0 flex flex-col gap-4">
-                <div className="h-10 pl-3.5 pr-1.5 py-1.5 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-center justify-between shadow-xs gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
+                <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between shadow-xs gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all`}>
                     <div className="flex-1 min-w-0 flex items-center gap-2">
                         <Search className="w-4 h-4 text-slate-400 shrink-0" />
                         <input
@@ -696,7 +697,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                     <div className="flex items-center gap-2 shrink-0">
                         <button
                             onClick={() => document.getElementById('file-import')?.click()}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-slate-200 dark:border-zinc-800/80 cursor-pointer flex items-center gap-1.5 transition-colors"
+                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-slate-200/80 dark:border-zinc-700/60 cursor-pointer flex items-center gap-1.5 transition-colors"
                             title="Import mod list from text file"
                         >
                             <FileText className="w-3.5 h-3.5 text-indigo-500" />
@@ -720,45 +721,54 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                     />
                 </div>
 
-                {targetMods.length > 0 && (
-                    <div className="flex items-center text-xs select-none">
-                        {/* Segmented Control for View Switcher */}
-                        <div className="inline-flex gap-0.5 bg-slate-200/50 dark:bg-zinc-900/80 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800/80 text-xs font-bold">
-                            <button
-                                onClick={() => setViewMode('cards')}
-                                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none ${
-                                    viewMode === 'cards'
-                                        ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                                }`}
-                            >
-                                <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
-                                <span>Mod Cards</span>
-                            </button>
-                            <button
-                                onClick={() => setViewMode('tree')}
-                                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none ${
-                                    viewMode === 'tree'
-                                        ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
-                                        : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                                }`}
-                            >
-                                <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
-                                <span>Dependency Tree</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
+
             </div>
 
             {/* Content view workspace */}
             <div className="relative flex flex-col flex-1 min-h-0 px-4 pt-4 pb-2">
-                <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white/40 dark:bg-zinc-900/30">
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
+                    {targetMods.length > 0 && (
+                        <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.viewportHeader} px-4 pt-3 pb-0 flex items-start justify-between`}>
+                            <div className="inline-flex gap-6 text-xs font-bold select-none -mb-px">
+                                <button
+                                    onClick={() => setViewMode('cards')}
+                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                        viewMode === 'cards'
+                                            ? 'text-indigo-600 dark:text-indigo-400'
+                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                    }`}
+                                >
+                                    <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                    <span>Mod Cards</span>
+                                    {viewMode === 'cards' && (
+                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('tree')}
+                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                        viewMode === 'tree'
+                                            ? 'text-indigo-600 dark:text-indigo-400'
+                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                    }`}
+                                >
+                                    <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                    <span>Dependency Tree</span>
+                                    {viewMode === 'tree' && (
+                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
+                                    )}
+                                </button>
+                            </div>
+                            <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 pb-3">
+                                {targetMods.length} Target Mods
+                            </span>
+                        </div>
+                    )}
                     <div className="relative flex-1 min-h-0">
                         <div className="h-full overflow-y-auto p-4">
                             {targetMods.length === 0 ? (
                                 <div className="text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
-                                    <div className="p-4 rounded-full bg-slate-200/50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-indigo-500">
+                                    <div className={`p-4 rounded-full bg-slate-200/50 dark:bg-zinc-800/60 ${BORDER.dropdown} flex items-center justify-center text-indigo-500`}>
                                         <Inbox className="w-8 h-8 stroke-[1.2]" />
                                     </div>
                                     <div className="flex flex-col gap-1 max-w-[280px] text-center select-none">
@@ -767,41 +777,54 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                     </div>
                                 </div>
                             ) : viewMode === 'tree' ? (
-                                <div className="flex-1 min-h-0 flex flex-col gap-4 relative">
+                                <>
                                     {renderDependencyTreePanel()}
-                                </div>
+                                    {targetMods.length > 0 && (
+                                        <div className="sticky bottom-0 z-20 flex flex-col items-end gap-4 pt-4 pb-0 bg-transparent pointer-events-none">
+                                            <button
+                                                onClick={handleStartDownloadAll}
+                                                disabled={isBusy}
+                                                className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            >
+                                                {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                                <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
-                                <div className="flex flex-col gap-4">
-                                    {[...targetMods]
-                                        .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
-                                        .map((mod: TargetModItem) => (
-                                            <ModAccordionCard
-                                                key={mod.id}
-                                                mod={mod}
-                                                isExpanded={expandedModId === mod.id}
-                                                onToggleExpand={() => setExpandedModId(expandedModId === mod.id ? null : mod.id)}
-                                                onToggleDep={handleToggleDep}
-                                                onToggleSection={handleToggleSection}
-                                                onSelectVersion={handleSelectVersion}
-                                                onRemove={handleRemoveMod}
-                                            />
-                                        ))}
-                                </div>
+                                <>
+                                    <div className="flex flex-col gap-4">
+                                        {[...targetMods]
+                                            .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
+                                            .map((mod: TargetModItem) => (
+                                                <ModAccordionCard
+                                                    key={mod.id}
+                                                    mod={mod}
+                                                    isExpanded={expandedModId === mod.id}
+                                                    onToggleExpand={() => setExpandedModId(expandedModId === mod.id ? null : mod.id)}
+                                                    onToggleDep={handleToggleDep}
+                                                    onToggleSection={handleToggleSection}
+                                                    onSelectVersion={handleSelectVersion}
+                                                    onRemove={handleRemoveMod}
+                                                />
+                                            ))}
+                                    </div>
+                                    {targetMods.length > 0 && (
+                                        <div className="sticky bottom-0 z-20 flex flex-col items-end gap-4 pt-4 pb-0 bg-transparent pointer-events-none">
+                                            <button
+                                                onClick={handleStartDownloadAll}
+                                                disabled={isBusy}
+                                                className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            >
+                                                {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                                <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
-
-                        {targetMods.length > 0 && (
-                            <div className="sticky bottom-1 z-20 flex flex-col items-end gap-2 pointer-events-none pb-2 absolute bottom-0 right-0">
-                                <button
-                                    onClick={handleStartDownloadAll}
-                                    disabled={isBusy}
-                                    className="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 border border-indigo-400/20 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60 pointer-events-auto"
-                                >
-                                    {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                    <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

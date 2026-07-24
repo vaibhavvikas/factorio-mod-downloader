@@ -1,6 +1,7 @@
 import React from 'react';
 import { Download, Inbox, RotateCcw, Trash2, X } from 'lucide-react';
 import { useAppContext, type DownloadTask } from '../../context/AppContext';
+import { LAYER, BORDER, DIVIDER, TEXT } from '../../theme/layers';
 
 export const NetworkSidebar: React.FC = () => {
     const { sidebarOpen, toggleSidebar, queue, clearCompleted, retryTask } = useAppContext();
@@ -18,9 +19,9 @@ export const NetworkSidebar: React.FC = () => {
         .sort((a: DownloadTask, b: DownloadTask) => a.name.localeCompare(b.name));
 
     return (
-        <div className={`absolute right-4 top-2 bottom-4 w-[360px] z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 shadow-2xl flex flex-col shrink-0 transition-all duration-200 overflow-hidden ${sidebarOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
+        <div className={`absolute right-4 top-2 bottom-4 w-[360px] z-40 ${LAYER.floatingPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} shadow-2xl flex flex-col shrink-0 transition-all duration-200 overflow-hidden ${sidebarOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}>
             {/* Header section */}
-            <div className="h-8.5 px-3.5 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/40 shrink-0 select-none">
+            <div className={`h-8.5 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/60 shrink-0 select-none`}>
                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                     <Download className="w-3.5 h-3.5 text-indigo-500" />
                     <span>Download Manager</span>
@@ -51,7 +52,7 @@ export const NetworkSidebar: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
                 {queue.length === 0 ? (
                     <div className="text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3 h-full">
-                        <div className="p-4 rounded-full bg-slate-100 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 shadow-inner flex items-center justify-center text-indigo-500 animate-pulse">
+                        <div className="p-4 rounded-full bg-slate-100 dark:bg-zinc-900/70 border border-slate-200/80 dark:border-zinc-800/80 shadow-inner flex items-center justify-center text-indigo-500 animate-pulse">
                             <Inbox className="w-8 h-8 stroke-[1.2]" />
                         </div>
                         <div className="flex flex-col gap-1 max-w-[200px] text-center select-none">
@@ -71,7 +72,7 @@ export const NetworkSidebar: React.FC = () => {
                                     const remainingSecs = Math.ceil((item.size * (1 - item.progress / 100)) / parseFloat(item.speed));
                                     const downloadedSize = (item.size * (item.progress / 100)).toFixed(1);
                                     return (
-                                        <div key={item.id} className="relative pl-4.5 p-3.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-xl flex flex-col gap-2.5 shadow-md hover:shadow-lg dark:shadow-indigo-500/5 transition-all duration-200">
+                                        <div key={item.id} className="relative pl-4.5 p-3.5 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-700/70 rounded-xl flex flex-col gap-2.5 shadow-md hover:shadow-lg dark:shadow-indigo-500/5 transition-all duration-200">
                                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-xl" />
                                             <div className="flex justify-between items-center gap-2">
                                                 <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2 overflow-hidden">
@@ -107,7 +108,7 @@ export const NetworkSidebar: React.FC = () => {
                                 {failedItems.map(item => {
                                     const is404 = item.errorMessage?.includes('404');
                                     return (
-                                        <div key={item.id} className="relative pl-4.5 p-3 bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/60 rounded-xl flex flex-col gap-2 shadow-xs">
+                                        <div key={item.id} className="relative pl-4.5 p-3 bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 rounded-xl flex flex-col gap-2 shadow-xs">
                                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-rose-500 rounded-l-xl" />
                                             <div className="flex justify-between items-center gap-2">
                                                 <div className="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-2 overflow-hidden">
@@ -158,7 +159,7 @@ export const NetworkSidebar: React.FC = () => {
                                         : 'bg-emerald-500 shadow-emerald-500/50';
 
                                     return (
-                                        <div key={item.id} className="p-3.5 bg-slate-100/60 dark:bg-zinc-900/30 border border-slate-200/60 dark:border-zinc-800/60 rounded-xl flex flex-col gap-2.5 shadow-sm transition-all opacity-85">
+                                        <div key={item.id} className="p-3.5 bg-slate-100/60 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/70 rounded-xl flex flex-col gap-2.5 shadow-sm transition-all opacity-85">
                                             <div className="flex justify-between items-center gap-2">
                                                 <div className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-2 overflow-hidden">
                                                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 shadow-sm ${dotColor}`} />
@@ -168,7 +169,7 @@ export const NetworkSidebar: React.FC = () => {
                                             <div className="w-full bg-slate-200/60 dark:bg-zinc-800/60 h-1 rounded-full overflow-hidden shadow-inner">
                                                 <div className={`h-full transition-all duration-200 ${isExists ? 'bg-slate-400' : isUpdated ? 'bg-indigo-500' : 'bg-emerald-500'}`} style={{ width: '100%' }} />
                                             </div>
-                                            <div className="flex justify-between text-[9px] font-mono text-slate-400 dark:text-zinc-500 select-none">
+                                            <div className={`flex justify-between text-[9px] font-mono ${TEXT.muted} select-none`}>
                                                 <span>v{item.version} • {item.size.toFixed(1)} MB</span>
                                                 <span className={`text-[9px] ${badgeColor}`}>{badgeLabel}</span>
                                             </div>
