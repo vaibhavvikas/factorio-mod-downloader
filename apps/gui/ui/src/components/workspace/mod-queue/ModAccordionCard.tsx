@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, Download, Trash2, ExternalLink, Calendar } from 'lucide-react';
 import { DependencyTree } from './DependencyTree';
 import type { TreeNode } from './DependencyTree';
-import { formatCategoryLabel, getCategoryBadgeStyle } from './modCategory';
-import { useAppContext } from '../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../theme/layers';
+import { formatCategoryLabel, getCategoryBadgeStyle } from '../shared/modCategory';
+import { useAppContext } from '../../../context/AppContext';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../../theme/layers';
 
 export interface ModVersionRelease {
     version: string;

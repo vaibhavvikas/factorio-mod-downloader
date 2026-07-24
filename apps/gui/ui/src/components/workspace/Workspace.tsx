@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Compass, Package, HardDrive, Terminal, Trash2, X } from 'lucide-react';
-import { SearchTab } from './SearchTab';
-import { ResolverTab } from './ResolverTab';
-import { InstalledTab } from './InstalledTab';
-import type { TargetModItem } from './ModAccordionCard';
+import { SearchTab } from './explore/SearchTab';
+import { ResolverTab } from './mod-queue/ResolverTab';
+import { InstalledTab } from './mod-manager/InstalledTab';
+import type { TargetModItem } from './mod-queue/ModAccordionCard';
 import { useAppContext } from '../../context/AppContext';
 import { invoke } from '@tauri-apps/api/core';
 import { LAYER, BORDER, DIVIDER } from '../../theme/layers';

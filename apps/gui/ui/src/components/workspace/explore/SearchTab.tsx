@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search as SearchIcon, Download, Check, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, ChevronDown, RefreshCw, Rocket, Loader2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from './modCategory';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../theme/layers';
+import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from '../shared/modCategory';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../../theme/layers';
 
 export interface ModSearchResultItem {
     name: string;
