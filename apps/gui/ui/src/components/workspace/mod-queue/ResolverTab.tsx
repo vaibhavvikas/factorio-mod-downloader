@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Download, Inbox, Loader2, Search, ChevronDown, Layers, LayoutGrid } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
-import { LAYER, BORDER, DIVIDER } from '../../theme/layers';
+import { LAYER, BORDER, DIVIDER } from '../../../theme/layers';
 
 interface BackendDependency {
     id: string;
