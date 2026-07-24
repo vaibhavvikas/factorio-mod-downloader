@@ -165,6 +165,7 @@ impl DownloadQueueManager {
                             break;
                         }
                         Err(err) => {
+                            let is_404 = err.contains("404");
                             last_error = err;
                             // Reset downloaded bytes for retry attempt
                             {
@@ -172,6 +173,10 @@ impl DownloadQueueManager {
                                 if let Some(task) = guard.get_mut(&task_id) {
                                     task.downloaded_bytes = 0;
                                 }
+                            }
+                            if is_404 {
+                                // Fast-fail on HTTP 404 since mod file does not exist on mirror storage
+                                break;
                             }
                             if attempts < max_retries {
                                 tokio::time::sleep(std::time::Duration::from_millis(500 * attempts as u64)).await;
@@ -189,7 +194,7 @@ impl DownloadQueueManager {
                             DownloadStatus::Completed
                         };
                     } else {
-                        task.status = DownloadStatus::Failed(format!("Failed after 3 retries: {}", last_error));
+                        task.status = DownloadStatus::Failed(last_error);
                     }
                 }
             });

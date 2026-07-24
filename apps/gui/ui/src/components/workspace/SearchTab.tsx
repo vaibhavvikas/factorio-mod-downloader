@@ -234,7 +234,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
     })();
 
     return (
-        <div className="relative h-full min-h-0 flex flex-col gap-4 px-6 pt-3 pb-2 bg-slate-100 dark:bg-zinc-950">
+        <div className="relative h-full min-h-0 flex flex-col gap-4 px-4 pt-3 pb-2 bg-slate-100 dark:bg-zinc-950">
             {/* Top Search Bar & Category Filter Pills */}
             <div className="flex flex-col gap-4 shrink-0">
                 <div className="flex h-10 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl pl-3.5 pr-1.5 py-1.5 items-center gap-2 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all shadow-xs">
@@ -370,7 +370,8 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                                     {results.map(item => {
                                         const isAlreadyInQueue = existingModNames.includes(item.name);
-                                        const initialLetter = (item.title || item.name || 'M').charAt(0).toUpperCase();
+                                        const lettersOnly = (item.title || item.name || '').replace(/[^a-zA-Z\s]/g, '').trim();
+                                        const initialLetter = lettersOnly ? lettersOnly[0].toUpperCase() : 'M';
                                         const visibleTags = item.tags.slice(0, 3);
                                         const hiddenTagCount = Math.max(0, item.tags.length - visibleTags.length);
                                         const categoryBadgeStyle = getCategoryBadgeStyle(item.category);
@@ -487,7 +488,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                                                         <span>Adding...</span>
                                                                     </>
                                                                 ) : (
-                                                                    <span>+ Add to Queue</span>
+                                                                    <span>+ Add</span>
                                                                 )}
                                                             </button>
                                                         )}

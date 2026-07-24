@@ -1,26 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FolderOpen, FolderSearch, RefreshCw, FolderOutput, AlertTriangle, Loader2, Trash2, ChevronDown, CheckSquare, Square, Package, Sparkles, ExternalLink, ArrowRight } from 'lucide-react';
+import { FolderOpen, FolderSearch, RefreshCw, FolderOutput, AlertTriangle, Loader2, Trash2, ChevronDown, CheckSquare, Square, Package, Sparkles, ExternalLink, ArrowRight, ShieldCheck } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../context/AppContext';
-
-export interface InstalledModItem {
-    name: string;
-    title: string;
-    version: string;
-    author?: string;
-    factorio_version?: string;
-    category?: string;
-    fileName: string;
-    filePath: string;
-    thumbnail?: string;
-    dependencies: string[];
-    hasUpdate: boolean;
-    latestVersion?: string;
-    newerVersions: string[];
-    selectedTargetVersion?: string;
-    selectedForUpdate?: boolean;
-}
+import type { InstalledModItem } from '../../context/AppContext';
+import { Checkbox } from '../ui/Checkbox';
 
 interface ConflictModalData {
     targetUpdates: { name: string; title: string; version: string }[];
@@ -36,11 +20,14 @@ interface DeleteModalData {
 
 const getInitials = (title: string): string => {
     if (!title) return 'MD';
-    const words = title.trim().split(/[\s-_]+/);
+    // Strip non-letter characters so special chars don't become initials
+    const cleaned = title.replace(/[^a-zA-Z\s]/g, '').trim();
+    if (!cleaned) return 'MD';
+    const words = cleaned.split(/\s+/);
     if (words.length >= 2) {
         return (words[0][0] + words[1][0]).toUpperCase();
     }
-    return title.slice(0, 2).toUpperCase();
+    return cleaned.slice(0, 2).toUpperCase();
 };
 
 interface VersionDropdownProps {
@@ -87,12 +74,12 @@ const CustomVersionDropdown: React.FC<VersionDropdownProps> = ({
                 type="button"
                 onClick={toggleOpen}
                 disabled={disabled}
-                className="w-40 flex items-center bg-slate-100 dark:bg-zinc-950 px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900 transition-colors cursor-pointer disabled:opacity-50"
+                className="w-40 flex items-center bg-slate-100 dark:bg-zinc-950 px-1.5 py-0.5 rounded-lg border border-slate-200/80 dark:border-zinc-800 text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900 transition-colors cursor-pointer disabled:opacity-50"
             >
-                <span className="text-xs text-slate-400 font-normal shrink-0">{label}</span>
+                <span className="text-[9px] text-slate-400 font-normal shrink-0">{label}</span>
                 <span className="ml-auto flex min-w-0 items-center gap-1.5">
                     <span className={`truncate ${valueClassName}`}>v{selectedVersion}</span>
-                    <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </span>
             </button>
 
@@ -132,72 +119,37 @@ const CustomVersionDropdown: React.FC<VersionDropdownProps> = ({
 };
 
 export const InstalledTab: React.FC = () => {
-    const { startDownload, addLog, queue } = useAppContext();
-    const [folderPath, setFolderPath] = useState('');
-    const [installedMods, setInstalledMods] = useState<InstalledModItem[]>([]);
+    const {
+        startDownload,
+        addLog,
+        queue,
+        folderPath,
+        setFolderPath,
+        installedMods,
+        setInstalledMods,
+        loadingInstalled,
+        isCheckingUpdates,
+        refreshInstalledMods: loadInstalledMods
+    } = useAppContext();
     const [loading, setLoading] = useState(false);
-    const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+    const isAnyLoading = loading || loadingInstalled;
     const [activeTab, setActiveTab] = useState<'installed' | 'updates'>('installed');
 
     // Modals state
     const [conflictModalData, setConflictModalData] = useState<ConflictModalData | null>(null);
     const [deleteModalData, setDeleteModalData] = useState<DeleteModalData | null>(null);
 
-    const hasScannedRef = useRef(false);
-
-    // Initial Load & Folder Detection
+    // Close modal on Escape key
     useEffect(() => {
-        const initFolder = async () => {
-            if (hasScannedRef.current) return;
-            hasScannedRef.current = true;
-
-            try {
-                let path = await invoke<string | null>('get_mods_folder');
-                if (!path) {
-                    path = await invoke<string>('detect_default_mods_folder');
-                }
-                setFolderPath(path || '');
-                if (path) {
-                    await loadInstalledMods(path);
-                }
-            } catch (err) {
-                console.error('Failed to detect mods folder:', err);
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (deleteModalData) setDeleteModalData(null);
+                if (conflictModalData) setConflictModalData(null);
             }
         };
-        initFolder();
-    }, []);
-
-    const loadInstalledMods = async (path: string) => {
-        setLoading(true);
-        setIsCheckingUpdates(true);
-
-        try {
-            addLog('Fetching installed mods list...', 'info');
-            const rawList = await invoke<InstalledModItem[]>('get_installed_mods_info', { modsFolder: path });
-            const listWithSelection = rawList.map(item => ({
-                ...item,
-                selectedForUpdate: item.hasUpdate,
-                selectedTargetVersion: item.newerVersions[0] || item.version
-            }));
-            setInstalledMods(listWithSelection);
-
-            addLog(`Loaded ${rawList.length} installed mod(s). Fetching online update info...`, 'info');
-            const checkedList = await invoke<InstalledModItem[]>('check_mod_updates', { installedMods: rawList });
-            const checkedWithSelection = checkedList.map(item => ({
-                ...item,
-                selectedForUpdate: item.hasUpdate,
-                selectedTargetVersion: item.newerVersions[0] || item.version
-            }));
-            setInstalledMods(checkedWithSelection);
-            const updatesAvailable = checkedList.filter(item => item.hasUpdate).length;
-            addLog(`Mod check complete: ${updatesAvailable} update(s) available.`, 'success');
-        } catch (err: any) {
-            addLog(`Failed to scan installed mods: ${err?.toString()}`, 'error');
-        } finally {
-            setLoading(false);
-            setIsCheckingUpdates(false);
-        }
-    };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [deleteModalData, conflictModalData]);
 
     // Helper to check if a Factorio dependency string is a required dependency (not ?, ~, or !)
     const isDirectRequiredDependency = (rawDep: string): boolean => {
@@ -332,7 +284,6 @@ export const InstalledTab: React.FC = () => {
                 await invoke('delete_installed_mod', { filePath: mod.filePath });
                 addLog(`Deleted mod "${mod.title || mod.name}" from mods folder.`, 'success');
             }
-            hasScannedRef.current = false;
             await loadInstalledMods(folderPath);
         } catch (err: any) {
             addLog(`Failed to delete mods: ${err?.toString()}`, 'error');
@@ -347,7 +298,6 @@ export const InstalledTab: React.FC = () => {
             if (newPath) {
                 setFolderPath(newPath);
                 await invoke('save_mods_folder', { path: newPath });
-                hasScannedRef.current = false;
                 await loadInstalledMods(newPath);
             }
         } catch (err) {
@@ -461,8 +411,18 @@ export const InstalledTab: React.FC = () => {
         <div className="flex-1 flex flex-col overflow-hidden h-full bg-slate-100 dark:bg-zinc-950 relative">
             {/* Exclusive Dependency Chain Deletion Confirmation Modal */}
             {deleteModalData && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full shadow-2xl p-5 flex flex-col gap-3">
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none animate-fade-in"
+                    onClick={() => setDeleteModalData(null)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                >
+                    <div 
+                        className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl w-[92vw] min-w-[360px] max-w-xl md:max-w-2xl lg:max-w-3xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center gap-3 text-rose-500">
                             <div className="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 shrink-0">
                                 <Trash2 className="w-5 h-5" />
@@ -473,36 +433,83 @@ export const InstalledTab: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-2.5 bg-slate-50 dark:bg-zinc-950/60 max-h-52 overflow-y-auto flex flex-col gap-2">
+                        <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-3 bg-slate-50 dark:bg-zinc-950/60 max-h-[48vh] md:max-h-[58vh] overflow-y-auto flex flex-col gap-3">
+                            {/* Target Mod */}
                             <div className="flex flex-col gap-1">
                                 <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider px-1">Mod to Remove</span>
-                                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800">
+                                <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-2xs">
                                     <span className="truncate">{deleteModalData.targetMod.title || deleteModalData.targetMod.name}</span>
-                                    <span className="font-mono text-[10px] text-slate-500 shrink-0 ml-2">v{deleteModalData.targetMod.version}</span>
+                                    <span className="panel-pill panel-pill-mono text-[10px] text-slate-500 dark:text-zinc-400 shrink-0 ml-2 bg-slate-100 dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700/70 select-none">v{deleteModalData.targetMod.version}</span>
                                 </div>
                             </div>
 
+                            {/* Exclusive Sub-Dependencies To Remove */}
                             {deleteModalData.exclusiveDeps.length > 0 && (
                                 <div className="flex flex-col gap-1">
                                     <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider px-1">Internal Dependencies to Remove</span>
                                     {deleteModalData.exclusiveDeps.map(dep => (
-                                        <div key={dep.name} className="flex items-center justify-between text-xs text-slate-700 dark:text-zinc-300 bg-amber-500/5 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                                        <div key={dep.name} className="flex items-center justify-between text-xs text-slate-700 dark:text-zinc-300 bg-amber-500/5 px-3 py-2 rounded-xl border border-amber-500/20">
                                             <span className="truncate font-semibold">{dep.title || dep.name}</span>
-                                            <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400 shrink-0 ml-2">v{dep.version}</span>
+                                            <span className="panel-pill panel-pill-mono text-[10px] text-amber-600 dark:text-amber-400 shrink-0 ml-2 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 select-none">v{dep.version}</span>
                                         </div>
                                     ))}
                                 </div>
                             )}
 
+                            {/* Protected Shared Dependencies (Kept) */}
                             {deleteModalData.protectedDeps.length > 0 && (
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider px-1">Protected Shared Dependencies (Kept)</span>
-                                    {deleteModalData.protectedDeps.map(dep => (
-                                        <div key={dep.name} className="flex items-center justify-between text-xs text-slate-600 dark:text-zinc-400 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/20">
-                                            <span className="truncate">{dep.title}</span>
-                                            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">Required by {dep.requiredBy.join(', ')}</span>
-                                        </div>
-                                    ))}
+                                <div className="flex flex-col gap-1.5 pt-0.5">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                            Protected Shared Dependencies (Kept)
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-mono font-medium">
+                                            {deleteModalData.protectedDeps.length} protected
+                                        </span>
+                                    </div>
+
+                                    {deleteModalData.protectedDeps.map(dep => {
+                                        const displayName = dep.title && dep.title.trim() ? dep.title : dep.name;
+                                        const reqList = dep.requiredBy;
+                                        const count = reqList.length;
+
+                                        return (
+                                            <div
+                                                key={dep.name}
+                                                className="flex flex-col gap-1.5 p-2.5 bg-emerald-500/5 dark:bg-emerald-950/20 rounded-xl border border-emerald-500/20 overflow-visible"
+                                            >
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                                        <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">
+                                                            {displayName}
+                                                        </span>
+                                                        <span className="bg-slate-100/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded text-[9.5px] font-mono text-slate-700 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-700/60 select-none truncate">
+                                                            {dep.name}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Required By Section: Inline Pill List of Dependent Mods */}
+                                                <div className="flex flex-col gap-1 px-0.5 pt-0.5">
+                                                    <span className="text-[10px] font-medium text-emerald-600/90 dark:text-emerald-400/90 flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                                        Required by {count} installed mod{count > 1 ? 's' : ''}:
+                                                    </span>
+                                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                                        {reqList.map((reqMod, idx) => (
+                                                            <span
+                                                                key={idx}
+                                                                className="panel-pill panel-pill-mono text-[9.5px] bg-white/90 dark:bg-zinc-900/90 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-700/80 shadow-2xs select-none max-w-[240px]"
+                                                            >
+                                                                <span className="truncate min-w-0">{reqMod}</span>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -527,8 +534,18 @@ export const InstalledTab: React.FC = () => {
 
             {/* Dependency Upgrade Conflict Modal */}
             {conflictModalData && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-md w-full shadow-2xl p-6 flex flex-col gap-4">
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none animate-fade-in"
+                    onClick={() => setConflictModalData(null)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                >
+                    <div 
+                        className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-6 flex flex-col gap-4 transition-all select-text"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                    >
                         <div className="flex items-center gap-3 text-amber-500">
                             <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
                                 <AlertTriangle className="w-6 h-6" />
@@ -539,7 +556,7 @@ export const InstalledTab: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-3 bg-slate-50 dark:bg-zinc-950/60 max-h-48 overflow-y-auto flex flex-col gap-2">
+                        <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-3 bg-slate-50 dark:bg-zinc-950/60 max-h-[40vh] md:max-h-[50vh] overflow-y-auto flex flex-col gap-2">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Required Mod Upgrades</span>
                             {conflictModalData.autoUpgradedDeps.map(dep => (
                                 <div key={dep.name} className="flex justify-between items-center text-xs">
@@ -578,8 +595,8 @@ export const InstalledTab: React.FC = () => {
             )}
 
             {/* Top Toolbar Header */}
-            <div className="pt-3 px-6 pb-2 shrink-0 flex flex-col gap-3">
-                <div className="h-10 px-3.5 py-1.5 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-center justify-between text-xs shadow-xs">
+            <div className="pt-3 px-4 pb-0 shrink-0 flex flex-col gap-4">
+                <div className="h-10 pl-3.5 pr-1.5 py-1.5 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-center justify-between text-xs shadow-xs">
                     <div className="flex items-center gap-2.5 text-slate-600 dark:text-zinc-300 overflow-hidden">
                         <FolderOpen className="w-4 h-4 text-indigo-500 shrink-0" />
                         <span className="font-semibold text-slate-400 dark:text-zinc-500">Mods Path:</span>
@@ -587,7 +604,10 @@ export const InstalledTab: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                         <button
-                            onClick={handleBrowseFolder}
+                            onClick={(e) => {
+                                e.currentTarget.blur();
+                                handleBrowseFolder();
+                            }}
                             className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800/80 cursor-pointer transition-colors"
                             title="Browse / Change Folder"
                         >
@@ -595,7 +615,8 @@ export const InstalledTab: React.FC = () => {
                         </button>
 
                         <button
-                            onClick={async () => {
+                            onClick={async (e) => {
+                                e.currentTarget.blur();
                                 if (!folderPath) return;
                                 try {
                                     await invoke('open_folder_in_explorer', { path: folderPath });
@@ -610,35 +631,51 @@ export const InstalledTab: React.FC = () => {
                         </button>
 
                         <button
-                            onClick={() => {
-                                hasScannedRef.current = false;
+                            onClick={(e) => {
+                                e.currentTarget.blur();
                                 loadInstalledMods(folderPath);
                             }}
-                            disabled={loading}
+                            disabled={isAnyLoading}
                             className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800/80 cursor-pointer transition-colors disabled:opacity-50"
                             title="Refresh Installed Mods"
                         >
-                            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`w-3.5 h-3.5 ${isAnyLoading ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
                 </div>
 
                 {/* Mod Manager Navigation & Controls */}
                 <div className="flex justify-between items-center">
-                    <div className="flex gap-1 bg-slate-200/50 dark:bg-zinc-950 p-1 rounded-xl border border-slate-200 dark:border-zinc-800/60 text-xs select-none">
+                    <div className="inline-flex gap-0.5 bg-slate-200/50 dark:bg-zinc-900/80 p-1 rounded-xl border border-slate-200/60 dark:border-zinc-800/80 text-xs font-bold select-none">
                         <button
                             onClick={() => setActiveTab('installed')}
-                            className={`px-3.5 py-1.5 rounded-lg font-bold shadow-xs cursor-pointer transition-all flex items-center gap-1.5 ${activeTab === 'installed' ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                activeTab === 'installed'
+                                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
+                                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                            }`}
                         >
-                            <Package className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>Installed Mods ({installedMods.length})</span>
+                            <Package className={`w-3.5 h-3.5 ${activeTab === 'installed' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                            <span>Installed Mods</span>
+                            <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 dark:bg-zinc-700/60 text-slate-600 dark:text-zinc-300">
+                                {installedMods.length}
+                            </span>
                         </button>
                         <button
                             onClick={() => setActiveTab('updates')}
-                            className={`px-3.5 py-1.5 rounded-lg font-bold shadow-xs cursor-pointer transition-all flex items-center gap-1.5 ${activeTab === 'updates' ? 'bg-white dark:bg-zinc-900 text-slate-900 dark:text-white' : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                activeTab === 'updates'
+                                    ? 'bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 shadow-2xs'
+                                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                            }`}
                         >
-                            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-                            <span>Updates Available ({updateCount})</span>
+                            <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                            <span>Updates Available</span>
+                            {updateCount > 0 && (
+                                <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                    {updateCount}
+                                </span>
+                            )}
                         </button>
                     </div>
 
@@ -655,177 +692,183 @@ export const InstalledTab: React.FC = () => {
             </div>
 
             {/* Scrollable Mod List */}
-            <div className="flex-1 overflow-y-auto px-6 py-2">
-                {installedMods.length === 0 ? (
-                    <div className="text-center py-20 text-slate-400 dark:text-zinc-600 text-xs">
-                        {loading ? 'Scanning installed mods & checking online updates...' : 'No installed mods found in selected folder.'}
-                    </div>
-                ) : activeTab === 'installed' ? (
-                    /* INSTALLED MODS TAB */
-                    <div className="flex flex-col gap-2.5">
-                        {[...installedMods]
-                            .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
-                            .map(mod => {
-                                const dependents = dependentsMap.get(mod.name) || [];
-                                const isDependentLocked = dependents.length > 0;
+            <div className="relative flex flex-col flex-1 min-h-0 px-4 pt-4 pb-2">
+                <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white/40 dark:bg-zinc-900/30">
+                    <div className="relative flex-1 min-h-0">
+                        <div className="h-full overflow-y-auto p-4">
+                            {installedMods.length === 0 ? (
+                                <div className="text-center py-20 text-slate-400 dark:text-zinc-600 text-xs">
+                                    {isAnyLoading ? 'Scanning installed mods & checking online updates...' : 'No installed mods found in selected folder.'}
+                                </div>
+                            ) : activeTab === 'installed' ? (
+                                /* INSTALLED MODS TAB */
+                                <div className="flex flex-col gap-2.5">
+                                    {[...installedMods]
+                                        .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
+                                        .map(mod => {
+                                            const dependents = dependentsMap.get(mod.name) || [];
+                                            const isDependentLocked = dependents.length > 0;
 
-                                return (
-                                    <div key={mod.name} className="p-4 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all">
-                                        <div className="flex items-center gap-4 min-w-0">
-                                            {/* Mod Thumbnail / Initials Avatar Box */}
-                                            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-xs text-indigo-600 dark:text-indigo-400 shrink-0 shadow-inner overflow-hidden">
-                                                {mod.thumbnail ? (
-                                                    <img src={mod.thumbnail} alt={mod.title} className="w-full h-full object-cover rounded-xl" />
-                                                ) : (
-                                                    <span>{getInitials(mod.title || mod.name)}</span>
-                                                )}
-                                            </div>
+                                            return (
+                                                <div key={mod.name} className="p-4 bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80 rounded-2xl flex items-center justify-between shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all">
+                                                    <div className="flex items-center gap-4 min-w-0">
+                                                        {/* Mod Thumbnail / Initials Avatar Box */}
+                                                        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-xs text-indigo-600 dark:text-indigo-400 shrink-0 shadow-inner overflow-hidden">
+                                                            {mod.thumbnail ? (
+                                                                <img src={mod.thumbnail} alt={mod.title} className="w-full h-full object-cover rounded-xl" />
+                                                            ) : (
+                                                                <span>{getInitials(mod.title || mod.name)}</span>
+                                                            )}
+                                                        </div>
 
-                                            <div className="flex flex-col gap-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">{mod.title || mod.name}</span>
-                                                    <span className="panel-pill panel-pill-mono bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 rounded-full px-2.5 py-0.5">v{mod.version}</span>
-                                                </div>
-
-                                                <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-zinc-400 font-mono">
-                                                    <span>Author: {mod.author || 'Unknown'}</span>
-                                                    <span>•</span>
-                                                    <span className="truncate">{mod.fileName}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Delete Button with Safety Lock Tooltip */}
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <div className="relative group">
-                                                <button
-                                                    onClick={() => handleOpenDeleteModal(mod)}
-                                                    disabled={isDependentLocked}
-                                                    className={`p-2 rounded-xl border transition-colors ${isDependentLocked ? 'bg-slate-100 dark:bg-zinc-800/40 text-slate-300 dark:text-zinc-600 border-slate-200 dark:border-zinc-800 cursor-not-allowed' : 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/60 cursor-pointer'}`}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-
-                                                {isDependentLocked && (
-                                                    <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-30 w-48 p-2 bg-slate-900 text-white dark:bg-zinc-800 text-[10px] rounded-lg shadow-xl font-medium pointer-events-none select-none">
-                                                        Cannot delete: Required by {dependents.join(', ')}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                    </div>
-                ) : (
-                    /* UPDATES AVAILABLE TAB */
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(28rem,1fr))] gap-2.5">
-                        {isCheckingUpdates ? (
-                            <div className="col-span-full text-center py-20 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
-                                <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-                                <span>Checking for online updates...</span>
-                            </div>
-                        ) : installedMods.filter(m => m.hasUpdate).length === 0 ? (
-                            <div className="col-span-full text-center py-16 text-slate-400 dark:text-zinc-600 text-xs select-none">
-                                All installed mods are up to date!
-                            </div>
-                        ) : (
-                            [...installedMods]
-                                .filter(m => m.hasUpdate)
-                                .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
-                                .map(mod => {
-                                    const activeDownloading = isModDownloading(mod.name);
-
-                                    return (
-                                        <div
-                                            key={mod.name}
-                                            onClick={() => handleToggleSelect(mod.name)}
-                                            className={`h-full cursor-pointer bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl shadow-xs hover:border-slate-300 dark:hover:border-zinc-700/80 hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}
-                                        >
-                                            <div className="h-full p-4 flex flex-col gap-3">
-                                                <div className="flex items-start justify-between gap-3">
-                                                    <div className="flex min-w-0 items-start gap-3 overflow-hidden">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={mod.selectedForUpdate || false}
-                                                            onChange={() => handleToggleSelect(mod.name)}
-                                                            onClick={event => event.stopPropagation()}
-                                                            disabled={activeDownloading}
-                                                            className="mt-[13px] w-4 h-4 rounded border-slate-400 dark:border-zinc-700 text-indigo-600 cursor-pointer shrink-0"
-                                                            aria-label={`Select ${mod.title || mod.name} for update`}
-                                                        />
-
-                                                        {mod.thumbnail ? (
-                                                            <img src={mod.thumbnail} alt={mod.title} className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-zinc-800 shadow-sm shrink-0 mt-0.5" />
-                                                        ) : (
-                                                            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs shrink-0 mt-0.5 select-none shadow-xs">
-                                                                {getInitials(mod.title || mod.name)}
+                                                        <div className="flex flex-col gap-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">{mod.title || mod.name}</span>
+                                                                <span className="panel-pill panel-pill-mono bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 rounded-full px-2.5 py-0.5">v{mod.version}</span>
                                                             </div>
-                                                        )}
 
-                                                        <div className="flex flex-col min-w-0">
-                                                            <div className="flex min-w-0 items-center gap-2">
-                                                                <h3 className="min-w-0 truncate text-sm font-bold text-slate-900 dark:text-white">{mod.title || mod.name}</h3>
-                                                                <span className="max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
-                                                                    {mod.name}
-                                                                </span>
-                                                            </div>
-                                                            <div className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
-                                                                <span>by </span>
-                                                                <strong className="inline-block max-w-[180px] truncate align-bottom text-slate-700 dark:text-zinc-300 font-semibold" title={mod.author || 'Unknown'}>
-                                                                    {mod.author || 'Unknown'}
-                                                                </strong>
+                                                            <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-zinc-400 font-mono">
+                                                                <span>Author: {mod.author || 'Unknown'}</span>
+                                                                <span>•</span>
+                                                                <span className="truncate">{mod.fileName}</span>
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    <a
-                                                        href={`https://mods.factorio.com/mod/${mod.name}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        onClick={event => event.stopPropagation()}
-                                                        title={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                                        aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                                        className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
-                                                    >
-                                                        <ExternalLink className="w-4 h-4" />
-                                                    </a>
-                                                </div>
+                                                    {/* Delete Button with Safety Lock Tooltip */}
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        <div className="relative group">
+                                                            <button
+                                                                onClick={() => handleOpenDeleteModal(mod)}
+                                                                disabled={isDependentLocked}
+                                                                className={`p-2 rounded-xl border transition-colors ${isDependentLocked ? 'bg-slate-100 dark:bg-zinc-800/40 text-slate-300 dark:text-zinc-600 border-slate-200 dark:border-zinc-800 cursor-not-allowed' : 'bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/60 cursor-pointer'}`}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
 
-                                                <div className="mt-auto flex items-center gap-2 flex-wrap pl-7">
-                                                    <span className="w-fit whitespace-nowrap px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-950 text-xs font-mono font-normal text-slate-400 dark:text-zinc-400 select-none">
-                                                        Installed v{mod.version}
-                                                    </span>
-                                                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
-                                                    <CustomVersionDropdown
-                                                        versions={mod.newerVersions}
-                                                        selectedVersion={mod.selectedTargetVersion || mod.latestVersion || mod.version}
-                                                        onSelect={ver => handleSelectVersion(mod.name, ver)}
-                                                        disabled={activeDownloading}
-                                                        label="Update:"
-                                                        valueClassName="font-extrabold text-emerald-600 dark:text-emerald-400"
-                                                    />
+                                                            {isDependentLocked && (
+                                                                <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-30 w-48 p-2 bg-slate-900 text-white dark:bg-zinc-800 text-[10px] rounded-lg shadow-xl font-medium pointer-events-none select-none">
+                                                                    Cannot delete: Required by {dependents.join(', ')}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
+                                            );
+                                        })}
+                                </div>
+                            ) : (
+                                /* UPDATES AVAILABLE TAB */
+                                <div className="grid grid-cols-[repeat(auto-fit,minmax(28rem,1fr))] gap-2.5">
+                                    {isCheckingUpdates ? (
+                                        <div className="col-span-full text-center py-20 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
+                                            <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                                            <span>Checking for online updates...</span>
                                         </div>
-                                    );
-                                })
-                        )}
+                                    ) : installedMods.filter(m => m.hasUpdate).length === 0 ? (
+                                        <div className="col-span-full text-center py-16 text-slate-400 dark:text-zinc-600 text-xs select-none">
+                                            All installed mods are up to date!
+                                        </div>
+                                    ) : (
+                                        [...installedMods]
+                                            .filter(m => m.hasUpdate)
+                                            .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
+                                            .map(mod => {
+                                                const activeDownloading = isModDownloading(mod.name);
+
+                                                return (
+                                                    <div
+                                                        key={mod.name}
+                                                        onClick={() => handleToggleSelect(mod.name)}
+                                                        className={`h-full cursor-pointer bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl shadow-xs hover:border-slate-300 dark:hover:border-zinc-700/80 hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}
+                                                    >
+                                                        <div className="h-full p-4 flex flex-col gap-3">
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <div className="flex min-w-0 items-start gap-3 overflow-hidden">
+                                                                    <Checkbox
+                                                                        checked={mod.selectedForUpdate || false}
+                                                                        onChange={() => handleToggleSelect(mod.name)}
+                                                                        disabled={activeDownloading}
+                                                                        size="md"
+                                                                        accent="indigo"
+                                                                        className="mt-[13px]"
+                                                                        aria-label={`Select ${mod.title || mod.name} for update`}
+                                                                    />
+
+                                                                    {mod.thumbnail ? (
+                                                                        <img src={mod.thumbnail} alt={mod.title} className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-zinc-800 shadow-sm shrink-0 mt-0.5" />
+                                                                    ) : (
+                                                                        <div className="w-10 h-10 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs shrink-0 mt-0.5 select-none shadow-xs">
+                                                                            {getInitials(mod.title || mod.name)}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="flex flex-col min-w-0">
+                                                                        <div className="flex min-w-0 items-center gap-2">
+                                                                            <h3 className="min-w-0 truncate text-sm font-bold text-slate-900 dark:text-white">{mod.title || mod.name}</h3>
+                                                                            <span className="max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
+                                                                                {mod.name}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
+                                                                            <span>by </span>
+                                                                            <strong className="inline-block max-w-[180px] truncate align-bottom text-slate-700 dark:text-zinc-300 font-semibold" title={mod.author || 'Unknown'}>
+                                                                                {mod.author || 'Unknown'}
+                                                                            </strong>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <a
+                                                                    href={`https://mods.factorio.com/mod/${mod.name}`}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    onClick={event => event.stopPropagation()}
+                                                                    title={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
+                                                                    aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
+                                                                    className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
+                                                                >
+                                                                    <ExternalLink className="w-4 h-4" />
+                                                                </a>
+                                                            </div>
+
+                                                            <div className="mt-auto flex items-center gap-2 flex-wrap pl-7">
+                                                                <span className="w-fit whitespace-nowrap px-2.5 py-1 rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-950 text-xs font-mono font-normal text-slate-400 dark:text-zinc-400 select-none">
+                                                                    Installed v{mod.version}
+                                                                </span>
+                                                                <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" aria-hidden="true" />
+                                                                <CustomVersionDropdown
+                                                                    versions={mod.newerVersions}
+                                                                    selectedVersion={mod.selectedTargetVersion || mod.latestVersion || mod.version}
+                                                                    onSelect={ver => handleSelectVersion(mod.name, ver)}
+                                                                    disabled={activeDownloading}
+                                                                    label="Update:"
+                                                                    valueClassName="font-extrabold text-emerald-600 dark:text-emerald-400"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         {updateCount > 0 && (
-                            <div className="col-span-full sticky bottom-2 z-20 flex flex-col items-end gap-2 pt-2 pointer-events-none">
+                            <div className="sticky bottom-1 z-20 flex flex-col items-end gap-2 pointer-events-none pb-2 absolute bottom-0 right-0">
                                 <button
                                     onClick={handleStartUpdateBatch}
-                                    disabled={loading || selectedUpdateCount === 0}
+                                    disabled={isAnyLoading || selectedUpdateCount === 0}
                                     className="py-2.5 px-5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30 border border-indigo-400/20 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60 pointer-events-auto"
                                 >
-                                    {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                                    <span>{loading ? 'Resolving Batch...' : `Update Selected Mods (${selectedUpdateCount})`}</span>
+                                    {isAnyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                    <span>{isAnyLoading ? 'Resolving Batch...' : `Update Selected Mods (${selectedUpdateCount})`}</span>
                                 </button>
                             </div>
                         )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );
