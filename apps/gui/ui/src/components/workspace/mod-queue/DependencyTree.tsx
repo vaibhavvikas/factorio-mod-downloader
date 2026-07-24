@@ -1,8 +1,8 @@
 import React from 'react';
 import { Layers } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { Checkbox } from '../ui/Checkbox';
-import { TEXT } from '../../theme/layers';
+import { useAppContext } from '../../../context/AppContext';
+import { Checkbox } from '../../ui/Checkbox';
+import { TEXT } from '../../../theme/layers';
 
 export type DependencyType = 'required' | 'recommended' | 'optional' | 'incompatible';
 
