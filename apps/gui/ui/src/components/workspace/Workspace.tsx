@@ -6,6 +6,7 @@ import { InstalledTab } from './InstalledTab';
 import type { TargetModItem } from './ModAccordionCard';
 import { useAppContext } from '../../context/AppContext';
 import { invoke } from '@tauri-apps/api/core';
+import { LAYER, BORDER, DIVIDER } from '../../theme/layers';
 
 export const Workspace: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'search' | 'queue' | 'installed'>('search');
@@ -159,33 +160,30 @@ export const Workspace: React.FC = () => {
     };
 
     return (
-        <div className="flex-1 flex flex-col min-w-[450px] bg-slate-100 dark:bg-zinc-950 transition-colors relative overflow-hidden">
+        <div className={`flex-1 flex flex-col min-w-[450px] ${LAYER.appCanvas} transition-colors relative overflow-hidden`}>
             {/* Primary App Navigation Header Bar */}
-            <div className="h-12 flex items-center justify-between bg-white/80 dark:bg-zinc-900/80 border-b border-slate-200 dark:border-zinc-800/90 px-4 shrink-0 transition-colors select-none">
-                <nav className="flex items-center gap-1.5 h-full -mb-px">
+            <div className={`h-14 flex items-center justify-between bg-white/80 dark:bg-zinc-900 border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none`}>
+                <nav className="flex items-center gap-2 h-full">
                     {/* Tab 1: Explore */}
                     <button
                         onClick={() => setActiveTab('search')}
-                        className={`relative h-full px-3.5 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
+                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'search'
-                                ? 'text-indigo-600 dark:text-indigo-400'
-                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
+                                : 'bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/40'
                         }`}
                     >
                         <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                         <span>Explore</span>
-                        {activeTab === 'search' && (
-                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                        )}
                     </button>
 
                     {/* Tab 2: Mod Queue */}
                     <button
                         onClick={() => setActiveTab('queue')}
-                        className={`relative h-full px-3.5 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
+                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'queue'
-                                ? 'text-indigo-600 dark:text-indigo-400'
-                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
+                                : 'bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/40'
                         }`}
                     >
                         <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
@@ -199,25 +197,19 @@ export const Workspace: React.FC = () => {
                                 {targetMods.length}
                             </span>
                         )}
-                        {activeTab === 'queue' && (
-                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                        )}
                     </button>
 
                     {/* Tab 3: Mod Manager */}
                     <button
                         onClick={() => setActiveTab('installed')}
-                        className={`relative h-full px-3.5 flex items-center gap-2 text-xs font-bold transition-colors cursor-pointer ${
+                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'installed'
-                                ? 'text-indigo-600 dark:text-indigo-400'
-                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
+                                : 'bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/40'
                         }`}
                     >
                         <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                         <span>Mod Manager</span>
-                        {activeTab === 'installed' && (
-                            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                        )}
                     </button>
                 </nav>
             </div>
@@ -246,10 +238,10 @@ export const Workspace: React.FC = () => {
 
                 {/* System Console Logs Panel — Bottom Docked Persistent Window pushing content up */}
                 {consoleOpen && (
-                    <div className="h-[206px] shrink-0 w-full px-4 pb-3 pt-2 bg-slate-100 dark:bg-zinc-950 transition-all duration-200">
-                        <div className="h-full bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 shadow-xl flex flex-col overflow-hidden">
+                    <div className={`h-[206px] shrink-0 w-full px-4 pb-3 pt-2 ${LAYER.appCanvas} transition-all duration-200`}>
+                        <div className={`h-full ${LAYER.heavyPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} shadow-xl flex flex-col overflow-hidden`}>
                             {/* Console Header */}
-                            <div className="h-8.5 px-3.5 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/40 border-b border-slate-200 dark:border-zinc-800 shrink-0 select-none">
+                            <div className={`h-8.5 px-3.5 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/50 border-b ${DIVIDER.outer} shrink-0 select-none`}>
                                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                                     <Terminal className="w-3.5 h-3.5 text-indigo-500" />
                                     <span>System Console Logs</span>
@@ -275,7 +267,7 @@ export const Workspace: React.FC = () => {
                             </div>
 
                             {/* Console Output Terminal — Max 5 Log Lines at a time with Scrollbar */}
-                            <div className="flex-1 overflow-y-auto p-2.5 px-3 font-mono text-[11px] leading-relaxed flex flex-col gap-1 select-text bg-slate-50 dark:bg-zinc-950/80 text-slate-700 dark:text-zinc-200">
+                            <div className={`flex-1 overflow-y-auto p-2.5 px-3 font-mono text-[11px] leading-relaxed flex flex-col gap-1 select-text ${LAYER.chromeHeavy} text-slate-700 dark:text-zinc-200`}>
                                 {logs.map(log => {
                                     const levelColor = {
                                         info: 'text-blue-600 dark:text-blue-400',
@@ -292,7 +284,7 @@ export const Workspace: React.FC = () => {
                                     }[log.level];
 
                                     return (
-                                        <div key={log.id} className="flex gap-2.5 items-start hover:bg-slate-200/50 dark:hover:bg-zinc-900/50 py-0.5 px-2 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-zinc-800 shrink-0">
+                                        <div key={log.id} className="flex gap-2.5 items-start hover:bg-slate-200/50 dark:hover:bg-zinc-900/50 py-0.5 px-2 rounded-lg transition-colors border border-transparent hover:border-slate-200/60 dark:hover:border-zinc-700/60 shrink-0">
                                             <span className="text-slate-400 dark:text-zinc-500 select-none shrink-0 font-medium">{log.timestamp}</span>
                                             <span className={`${levelColor} font-bold select-none shrink-0 uppercase text-[10px]`}>[{levelLabel}]</span>
                                             <span className="break-all font-medium">{log.message}</span>

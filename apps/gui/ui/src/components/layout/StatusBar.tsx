@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Terminal } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { getVersion } from '@tauri-apps/api/app';
+import { DIVIDER, TEXT } from '../../theme/layers';
 
 export const StatusBar: React.FC = () => {
     const { queue, logs, consoleOpen, setConsoleOpen, isDownloading, totalSpeed } = useAppContext();
@@ -16,7 +17,7 @@ export const StatusBar: React.FC = () => {
     const completedItems = queue.length - remainingItems;
 
     return (
-        <div className="h-8 bg-slate-50 dark:bg-zinc-950 border-t border-slate-200 dark:border-zinc-800/80 flex items-center justify-between px-3 shrink-0 text-[11px] font-medium text-slate-600 dark:text-zinc-400 transition-colors">
+        <div className={`h-8 bg-slate-50 dark:bg-zinc-950 border-t ${DIVIDER.outer} flex items-center justify-between px-3 shrink-0 text-[11px] font-medium text-slate-600 dark:text-zinc-400 transition-colors`}>
             <div className="flex items-center gap-4 overflow-hidden flex-1 mr-4">
                 <button
                     onClick={() => setConsoleOpen(!consoleOpen)}
@@ -28,7 +29,7 @@ export const StatusBar: React.FC = () => {
                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
                     </span>
                     <Terminal className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                    <span className="font-mono text-[10px] truncate text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                    <span className={`font-mono text-[10px] truncate ${TEXT.secondary} hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors`}>
                         {lastLog ? lastLog.message : 'System active.'}
                     </span>
                 </button>

@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from './modCategory';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../theme/layers';
 
 export interface ModSearchResultItem {
     name: string;
@@ -73,7 +74,7 @@ const FactorioVersionDropdown: React.FC<{
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="flex h-7 w-[165px] items-center justify-between px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700/60 hover:bg-slate-200/80 dark:hover:bg-zinc-700/80 transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
+                className="flex h-7 w-[165px] items-center justify-between px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-zinc-700/60 border border-slate-200/80 dark:border-zinc-700/50 hover:bg-slate-200/80 dark:hover:bg-zinc-700 transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
                 title="Filter mods by target Factorio version"
             >
                 <div className="flex items-center gap-1.5 min-w-0">
@@ -84,7 +85,7 @@ const FactorioVersionDropdown: React.FC<{
             </button>
 
             {open && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl border border-slate-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 p-1.5 shadow-xl backdrop-blur-md max-h-60 overflow-y-auto">
+                <div className={`absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl ${BORDER.dropdown} bg-white/95 dark:bg-zinc-900/95 p-1.5 shadow-xl backdrop-blur-md max-h-60 overflow-y-auto`}>
                     {FACTORIO_VERSIONS.map((item) => {
                         const isSelected = value === item.value;
                         return (
@@ -234,10 +235,10 @@ export const SearchTab: React.FC<SearchTabProps> = ({
     })();
 
     return (
-        <div className="relative h-full min-h-0 flex flex-col gap-4 px-4 pt-3 pb-2 bg-slate-100 dark:bg-zinc-950">
+        <div className={`relative h-full min-h-0 flex flex-col gap-4 px-4 pt-3 pb-2 ${LAYER.appCanvas}`}>
             {/* Top Search Bar & Category Filter Pills */}
             <div className="flex flex-col gap-4 shrink-0">
-                <div className="flex h-10 bg-white dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-800 rounded-xl pl-3.5 pr-1.5 py-1.5 items-center gap-2 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all shadow-xs">
+                <div className={`flex h-10 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl pl-3.5 pr-1.5 py-1.5 items-center gap-2 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all shadow-xs`}>
                     <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
                     <input
                         type="text"
@@ -279,7 +280,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         type="button"
                         onClick={() => setReloadTrigger(prev => prev + 1)}
                         disabled={loading}
-                        className="h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700/80 shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                        className="h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 border border-slate-200/80 dark:border-zinc-700/60 shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                         title="Reload mod results"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-500' : ''}`} />
@@ -349,7 +350,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
             </div>
 
             <div className="relative flex flex-col flex-1 min-h-0">
-                <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/90 dark:border-zinc-800/90 bg-white/40 dark:bg-zinc-900/30">
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     <div className="relative flex-1 min-h-0">
                         <div ref={resultsScrollRef} className="h-full overflow-y-auto p-4">
                             {results.length === 0 && !loading ? (
@@ -379,7 +380,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                         return (
                                             <div
                                                 key={item.name}
-                                                className="relative self-start bg-white dark:bg-zinc-900/90 border border-slate-200/90 dark:border-zinc-800/90 rounded-2xl p-4 shadow-xs hover:z-10 hover:border-slate-300 dark:hover:border-zinc-700/80 hover:shadow-md transition-all duration-200 flex flex-col gap-3"
+                                                className={`relative self-start ${LAYER.groupPanel} ${BORDER.card} rounded-2xl p-4 shadow-xs hover:z-10 ${HOVER_BORDER.cardSoft} hover:shadow-md transition-all duration-200 flex flex-col gap-3`}
                                             >
                                                 <div className="flex min-h-12 items-center gap-3">
                                                     {item.thumbnail && !imgErrors[item.name] ? (
@@ -410,7 +411,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                                             </span>
                                                         </div>
 
-                                                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-zinc-400 mt-1 flex-wrap">
+                                                        <div className={`flex items-center gap-2 text-xs ${TEXT.secondary} mt-1 flex-wrap`}>
                                                             <span>by <strong className="text-slate-700 dark:text-zinc-300 font-semibold">{item.owner}</strong></span>
                                                             {item.downloads_count > 0 && (
                                                                 <>
@@ -431,12 +432,12 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                                     </div>
                                                 </div>
 
-                                                <div className="group relative min-h-12 flex items-center bg-slate-50/60 dark:bg-zinc-950/40 p-2 rounded-xl border border-slate-200/40 dark:border-zinc-800/40">
+                                                <div className={`group relative min-h-12 flex items-center ${LAYER.innerInset} p-2 rounded-xl ${BORDER.inner}`}>
                                                     <p className="text-xs text-slate-600 dark:text-zinc-400 line-clamp-2-custom m-0 p-0">
                                                         {item.summary || 'No summary available.'}
                                                     </p>
                                                     {item.summary && (
-                                                        <div className="pointer-events-none absolute z-20 left-0 right-0 top-full mt-2 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-[11px] leading-relaxed text-slate-700 dark:text-zinc-300 shadow-lg opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150">
+                                                        <div className={`pointer-events-none absolute z-20 left-0 right-0 top-full mt-2 rounded-lg ${BORDER.toolbar} ${LAYER.contentCard} px-3 py-2 text-[11px] leading-relaxed text-slate-700 dark:text-zinc-300 shadow-lg opacity-0 -translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150`}>
                                                             {item.summary}
                                                         </div>
                                                     )}
@@ -503,7 +504,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
 
                         {loading && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/15 dark:bg-black/25 pointer-events-auto cursor-wait">
-                                <div className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 px-3 py-2 shadow-lg text-[11px] font-semibold text-slate-700 dark:text-zinc-200">
+                                <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 dark:border-zinc-700/70 bg-white/95 dark:bg-zinc-800/95 px-3 py-2 shadow-lg text-[11px] font-semibold text-slate-700 dark:text-zinc-200">
                                     <span className="loading-bars" aria-hidden="true"><i /><i /><i /></span>
                                     Loading mods…
                                 </div>
@@ -512,7 +513,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                     </div>
 
                     {totalPages > 1 && (
-                        <div className="shrink-0 border-t border-slate-200/90 dark:border-zinc-800/90 bg-white/90 dark:bg-zinc-900/90 px-4 py-2.5 flex items-center justify-between text-xs select-none">
+                        <div className={`shrink-0 border-t ${DIVIDER.outer} bg-white/90 dark:bg-zinc-800/95 px-4 py-2.5 flex items-center justify-between text-xs select-none`}>
                             <div className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
                                 Page <strong className="font-bold text-slate-700 dark:text-zinc-200">{page}</strong> of <strong className="font-bold text-slate-700 dark:text-zinc-200">{totalPages}</strong>
                             </div>
@@ -536,7 +537,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                         className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 cursor-pointer disabled:cursor-not-allowed ${
                                             page === item 
                                                 ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs scale-105' 
-                                                : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                                                : 'bg-white dark:bg-zinc-900/90 border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
                                         }`}
                                     >
                                         {item}

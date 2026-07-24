@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sun, Moon, Monitor, Minus, Square, X, Download, Heart, Folder } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppContext } from '../../context/AppContext';
+import { LAYER } from '../../theme/layers';
 
 interface TitleBarProps {
     onOpenFolderModal?: () => void;
@@ -149,7 +150,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 >
                     <Download className="w-4 h-4" />
                     {queue.length > 0 && (
-                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-zinc-950 shadow-sm ${isDownloading
+                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-zinc-900 shadow-sm ${isDownloading
                             ? 'bg-indigo-500 text-white animate-pulse'
                             : 'bg-emerald-500 text-white'
                             }`}>
@@ -186,7 +187,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 {/* 3-way Theme Pill Switcher */}
                 <div
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="flex bg-slate-200/50 dark:bg-zinc-900 p-0.5 rounded-lg border border-slate-200/80 dark:border-zinc-800/80 text-slate-500 dark:text-zinc-400"
+                    className="flex bg-slate-200/50 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-slate-200/80 dark:border-zinc-700/60 text-slate-500 dark:text-zinc-400"
                 >
                     <button
                         onClick={() => setThemeMode('light')}
@@ -197,14 +198,14 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                     </button>
                     <button
                         onClick={() => setThemeMode('dark')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'dark' ? 'bg-white dark:bg-zinc-800 text-indigo-400 shadow-sm' : 'bg-transparent hover:bg-slate-300/40 dark:hover:bg-zinc-800/60 hover:text-slate-800 dark:hover:text-zinc-200'}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'dark' ? 'bg-white dark:bg-zinc-900 text-indigo-400 shadow-sm' : 'bg-transparent hover:bg-slate-300/40 dark:hover:bg-zinc-800/60 hover:text-slate-800 dark:hover:text-zinc-200'}`}
                         title="Dark Mode"
                     >
                         <Moon className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={() => setThemeMode('system')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'system' ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'bg-transparent hover:bg-slate-300/40 dark:hover:bg-zinc-800/60 hover:text-slate-800 dark:hover:text-zinc-200'}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'system' ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 shadow-sm` : 'bg-transparent hover:bg-slate-300/40 dark:hover:bg-zinc-800/60 hover:text-slate-800 dark:hover:text-zinc-200'}`}
                         title="System Default"
                     >
                         <Monitor className="w-3.5 h-3.5" />
