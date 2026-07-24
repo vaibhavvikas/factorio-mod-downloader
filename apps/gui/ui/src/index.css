@@ -67,7 +67,7 @@ body {
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -80,7 +80,7 @@ body {
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(148, 163, 184, 0.55);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -92,7 +92,7 @@ body {
 }
 
 .dark * {
-  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
 }
 
 /* Custom 2-line WebKit line clamp class */

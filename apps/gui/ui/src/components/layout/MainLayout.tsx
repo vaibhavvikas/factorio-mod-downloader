@@ -8,6 +8,7 @@ import { useAppContext } from '../../context/AppContext';
 import { Mail, Sparkles, Heart, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
+import { LAYER, BORDER } from '../../theme/layers';
 
 export function isVersionNewer(onlineVersion: string, currentVersion: string): boolean {
     const clean = (v: string) => v.replace(/^v/i, '').trim();
@@ -69,7 +70,7 @@ export const MainLayout: React.FC = () => {
     }, []);
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden select-none bg-slate-100 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 rounded-xl border border-slate-200/80 dark:border-zinc-800/80 shadow-2xl relative">
+        <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 rounded-xl ${BORDER.outer} shadow-2xl relative`}>
             <TitleBar
                 onOpenFolderModal={() => setFolderModalOpen(true)}
                 configuredModsFolder={configuredModsFolder}
@@ -104,7 +105,7 @@ export const MainLayout: React.FC = () => {
             {profileOpen && (
                 <div
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="absolute top-11 right-12 z-40 w-80 p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md shadow-2xl flex flex-col gap-4 animate-fade-in text-xs max-h-[85vh] overflow-y-auto"
+                    className={`absolute top-11 right-12 z-40 w-80 p-5 rounded-2xl ${BORDER.outer} ${LAYER.floatingPanel} backdrop-blur-md shadow-2xl flex flex-col gap-4 animate-fade-in text-xs max-h-[85vh] overflow-y-auto`}
                 >
                     {/* Avatar & Header */}
                     <div className="flex items-center gap-3">
