@@ -58,7 +58,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
 
     const currentRelease = availableReleases.find(r => r.version === selectedVersion);
     const displayLabel = currentRelease && currentRelease.factorio_version
-        ? `${formatVer(currentRelease.version)} (Factorio ${currentRelease.factorio_version})` 
+        ? `${formatVer(currentRelease.version)} (Factorio ${currentRelease.factorio_version})`
         : formatVer(selectedVersion);
 
     const handleToggle = () => {
@@ -66,7 +66,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
             const rect = buttonRef.current.getBoundingClientRect();
             const dropdownHeight = 280; // max-h-[280px]
             const spaceBelow = window.innerHeight - rect.bottom;
-            
+
             if (spaceBelow < dropdownHeight + 12 && rect.top > dropdownHeight) {
                 // Not enough space below — flip upward
                 setDropdownPos({ top: rect.top - dropdownHeight - 6, left: rect.left });
@@ -96,7 +96,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
             {isOpen && createPortal(
                 <>
                     <div className="fixed inset-0 z-[100] bg-transparent" onClick={() => setIsOpen(false)} />
-                    <div 
+                    <div
                         className={`fixed z-[101] w-64 ${LAYER.contentCard} ${BORDER.toolbar} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
                         style={{ top: dropdownPos.top, left: dropdownPos.left }}
                     >
@@ -111,11 +111,10 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                                                 onSelectVersion(rel.version);
                                                 setIsOpen(false);
                                             }}
-                                            className={`px-3 py-2 flex items-center justify-between cursor-pointer transition-colors ${
-                                                isSelected 
-                                                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold' 
-                                                    : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700/80'
-                                            }`}
+                                            className={`px-3 py-2 flex items-center justify-between cursor-pointer transition-colors ${isSelected
+                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                                                : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700/80'
+                                                }`}
                                         >
                                             <span>{formatVer(rel.version)}</span>
                                             {rel.factorio_version && (
@@ -174,7 +173,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     const hasDependencies = mod.dependencies.length > 0;
 
     // Format updated date (e.g., "Jun 25, 2026")
-    const formattedUpdateDate = mod.updatedAt 
+    const formattedUpdateDate = mod.updatedAt
         ? new Date(mod.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
         : null;
 
@@ -190,8 +189,8 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                     <div className="flex items-start gap-3 overflow-hidden">
                         {/* Mod Thumbnail image with initial letter fallback */}
                         {mod.thumbnail && !imgError ? (
-                            <img 
-                                src={mod.thumbnail} 
+                            <img
+                                src={mod.thumbnail}
                                 alt={mod.title}
                                 className={`w-10 h-10 rounded-xl object-cover ${BORDER.card} shadow-sm shrink-0 mt-0.5`}
                                 onError={() => setImgError(true)}
@@ -231,9 +230,9 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                     </>
                                 )}
                                 <span>•</span>
-                                <a 
-                                    href={`https://mods.factorio.com/mod/${mod.name}`} 
-                                    target="_blank" 
+                                <a
+                                    href={`https://mods.factorio.com/mod/${mod.name}`}
+                                    target="_blank"
                                     rel="noreferrer"
                                     className="text-indigo-500 hover:text-indigo-400 flex items-center gap-1 hover:underline cursor-pointer font-medium"
                                 >
@@ -245,7 +244,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                     </div>
 
                     {/* Remove button — top right */}
-                    <button 
+                    <button
                         onClick={() => onRemove(mod.id)}
                         className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
                         title="Remove target mod"
@@ -265,7 +264,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 flex-wrap">
                         {/* Version Dropdown */}
-                        <CustomVersionDropdown 
+                        <CustomVersionDropdown
                             selectedVersion={mod.selectedVersion}
                             availableReleases={mod.availableReleases}
                             onSelectVersion={(v) => onSelectVersion(mod.id, v)}
@@ -284,7 +283,9 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                         )}
 
                         {/* Separator */}
-                        <span className="text-slate-200 dark:text-zinc-700 select-none">|</span>
+                        {hasDependencies && (
+                            <span className="text-slate-200 dark:text-zinc-700 select-none">|</span>
+                        )}
 
                         {/* Dep count badges — always visible with desaturated dark mode colors */}
                         {requiredCount > 0 && (
@@ -308,11 +309,10 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                     <button
                         onClick={toggleExpanded}
                         disabled={!hasDependencies}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors select-none ${
-                            hasDependencies
-                                ? `${TEXT.secondary} hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer`
-                                : 'text-slate-300 dark:text-zinc-600 cursor-not-allowed opacity-50'
-                        }`}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors select-none ${hasDependencies
+                            ? `${TEXT.secondary} hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer`
+                            : 'text-slate-300 dark:text-zinc-600 cursor-not-allowed opacity-50'
+                            }`}
                         title={hasDependencies ? "Toggle Dependencies List" : "No dependencies for this version"}
                     >
                         <span>{expanded ? 'Hide' : 'Show'}</span>
@@ -322,13 +322,13 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
             </div>
 
             {/* Section-wise Dependency List Section — smooth animated expand/collapse */}
-            <div 
+            <div
                 className="grid transition-[grid-template-rows] duration-300 ease-in-out"
                 style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
             >
                 <div className="overflow-hidden">
                     <div className={`px-4 pb-4 pt-2 ${LAYER.innerRecessed} border-t ${DIVIDER.inner} flex flex-col gap-3`}>
-                        <DependencyTree 
+                        <DependencyTree
                             nodes={mod.dependencies}
                             selectedDepIds={mod.selectedDepIds}
                             onToggleDep={(depId) => onToggleDep(mod.id, depId)}
