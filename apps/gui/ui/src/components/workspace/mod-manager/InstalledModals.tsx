@@ -155,7 +155,7 @@ export const DeleteModModal: React.FC<DeleteModModalProps> = ({ data, onClose, o
                     </div>
                 </div>
 
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-3 bg-slate-50 dark:bg-zinc-950/60 max-h-[48vh] md:max-h-[58vh] overflow-y-auto flex flex-col gap-3">
+                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl bg-slate-50 dark:bg-zinc-950/60 max-h-[48vh] md:max-h-[58vh] scroller-panel modal flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider px-1">Mod to Remove</span>
                         <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-2xs">
@@ -281,7 +281,7 @@ export const DependencyUpgradeConflictModal: React.FC<DependencyUpgradeConflictM
                     </div>
                 </div>
 
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl p-3 bg-slate-50 dark:bg-zinc-950/60 max-h-[40vh] md:max-h-[50vh] overflow-y-auto flex flex-col gap-2">
+                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl bg-slate-50 dark:bg-zinc-950/60 max-h-[40vh] md:max-h-[50vh] scroller-panel modal flex flex-col gap-2">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Required Mod Upgrades</span>
                     {data.autoUpgradedDeps.map(dep => (
                         <div key={dep.name} className="flex justify-between items-center text-xs">
