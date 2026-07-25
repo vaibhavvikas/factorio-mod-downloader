@@ -7,10 +7,15 @@
 html,
 body {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: transparent !important;
+  background-color: #f1f5f9;
   overscroll-behavior: none !important;
   overscroll-behavior-x: none !important;
   overflow-x: hidden !important;
+}
+
+html.dark,
+html.dark body {
+  background-color: #18181b;
 }
 
 #root {
@@ -23,76 +28,253 @@ body {
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
-  border-radius: 12px;
 }
 
 /* 1b. Smooth app entrance – prevents layout shift flash */
-@keyframes app-fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
 .app-ready {
-  opacity: 0;
-  animation: app-fade-in 0.25s ease-out 0.05s forwards;
+  opacity: 1;
 }
 
-/* 2. Target your scrollable workspace/sidebar containers to stop internal rubber-banding */
+/* 2. Target your scrollable workspace/sidebar containers to stop internal rubber-banding.
+      This stops the native rubber-band/overscroll on scroll containers; it does NOT
+      reserve any scroll gutter. */
 .overflow-y-auto,
 .overflow-auto {
   overscroll-behavior-y: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 2b. Unified scroll system — SPEC-BASED ZERO-SHIFT (Win + Mac, 2025)        */
+/*                                                                             */
+/*   Why NOT `overflow: overlay` in 2025+:                                     */
+/*   • Chrome/WebView2 114+ DEPRECATED overlay → aliased to `auto`, so the    */
+/*     scrollbar still steals 8px of content width.                            */
+/*   • Safari still supports overlay but also fully supports the SPEC path.    */
+/*   • Firefox never supported overlay at all.                                 */
+/*   Result: overlay is dead as a cross-platform strategy in 2025.             */
+/*                                                                             */
+/*   THE ONLY bulletproof strategy (CSS Overflow Level 4 standard):            */
+/*   1. scrollbar-gutter: stable — browser ALWAYS reserves 8px RIGHT slot     */
+/*      for the scrollbar, whether it's visible or not. No 8px shift, EVER.   */
+/*   2. Every padding variant sets padding-left = content + 8px offset so      */
+/*      visual L = visual R (both 24px for `.card`, etc.). The gutter on the  */
+/*      right is 8px reserved, so adding 8px on the left perfectly balances.  */
+/*   3. Thumb itself stays hidden-by-default with fade-in on hover (180ms),    */
+/*      exactly matching Windows 11 + native macOS overlay scroll feel.       */
+/*   4. GLOBAL rule: also apply scrollbar-gutter: stable to all Tailwind      */
+/*      overflow utilities so ad-hoc `overflow-y-auto` divs don't shift either.*/
+/*                                                                             */
+/*   Net result for ALL scrollable content:                                    */
+/*   • Zero horizontal layout shift. Full stop.                                */
+/*   • Perfectly symmetric visible padding at all times.                       */
+/*   • Consistent behavior across Tauri Windows (WebView2) + macOS (WKWebView) */
+/* -------------------------------------------------------------------------- */
+
+/* --- GLOBAL CATCH-ALL: SPEC-based zero-shift for every scrollable element
+   Applies to both our semantic classes (.scroller-panel, .scroller-dropdown)
+   AND ad-hoc Tailwind utility classes (overflow-y-auto, overflow-auto).
+   No raw scrollable element ever slips through without a stable gutter. */
+
+.scroller-panel,
+.scroller-dropdown,
+.overflow-y-auto,
+.overflow-auto {
   scrollbar-gutter: stable;
 }
 
-/* Custom CSS-based scrollbars for OS consistency */
+/* --- Panel scroller base (all persistent content panels) ------------------ */
+.scroller-panel {
+  overflow-y: auto;
+  overscroll-behavior-y: none;
+}
+
+/* --- Padding variants — FULL PICTURE-FRAME SYMMETRY ------------------------
+   padding shorthand: TOP / RIGHT / BOTTOM / LEFT.
+
+   Math for ALL FOUR SIDES VISUALLY EQUAL (picture frame):
+   • Right-side visible gap = padding-right + 8px stable gutter
+   • Left-side  visible gap = padding-left  (no gutter on left)
+   • Top/bottom visible gap = padding-top / padding-bottom  (no gutter on T/B)
+
+   Therefore for perfect 4-way visual symmetry:
+      padding-left  = padding-right + 8   ← L offsets the gutter on R
+      padding-top   = padding-left        ← T matches L
+      padding-bottom = padding-left       ← B matches L
+
+   Result: every edge of content sits exactly X px from every edge of the
+   viewport chrome. No top-compression, no phantom asymmetry.
+
+   Tightened 8px-rhythm values (2025 streamline): 4px scale matches grid-gap
+   sizes used in the app so space-between-cards == card-edge-to-viewport-edge
+
+   | Variant    | R pad | +8 gut | Vis R | L pad | Vis L | T pad = Vis T | B pad = Vis B | 4-Way Sym |
+   |------------|-------|--------|-------|-------|-------|---------------|---------------|-----------|
+   | .card      | 12px  | 8px    | 20px  | 20px  | 20px  | 20px          | 20px          | ✓ 20×20   |
+   | .terminal  | 12px  | 8px    | 20px  | 20px  | 20px  | 10px (dense)  | 10px (dense)  | ✓ Console |
+   | .modal     | 12px  | 8px    | 20px  | 20px  | 20px  | 20px          | 20px          | ✓ 20×20   |
+   | .tree      | 16px  | 8px    | 24px  | 24px  | 24px  | 24px          | 24px          | ✓ 24×24   |
+   | .profile   | 20px  | 8px    | 28px  | 28px  | 28px  | 28px          | 28px          | ✓ 28×28   |
+*/
+
+/* .card — L=R=T=B=20px visible frame. Used by: Explore grid, Installed list,
+   Resolver queue cards. R=12 matches grid gap-3 for edge-gap = internal-gap. */
+.scroller-panel.card {
+  padding: 1.25rem 0.75rem 1.25rem 1.25rem;   /* T=20, R=12, B=20, L=20 */
+}
+/* .card-no-pt — header-wrapped variant: header bar occupies the top frame so
+   T=0. Bottom still matches L/vis-R = 20px for 3-way symmetry. */
+.scroller-panel.card-no-pt {
+  padding: 0 0.75rem 1.25rem 1.25rem;         /* T=0,  R=12, B=20, L=20 */
+}
+
+/* .terminal — intentionally dense vertical padding for scrolling console logs.
+   Monospace terminal output stacks 1px-leading lines; we keep 10px T/B so the
+   first log line sits flush near the console header, not 20px of dead air.
+   Horizontal symmetry still honored (Vis L = Vis R = 20px). */
+.scroller-panel.terminal {
+  padding: 0.625rem 0.75rem 0.625rem 1.25rem;  /* T=10, R=12, B=10, L=20 */
+}
+
+/* .modal — L=R=T=B=20px visible frame around InstalledModals body content */
+.scroller-panel.modal {
+  padding: 1.25rem 0.75rem 1.25rem 1.25rem;    /* T=20, R=12, B=20, L=20 */
+}
+
+/* .tree — L=R=T=B=24px visible frame around Resolver dep-graph tree view */
+.scroller-panel.tree {
+  padding: 1.5rem 1rem 1.5rem 1.5rem;          /* T=24, R=16, B=24, L=24 */
+}
+
+/* .profile — L=R=T=B=28px visible frame around Dev Profile floating popover */
+.scroller-panel.profile {
+  padding: 1.75rem 1.25rem 1.75rem 1.75rem;    /* T=28, R=20, B=28, L=28 */
+}
+
+/* --- Dropdown / transient-popover scroller --------------------------------
+   Same `scrollbar-gutter: stable` zero-shift rule as panel scrollers (see
+   lines 85-89), applied globally via the grouped selector.
+
+   FULL PICTURE-FRAME 4-WAY SYMMETRY RULE (identical formula to panels):
+     • Visible R gap = padding-right + 8px gutter (fixed reserved slot on R)
+     • padding-left  = padding-right + 8   ← offsets the R gutter → L = visible R
+     • padding-top   = padding-left        ← matches the thick left frame
+     • padding-bottom = padding-left       ← matches the thick left frame
+   Result: from the dropdown option's perspective, every edge of content sits
+   exactly X px from the dropdown's chrome border — no more top-compression.
+
+   Variants:
+   • .dense  — inline-portals inside overflow-hidden popovers (accordion
+               version picker, Installed version picker). Outer chrome already
+               has rounded corners so we use the smallest symmetric frame.
+               Padding: T=12 R=4 B=12 L=12  →  all 4 visible gaps = 12px
+   • .loose  — standalone dropdowns with their own rounded-xl chrome (the
+               Explore Factorio version picker). Needs more air so the pill
+               options don't rub against the dropdown's own rounded corners.
+               Padding: T=14 R=6 B=14 L=14  →  all 4 visible gaps = 14px
+*/
+.scroller-dropdown {
+  overflow-y: auto;
+  overscroll-behavior-y: none;
+}
+.scroller-dropdown.dense {
+  padding: 0.75rem 0.25rem 0.75rem 0.75rem;    /* T=12, R=4,  B=12, L=12 */
+}
+.scroller-dropdown.loose {
+  padding: 0.875rem 0.375rem 0.875rem 0.875rem; /* T=14, R=6,  B=14, L=14 */
+}
+
+/* --- Global scroll bar geometry -------------------------------------------- */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
+/* Thumb visual: 6px visible pill inside the 8px track. NO global transition
+   (Chromium quirk — global transition on thumb forces a compositor layer that
+   breaks the hover-fade). Transition is applied ONLY inside the hover rules. */
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.2);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
+  background: transparent;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+/* --- CONTAINER HOVER → thumb fades IN to visible muted state ---------------
+   Covers ALL scrollable elements: our semantic classes (.scroller-panel,
+   .scroller-dropdown) AND ad-hoc Tailwind utilities (.overflow-y-auto,
+   .overflow-auto). No container slips through without the fade effect. */
+
+/* Light mode — panel / dropdown / utility container hover */
+.scroller-panel:hover::-webkit-scrollbar-thumb,
+.scroller-dropdown:hover::-webkit-scrollbar-thumb,
+.overflow-y-auto:hover::-webkit-scrollbar-thumb,
+.overflow-auto:hover::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.22);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
+  transition: background-color 180ms ease-out;
 }
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.45);
+/* Dark mode — panel / dropdown / utility container hover */
+.dark .scroller-panel:hover::-webkit-scrollbar-thumb,
+.dark .scroller-dropdown:hover::-webkit-scrollbar-thumb,
+.dark .overflow-y-auto:hover::-webkit-scrollbar-thumb,
+.dark .overflow-auto:hover::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.30);
+  border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
+  transition: background-color 180ms ease-out;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.55);
+/* --- THUMB HOVER (pointer directly on thumb) → darker, draggable ---------- */
+
+/* Light mode — thumb hover */
+.scroller-panel::-webkit-scrollbar-thumb:hover,
+.scroller-dropdown::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.50);
+  border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
+  transition: background-color 180ms ease-out;
+}
+/* Dark mode — thumb hover */
+.dark .scroller-panel::-webkit-scrollbar-thumb:hover,
+.dark .scroller-dropdown::-webkit-scrollbar-thumb:hover,
+.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover,
+.dark .overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.62);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 180ms ease-out;
 }
 
-/* Firefox scrollbars */
+/* --- Firefox (scrollbar-color + width) parity — COVERS ALL scrollables -----
+   Same grouped selectors as the WebKit rules so no element is missed. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.2) transparent;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 180ms ease-out;
 }
-
-.dark * {
-  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+/* Light — container hover fade in */
+.scroller-panel:hover,
+.scroller-dropdown:hover,
+.overflow-y-auto:hover,
+.overflow-auto:hover {
+  scrollbar-color: rgba(100, 116, 139, 0.22) transparent;
+}
+/* Dark — container hover fade in */
+.dark .scroller-panel:hover,
+.dark .scroller-dropdown:hover,
+.dark .overflow-y-auto:hover,
+.dark .overflow-auto:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.30) transparent;
 }
 
 /* Custom 2-line WebKit line clamp class */
@@ -106,6 +288,25 @@ body {
   max-height: 2.8em !important;
   overflow: hidden !important;
   word-break: break-word !important;
+}
+
+/* Softer compact ping halo for inline card status indicators.
+   Tailwind's default animate-ping scales to 2x which is too aggressive for
+   8–10px inline dots in card headers; it either clips, or when unclipped,
+   looks like a full-screen alert. 1.5x + slightly longer duration = subtle
+   pulsing halo that matches the tool-style restrained aesthetic. */
+@keyframes ping-soft {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  75%, to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+.animate-ping-soft {
+  animation: ping-soft 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 /* Shared compact label treatment for mod cards. Controls such as dropdowns
@@ -203,4 +404,62 @@ body {
 
 .dark .sidebar-root {
   background: rgba(0, 0, 0, 0.9);
+}
+
+/* 5. Theme Transition: Full-page crossfade overlay (Linear / Figma pattern)
+   —————————————————————————————————————————————————————————————————————————
+   Why this instead of per-property CSS transitions?
+   Three bugs make per-property transition impossible for React + Tailwind dark:
+     1. Chromium/WKWebView CANNOT interpolate alpha-channel rgba() border
+        colors across different hue values (10-year-old engine bug). Result:
+        borders "hold white then snap at end" even when transition:border-color
+        is declared correctly + longhand.
+     2. Tailwind v4 dark variant is HTML-ancestry-cascaded: toggling html.dark
+        invalidates every dark: utility in the app. React commits each
+        component's className re-evaluation over 1-4 frames, so the CSS engine
+        sees half-painted partial dark: classes during transition → discrete
+        fallback on every element that hasn't re-committed yet.
+     3. Rounded corners (rounded-2xl/xl) on cards produce an anti-alias halo
+        on the outer curve when transitioning border color — users mistake
+        this 1px white ring for a "border flash".
+
+   Fix pattern (standard for all modern React SPA theme switchers):
+     1. JS captures current app-canvas background color BEFORE swap, sets as
+        CSS var on <html>.
+     2. JS sets [data-theme-transitioning] → CSS paints a full-screen ::before
+        overlay with that captured background, at opacity 1.
+     3. JS INSTANTLY (no delay) toggles .dark class + React state. Under the
+        opaque overlay, user sees nothing. React takes 1-4 frames to repaint
+        all components — who cares, it's invisible.
+     4. CSS keyframes `theme-crossfade` run immediately on the overlay element:
+        opacity 1 → opacity 0, 320ms ease-out. Reveals the new theme (already
+        fully painted underneath) with a pure, perfect crossfade.
+     5. JS clears the flag after 420ms (320ms fade + 100ms safety). Overlay
+        detaches from DOM tree. Done.
+
+   Zero per-property interpolation required. No border flash. No rounded-corner
+   anti-alias halo. No React commit-order partial-paint artifacts.
+   This exact approach is used by Linear, Vercel.com, Figma, Raycast, Notion. */
+
+@keyframes theme-crossfade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+html[data-theme-transitioning]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647; /* max int32 — above everything including dev UI popovers */
+  pointer-events: none;
+  /* Background = whatever color JS captured as the PRE-switch canvas
+     (written inline to html as --theme-transition-bg via getComputedStyle) */
+  background-color: var(--theme-transition-bg, transparent);
+  /* Immediate forward-play once-on-fire animation. `forwards` ensures when it
+     ends at opacity 0 it stays at 0 (doesn't pop back to 1 mid-clear). */
+  animation: theme-crossfade 320ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important;
+  /* Force dedicated GPU texture layer for the fade itself — no jank on low-end
+     Windows integrated GPUs (most common Tauri platform). */
+  will-change: opacity;
+  isolation: isolate;
 }

@@ -75,8 +75,31 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
-    const [isDark, setIsDark] = useState(true);
+    // —— THEME: Bootstrap from paint-before-react (head script, index.html) ——
+    // Head script ran synchronously BEFORE React hydrates and set these attrs:
+    //   data-pref-theme = 'light' | 'dark' | 'system'
+    //   .dark class (if currently dark)
+    //   data-is-dark = '1' (if currently dark)
+    // We use those as initial state so React's VERY FIRST PAINT already matches
+    // real theme → no 1-frame light flash.
+
+    const getBootThemeMode = (): ThemeMode => {
+        if (typeof document === 'undefined') return 'system';
+        const attr = document.documentElement.getAttribute('data-pref-theme');
+        if (attr === 'light' || attr === 'dark' || attr === 'system') return attr;
+        return 'system';
+    };
+    const getBootIsDark = (): boolean => {
+        if (typeof document === 'undefined') return true;
+        if (document.documentElement.getAttribute('data-is-dark') === '1') return true;
+        if (document.documentElement.classList.contains('dark')) return true;
+        return typeof window !== 'undefined' &&
+            window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+    };
+
+    const [themeMode, setThemeModeState] = useState<ThemeMode>(getBootThemeMode);
+    const [isDark, setIsDark] = useState<boolean>(getBootIsDark);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [queue, setQueue] = useState<DownloadTask[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -94,14 +117,65 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             .then(mode => {
                 if (mode === 'light' || mode === 'dark' || mode === 'system') {
                     setThemeModeState(mode);
+                    try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) {}
+                    // Also re-sync data attrs so head script + React stay in agreement
+                    document.documentElement.setAttribute('data-pref-theme', mode);
                 }
             })
             .catch(() => {});
     }, []);
 
     const setThemeMode = (mode: ThemeMode) => {
+        if (mode === themeMode) return;
+
+        const root = document.documentElement;
+        const TRANSITION_MS = 420;
+
+        // Mirror to localStorage for the paint-before-react head script on next boot.
+        // (Rust-side persistence below is still the source of truth cross-session;
+        //  localStorage is merely intra-process pre-paint cache.)
+        try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) {}
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const targetIsDark = mode === 'system' ? mediaQuery.matches : mode === 'dark';
+        const currentlyDark = root.classList.contains('dark');
+
+        // Instantly update theme preference state & attributes
         setThemeModeState(mode);
+        root.setAttribute('data-pref-theme', mode);
+
+        // Persist to backend (cross-session source of truth)
         invoke('save_theme_mode', { themeMode: mode }).catch(() => {});
+
+        // If visual dark mode target is identical to current visual state
+        // (e.g. switching between Dark and System when System is Dark),
+        // skip triggering the overlay transition.
+        if (targetIsDark === currentlyDark) {
+            return;
+        }
+
+        let existingTimer = (root as any).__themeTransitionTimer as number | undefined;
+        if (existingTimer !== undefined) {
+            window.clearTimeout(existingTimer);
+        }
+
+        // 1. Capture app canvas bg as --theme-transition-bg
+        const canvasEl = document.querySelector('#root > div') || document.body;
+        let bg = window.getComputedStyle(canvasEl).backgroundColor;
+        if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') {
+            bg = currentlyDark ? 'rgb(24, 24, 27)' : 'rgb(241, 245, 249)';
+        }
+        root.style.setProperty('--theme-transition-bg', bg);
+
+        // 2. Set transitioning flag (CSS pseudo overlay captures bg, opacity 1->0)
+        root.setAttribute('data-theme-transitioning', '');
+
+        // 3. Cleanup after 420 ms
+        (root as any).__themeTransitionTimer = window.setTimeout(() => {
+            root.removeAttribute('data-theme-transitioning');
+            root.style.removeProperty('--theme-transition-bg');
+            delete (root as any).__themeTransitionTimer;
+        }, TRANSITION_MS);
     };
 
     // Load persisted Factorio target version on boot
@@ -206,19 +280,58 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         const applyTheme = () => {
             const activeDark = themeMode === 'system' ? mediaQuery.matches : themeMode === 'dark';
+            const currentlyDark = document.documentElement.classList.contains('dark');
+
+            // Skip redundant identical toggle — prevents a phantom 1-frame
+            // recomposite when head script already set the correct class.
+            if (activeDark === currentlyDark) {
+                setIsDark(activeDark);
+                if (activeDark) document.documentElement.setAttribute('data-is-dark', '1');
+                else document.documentElement.removeAttribute('data-is-dark');
+                return;
+            }
+
             setIsDark(activeDark);
             if (activeDark) {
                 document.documentElement.classList.add('dark');
+                document.documentElement.setAttribute('data-is-dark', '1');
             } else {
                 document.documentElement.classList.remove('dark');
+                document.documentElement.removeAttribute('data-is-dark');
             }
         };
 
         applyTheme();
 
         if (themeMode === 'system') {
-            mediaQuery.addEventListener('change', applyTheme);
-            return () => mediaQuery.removeEventListener('change', applyTheme);
+            const onSysChange = () => {
+                const root = document.documentElement;
+                const TRANSITION_MS = 420;
+
+                let existingTimer = (root as any).__themeTransitionTimer as number | undefined;
+                if (existingTimer !== undefined) {
+                    window.clearTimeout(existingTimer);
+                }
+
+                const canvasEl = document.querySelector('#root > div') || document.body;
+                let bg = window.getComputedStyle(canvasEl).backgroundColor;
+                if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)') {
+                    const currentlyDark = root.classList.contains('dark');
+                    bg = currentlyDark ? 'rgb(24, 24, 27)' : 'rgb(241, 245, 249)';
+                }
+                root.style.setProperty('--theme-transition-bg', bg);
+                root.setAttribute('data-theme-transitioning', '');
+
+                applyTheme();
+
+                (root as any).__themeTransitionTimer = window.setTimeout(() => {
+                    root.removeAttribute('data-theme-transitioning');
+                    root.style.removeProperty('--theme-transition-bg');
+                    delete (root as any).__themeTransitionTimer;
+                }, TRANSITION_MS);
+            };
+            mediaQuery.addEventListener('change', onSysChange);
+            return () => mediaQuery.removeEventListener('change', onSysChange);
         }
     }, [themeMode]);
 

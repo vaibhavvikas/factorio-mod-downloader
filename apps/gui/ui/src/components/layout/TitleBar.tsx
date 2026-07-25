@@ -7,22 +7,59 @@ import { LAYER } from '../../theme/layers';
 interface TitleBarProps {
     onOpenFolderModal?: () => void;
     configuredModsFolder?: string | null;
+    hasAppUpdate?: boolean;
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({
     onOpenFolderModal,
     configuredModsFolder,
+    hasAppUpdate = false,
 }) => {
     const { themeMode, setThemeMode, sidebarOpen, toggleSidebar, queue, profileOpen, setProfileOpen, isDownloading } = useAppContext();
     const appWindow = getCurrentWindow();
     const [isMac, setIsMac] = useState(false);
+    const [isMaximized, setIsMaximized] = useState(false);
 
     useEffect(() => {
         setIsMac(navigator.userAgent.includes('Mac'));
     }, []);
 
+    useEffect(() => {
+        let unlisten: (() => void) | undefined;
+        const updateMaximizedState = async () => {
+            try {
+                const maxed = await appWindow.isMaximized();
+                setIsMaximized(maxed);
+            } catch (e) {
+                // Ignore error if window API not ready
+            }
+        };
+
+        updateMaximizedState();
+
+        const listen = async () => {
+            try {
+                unlisten = await appWindow.onResized(() => {
+                    updateMaximizedState();
+                });
+            } catch (e) {
+                // Ignore fallback
+            }
+        };
+
+        listen();
+
+        return () => {
+            if (unlisten) unlisten();
+        };
+    }, [appWindow]);
+
     const handleMinimize = () => appWindow.minimize();
-    const handleMaximize = () => appWindow.toggleMaximize();
+    const handleMaximize = async () => {
+        await appWindow.toggleMaximize();
+        const maxed = await appWindow.isMaximized();
+        setIsMaximized(maxed);
+    };
     const handleClose = () => appWindow.close();
 
     const [hoverControls, setHoverControls] = useState(false);
@@ -76,21 +113,38 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 className="hover:text-slate-850 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800/60 w-11 h-10 flex items-center justify-center cursor-pointer transition-colors"
                 title="Minimize"
             >
-                <Minus className="w-3.5 h-3.5" />
+                {/* VS Code Chrome Minimize Icon */}
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
+                    <path d="M0 5h10v1H0z" />
+                </svg>
             </button>
             <button
                 onClick={handleMaximize}
                 className="hover:text-slate-850 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800/60 w-11 h-10 flex items-center justify-center cursor-pointer transition-colors"
-                title="Maximize"
+                title={isMaximized ? "Restore Down" : "Maximize"}
             >
-                <Square className="w-3 h-3" />
+                {isMaximized ? (
+                    /* VS Code Chrome Restore Icon */
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
+                        <path d="M3 1h6v6H8V2H3V1z" />
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1 3h6v6H1V3zm1 1v4h4V4H2z" />
+                    </svg>
+                ) : (
+                    /* VS Code Chrome Maximize Icon */
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
+                        <path fillRule="evenodd" clipRule="evenodd" d="M1 1h8v8H1V1zm1 1v6h6V2H2z" />
+                    </svg>
+                )}
             </button>
             <button
                 onClick={handleClose}
                 className="hover:bg-[#e81123] hover:text-white w-11 h-10 flex items-center justify-center transition-colors cursor-pointer"
                 title="Close"
             >
-                <X className="w-3.5 h-3.5" />
+                {/* VS Code Chrome Close Icon */}
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
+                    <path d="M1.02 0L0 1.02 3.98 5 0 8.98 1.02 10 5 6.02 8.98 10 10 8.98 6.02 5 10 1.02 8.98 0 5 3.98 1.02 0z" />
+                </svg>
             </button>
         </div>
     );
@@ -98,14 +152,12 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     return (
         <div
             data-tauri-drag-region
-            onMouseDown={() => appWindow.startDragging()}
-            onDoubleClick={handleMaximize}
             className={`relative h-10 bg-slate-50 dark:bg-zinc-950 border-b border-slate-200 dark:border-zinc-800/60 flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
         >
             {/* Left Side: OS controls on Mac, Brand logo on Windows */}
             {isMac ? renderMacControls() : (
                 <div className="flex items-center gap-2 text-xs font-bold tracking-wide pointer-events-none">
-                    <div className="w-3 h-3 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50" />
+                    <img src="/app.png" alt="Factorio Mod Downloader" className="w-4 h-4 object-contain rounded-xs" />
                     <span className="text-slate-900 dark:text-zinc-50">Factorio Mod Downloader</span>
                 </div>
             )}
@@ -177,11 +229,13 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 >
                     <Heart className={`w-3.5 h-3.5 transition-all ${profileOpen ? 'fill-rose-500 text-rose-600 dark:text-rose-450' : 'fill-transparent'}`} />
 
-                    {/* Pulsing Amber Update Dot Notification */}
-                    <span className="absolute top-0.5 right-0.5 flex h-1.5 w-1.5 pointer-events-none">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
-                    </span>
+                    {/* Pulsing Amber Update Dot Notification — only shown when app update is available */}
+                    {hasAppUpdate && (
+                        <span className="absolute top-0.5 right-0.5 flex h-1.5 w-1.5 pointer-events-none">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+                        </span>
+                    )}
                 </button>
 
                 {/* 3-way Theme Pill Switcher */}

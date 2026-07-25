@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2, RefreshCw, ExternalLink, ArrowRight, CheckSquare, Square } from 'lucide-react';
+import { Loader2, RefreshCw, ExternalLink, ArrowRight, CheckSquare, Square, Check } from 'lucide-react';
 import type { InstalledModItem, DownloadTask } from '../../../context/AppContext';
 import { Checkbox } from '../../ui/Checkbox';
 import { LAYER, BORDER, HOVER_BORDER, TEXT } from '../../../theme/layers';
@@ -87,7 +87,24 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                 return (
                                     <div
                                         key={mod.name}
-                                        onClick={() => onToggleSelect(mod.name)}
+                                        onClick={(event) => {
+                                            // Skip the outer-card toggle if this click came from
+                                            // an interactive child (button / link / dropdown / etc.)
+                                            // — flagged in the capture-phase handler below.
+                                            if ((event as any).__ignoreCardToggle) return;
+                                            onToggleSelect(mod.name);
+                                        }}
+                                        onClickCapture={(event) => {
+                                            // Mark the event rather than stopping propagation,
+                                            // so the actual target (dropdown trigger, menu item,
+                                            // link, checkbox) still receives its click handler.
+                                            const target = event.target as Element | null;
+                                            if (!target || !(target instanceof Element)) return;
+                                            const interactive = target.closest(
+                                                'button, a, input, select, textarea, label, option, [role="button"], [role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="option"], [role="listbox"], [role="combobox"], [role="dialog"], [role="menu"]'
+                                            );
+                                            if (interactive) (event as any).__ignoreCardToggle = true;
+                                        }}
                                         className={`h-full cursor-pointer ${LAYER.groupPanel} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardSoft} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
                                         <div className="h-full p-4 flex flex-col gap-3">
                                             <div className="flex items-start justify-between gap-3">
@@ -140,8 +157,12 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                             </div>
 
                                             <div className="mt-auto flex items-center gap-1.5 flex-wrap pl-7">
-                                                <span className="panel-pill panel-pill-mono bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-semibold text-[10px] select-none">
-                                                    Installed: v{mod.version}
+                                                <span className={`panel-pill panel-pill-mono h-6 min-h-6 max-h-6 px-3 shrink-0 inline-flex items-center gap-1.5 rounded-full font-semibold text-[10px] select-none cursor-default ${LAYER.innerInset} ${BORDER.inner} text-slate-600/90 dark:text-zinc-400`}>
+                                                    <span className="text-emerald-600/80 dark:text-emerald-500/80" aria-hidden="true">
+                                                        <Check className="w-3 h-3 shrink-0" strokeWidth={2.5} />
+                                                    </span>
+                                                    <span className="font-bold text-slate-500 dark:text-zinc-400/90 text-[10px]">Installed</span>
+                                                    <span className="font-mono font-semibold text-slate-600 dark:text-zinc-300">v{mod.version}</span>
                                                 </span>
                                                 <ArrowRight className="w-3 h-3 text-slate-400 shrink-0" aria-hidden="true" />
                                                 <InstalledVersionDropdown
@@ -150,7 +171,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                                     onSelect={ver => onSelectVersion(mod.name, ver)}
                                                     disabled={activeDownloading}
                                                     label="Ver:"
-                                                    valueClassName="font-extrabold text-emerald-600 dark:text-emerald-400"
+                                                    valueClassName="font-extrabold text-indigo-600 dark:text-indigo-400"
                                                     compact
                                                 />
                                             </div>
