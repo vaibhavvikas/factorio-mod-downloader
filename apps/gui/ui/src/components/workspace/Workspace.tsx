@@ -223,7 +223,7 @@ export const Workspace: React.FC = () => {
                             onAddModToQueue={handleAddModToQueue}
                         />
                     </div>
-                    <div className={activeTab === 'queue' ? 'h-full overflow-y-auto' : 'hidden'}>
+                    <div className={activeTab === 'queue' ? 'h-full overflow-hidden' : 'hidden'}>
                         <ResolverTab 
                             targetMods={targetMods}
                             setTargetMods={setTargetMods}
@@ -239,18 +239,18 @@ export const Workspace: React.FC = () => {
                 {/* System Console Logs Panel — Bottom Docked Persistent Window pushing content up */}
                 {consoleOpen && (
                     <div className={`h-[206px] shrink-0 w-full px-4 pb-3 pt-2 ${LAYER.appCanvas} transition-all duration-200`}>
-                        <div className={`h-full ${LAYER.heavyPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} shadow-xl flex flex-col overflow-hidden`}>
+                        <div className={`h-full ${LAYER.groupPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} shadow-xl flex flex-col overflow-hidden`}>
                             {/* Console Header */}
-                            <div className={`h-8.5 px-3.5 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/50 border-b ${DIVIDER.outer} shrink-0 select-none`}>
+                            <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
                                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                                     <Terminal className="w-3.5 h-3.5 text-indigo-500" />
                                     <span>System Console Logs</span>
-                                    <span className="bg-slate-200/70 dark:bg-zinc-800 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300">{logs.length}</span>
+                                    <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>{logs.length}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button 
                                         onClick={clearLogs}
-                                        className="text-slate-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded hover:bg-slate-200/60 dark:hover:bg-zinc-800/50 transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer"
+                                        className="text-slate-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer hover:bg-slate-200/60 dark:hover:bg-zinc-800/50"
                                         title="Clear logs"
                                     >
                                         <Trash2 className="w-3 h-3" />
@@ -258,7 +258,7 @@ export const Workspace: React.FC = () => {
                                     </button>
                                     <button 
                                         onClick={() => setConsoleOpen(false)}
-                                        className="text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded hover:bg-slate-200/60 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                                        className="text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded transition-colors cursor-pointer hover:bg-slate-200/60 dark:hover:bg-zinc-800/50"
                                         title="Close console logs"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -266,8 +266,10 @@ export const Workspace: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Console Output Terminal — Max 5 Log Lines at a time with Scrollbar */}
-                            <div className={`flex-1 overflow-y-auto p-2.5 px-3 font-mono text-[11px] leading-relaxed flex flex-col gap-1 select-text ${LAYER.chromeHeavy} text-slate-700 dark:text-zinc-200`}>
+                            {/* Console Output Terminal — standards-based zero-shift
+                                symmetric scroll layout (.terminal variant). Balances the 8px stable
+                                gutter on the right with 8px extra padding on the left. */}
+                            <div className={`scroller-panel terminal flex-1 font-mono text-[11px] leading-relaxed flex flex-col gap-1 select-text ${LAYER.innerRecessed} text-slate-700 dark:text-zinc-200`}>
                                 {logs.map(log => {
                                     const levelColor = {
                                         info: 'text-blue-600 dark:text-blue-400',
@@ -284,7 +286,7 @@ export const Workspace: React.FC = () => {
                                     }[log.level];
 
                                     return (
-                                        <div key={log.id} className="flex gap-2.5 items-start hover:bg-slate-200/50 dark:hover:bg-zinc-900/50 py-0.5 px-2 rounded-lg transition-colors border border-transparent hover:border-slate-200/60 dark:hover:border-zinc-700/60 shrink-0">
+                                        <div key={log.id} className="flex gap-2.5 items-start py-0.5 px-2 rounded-lg transition-colors border border-transparent shrink-0 hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 hover:border-slate-200/60 dark:hover:border-zinc-700/50">
                                             <span className="text-slate-400 dark:text-zinc-500 select-none shrink-0 font-medium">{log.timestamp}</span>
                                             <span className={`${levelColor} font-bold select-none shrink-0 uppercase text-[10px]`}>[{levelLabel}]</span>
                                             <span className="break-all font-medium">{log.message}</span>

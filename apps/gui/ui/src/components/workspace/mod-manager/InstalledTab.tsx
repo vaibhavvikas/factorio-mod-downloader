@@ -208,7 +208,7 @@ export const InstalledTab: React.FC = () => {
                 />
             )}
 
-            <div className="pt-3 px-4 pb-0 shrink-0 flex flex-col gap-4">
+            <div className="pt-3 px-3 pb-0 shrink-0 flex flex-col gap-4">
                 <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between text-xs shadow-xs`}>
                     <div className="flex items-center gap-2.5 text-slate-600 dark:text-zinc-300 overflow-hidden">
                         <FolderOpen className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -258,10 +258,10 @@ export const InstalledTab: React.FC = () => {
                 </div>
             </div>
 
-            <div className="relative flex flex-col flex-1 min-h-0 px-4 pt-4 pb-2">
+            <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
                 <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {installedMods.length > 0 && (
-                        <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.viewportHeader} px-4 pt-3 pb-0 flex items-start justify-between`}>
+                        <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.viewportHeader} px-3 pt-3 pb-0 flex items-start justify-between`}>
                             <div className="inline-flex gap-6 text-xs font-bold select-none -mb-px">
                                 <button
                                     onClick={() => setActiveTab('installed')}
@@ -310,7 +310,7 @@ export const InstalledTab: React.FC = () => {
                         </div>
                     )}
                     <div className="relative flex-1 min-h-0">
-                        <div className="h-full overflow-y-auto p-4">
+                        <div className="scroller-panel card h-full">
                             {installedMods.length === 0 ? (
                                 <div className="text-center py-20 text-slate-400 dark:text-zinc-600 text-xs">
                                     {isAnyLoading ? 'Scanning installed mods & checking online updates...' : 'No installed mods found in selected folder.'}

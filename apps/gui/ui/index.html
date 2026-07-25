@@ -1,12 +1,45 @@
 <!doctype html>
-<html lang="en" class="dark" style="background-color: transparent;">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ui</title>
+    <title>Factorio Mod Downloader</title>
+    <script>
+      // —— PAINT-BEFORE-REACT THEME RESOLVER —————————————————————————————————
+      // Runs synchronously in <head> BEFORE React hydrates. Guarantees that
+      // the first paint matches the user's saved preference or OS theme.
+      (function () {
+        try {
+          var STORAGE_KEY = 'fmd_theme_mode';
+          var saved = null;
+          try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+
+          var mode = saved && (saved === 'light' || saved === 'dark' || saved === 'system')
+            ? saved
+            : 'system';
+
+          var isDark = mode === 'system'
+            ? window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            : mode === 'dark';
+
+          var html = document.documentElement;
+          if (isDark) html.classList.add('dark');
+          else html.classList.remove('dark');
+
+          var bg = isDark ? '#18181b' : '#f1f5f9';
+          html.style.backgroundColor = bg;
+
+          // Also expose saved/default mode on html so React can sync WITHOUT
+          // painting a frame of wrong-color content before IPC returns.
+          html.setAttribute('data-pref-theme', mode);
+          if (isDark) html.setAttribute('data-is-dark', '1');
+          else html.removeAttribute('data-is-dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
-  <body style="background-color: transparent;">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

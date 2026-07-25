@@ -48,7 +48,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
     const formatVer = (ver?: string) => {
         if (!ver || !ver.trim()) return '';
@@ -61,64 +61,103 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
         ? `${formatVer(currentRelease.version)} (Factorio ${currentRelease.factorio_version})`
         : formatVer(selectedVersion);
 
-    const handleToggle = () => {
+    const handleToggle = (event: React.MouseEvent) => {
+        event.stopPropagation();
         if (!isOpen && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
             const dropdownHeight = 280; // max-h-[280px]
             const spaceBelow = window.innerHeight - rect.bottom;
-
+            let top: number;
             if (spaceBelow < dropdownHeight + 12 && rect.top > dropdownHeight) {
                 // Not enough space below — flip upward
-                setDropdownPos({ top: rect.top - dropdownHeight - 6, left: rect.left });
+                top = rect.top - dropdownHeight - 6;
             } else {
                 // Default — open downward
-                setDropdownPos({ top: rect.bottom + 6, left: rect.left });
+                top = rect.bottom + 6;
             }
+            // Match dropdown width to its trigger button with a sensible floor.
+            const width = Math.max(256, Math.round(rect.width));
+            const MIN_EDGE = 12; // always keep 12px from any viewport edge
+            const maxLeft = Math.max(MIN_EDGE, window.innerWidth - width - MIN_EDGE);
+
+            // Preferred placement: RIGHT-ALIGN to the button's chevron edge
+            // (same as the Installed→Updates version dropdown for consistent UX).
+            const preferredLeft = Math.round(rect.right - width);
+
+            // If preferred placement would go off-screen LEFT (button near the
+            // left edge of a panel), flip to LEFT-ANCHOR alignment so the
+            // dropdown grows to the right instead of clipping on the left.
+            const leftAnchorLeft = Math.round(rect.left);
+
+            let left = preferredLeft;
+            if (preferredLeft < MIN_EDGE) {
+                left = Math.min(leftAnchorLeft, maxLeft);
+            }
+            // Never clip on the right viewport edge either.
+            left = Math.min(left, maxLeft);
+            left = Math.max(MIN_EDGE, left);
+
+            setDropdownPos({ top, left, width });
         }
         setIsOpen(!isOpen);
     };
 
     return (
-        <div className="relative">
+        <div className="relative select-none">
             <button
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className={`flex items-center gap-1 ${LAYER.pillSurface} px-1.5 py-0.5 rounded-lg ${BORDER.tabActive} text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900/90 transition-colors cursor-pointer max-w-[300px]`}
-
+                className={`panel-pill panel-pill-mono px-3 h-6 min-h-6 max-h-6 rounded-full items-center gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.tabActive} text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900/90 transition-colors cursor-pointer max-w-[320px]`}
             >
-                <span className="text-[9px] text-slate-400 font-normal shrink-0">Ver:</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 shrink-0 font-sans">Ver:</span>
                 <span className="truncate max-w-[240px]">{displayLabel}</span>
-                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform text-slate-400 dark:text-zinc-500 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Portal-rendered dropdown — escapes sticky/overflow-hidden ancestors */}
             {isOpen && createPortal(
                 <>
-                    <div className="fixed inset-0 z-[100] bg-transparent" onClick={() => setIsOpen(false)} />
                     <div
-                        className={`fixed z-[101] w-64 ${LAYER.contentCard} ${BORDER.toolbar} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
-                        style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                        className="fixed inset-0 z-[100] bg-transparent"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            setIsOpen(false);
+                        }}
+                        onMouseDown={(event) => event.stopPropagation()}
+                    />
+                    <div
+                        className={`fixed z-[101] ${LAYER.contentCard} ${BORDER.toolbar} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
+                        style={{
+                            top: dropdownPos.top,
+                            left: dropdownPos.left,
+                            width: dropdownPos.width ? `${dropdownPos.width}px` : undefined,
+                            minWidth: '256px',
+                        }}
                     >
-                        <div className="max-h-[280px] overflow-y-auto divide-y divide-slate-100 dark:divide-zinc-700/50 text-xs font-mono">
+                        <div className="scroller-dropdown scroller-inner dense max-h-[280px] text-xs font-mono flex flex-col gap-0.5">
                             {availableReleases && availableReleases.length > 0 ? (
                                 availableReleases.map(rel => {
                                     const isSelected = rel.version === selectedVersion;
                                     return (
                                         <div
                                             key={rel.version}
-                                            onClick={() => {
+                                            role="option"
+                                            aria-selected={isSelected}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
                                                 onSelectVersion(rel.version);
                                                 setIsOpen(false);
                                             }}
-                                            className={`px-3 py-2 flex items-center justify-between cursor-pointer transition-colors ${isSelected
+                                            onMouseDown={(event) => event.stopPropagation()}
+                                            className={`px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors gap-3 ${isSelected
                                                 ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
                                                 : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700/80'
                                                 }`}
                                         >
-                                            <span>{formatVer(rel.version)}</span>
+                                            <span className="min-w-0 truncate">{formatVer(rel.version)}</span>
                                             {rel.factorio_version && (
-                                                <span className={`text-[10px] ${TEXT.muted}`}>Factorio {rel.factorio_version}</span>
+                                                <span className={`text-[10px] ${TEXT.muted} shrink-0`}>Factorio {rel.factorio_version}</span>
                                             )}
                                         </div>
                                     );
@@ -323,11 +362,17 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 
             {/* Section-wise Dependency List Section — smooth animated expand/collapse */}
             <div
-                className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-                style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+                className="grid transition-[grid-template-rows,opacity] duration-300 ease-in-out"
+                style={{
+                    gridTemplateRows: expanded ? '1fr' : '0fr',
+                    opacity: expanded ? 1 : 0,
+                }}
             >
                 <div className="overflow-hidden">
-                    <div className={`px-4 pb-4 pt-2 ${LAYER.innerRecessed} border-t ${DIVIDER.inner} flex flex-col gap-3`}>
+                    <div
+                        className={`px-4 pb-4 pt-2 ${LAYER.innerRecessed} border-t ${DIVIDER.inner} flex flex-col gap-3 transition-transform duration-300 ease-in-out`}
+                        style={{ transform: expanded ? 'translateY(0)' : 'translateY(-8px)' }}
+                    >
                         <DependencyTree
                             nodes={mod.dependencies}
                             selectedDepIds={mod.selectedDepIds}
