@@ -106,7 +106,7 @@ export const MainLayout: React.FC = () => {
             {profileOpen && (
                 <div
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`absolute top-11 right-12 z-40 w-80 rounded-2xl ${BORDER.outer} ${LAYER.groupPanel} backdrop-blur-md shadow-2xl flex flex-col gap-4 animate-fade-in text-xs max-h-[85vh] scroller-panel profile`}
+                    className={`absolute top-11 right-12 z-40 w-84 rounded-2xl ${BORDER.outer} ${LAYER.floatingPanel} backdrop-blur-xl shadow-2xl p-4 flex flex-col gap-4 animate-fade-in text-xs max-h-[85vh] overflow-y-auto`}
                 >
                     {/* Avatar & Header */}
                     <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ export const MainLayout: React.FC = () => {
                             <img
                                 src="https://github.com/vaibhavvikas.png"
                                 alt="Vaibhav Vikas"
-                                className={`w-10 h-10 rounded-full object-cover ${BORDER.inner} shadow-md select-none`}
+                                className={`w-10 h-10 rounded-full object-cover ${BORDER.card} shadow-md select-none`}
                                 onError={(e) => {
                                     e.currentTarget.style.display = 'none';
                                     const fallback = e.currentTarget.nextSibling as HTMLElement;
@@ -127,7 +127,7 @@ export const MainLayout: React.FC = () => {
                         </div>
                         <div>
                             <h4 className="font-bold text-slate-900 dark:text-zinc-50 text-[13px] leading-tight">Vaibhav Vikas</h4>
-                            <p className={`text-[10px] ${TEXT.muted} font-mono`}>Factorio Mod Downloader Creator</p>
+                            <p className={`text-[10px] ${TEXT.muted} font-mono mt-0.5`}>Factorio Mod Downloader Creator</p>
                         </div>
                     </div>
 
@@ -142,7 +142,7 @@ export const MainLayout: React.FC = () => {
                             href="https://github.com/vaibhavvikas/factorio-mod-downloader"
                             target="_blank"
                             rel="noreferrer"
-                            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg ${BORDER.cardSoft} hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 transition-colors text-slate-700 dark:text-zinc-300 font-semibold`}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} hover:border-slate-300 dark:hover:border-zinc-600 hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
                         >
                             <svg
                                 viewBox="0 0 24 24"
@@ -162,7 +162,7 @@ export const MainLayout: React.FC = () => {
                             href="https://github.com/vaibhavvikas/factorio-mod-downloader/discussions"
                             target="_blank"
                             rel="noreferrer"
-                            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg ${BORDER.cardSoft} hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 transition-colors text-slate-700 dark:text-zinc-300 font-semibold`}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} hover:border-slate-300 dark:hover:border-zinc-600 hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
                         >
                             <Mail className="w-3.5 h-3.5 text-indigo-500" />
                             <span>Feedback</span>
@@ -171,7 +171,7 @@ export const MainLayout: React.FC = () => {
 
                     {/* App Update Available Card — ONLY SHOWN IF A NEWER VERSION EXISTS */}
                     {latestRelease?.hasUpdate && (
-                        <div className="bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 flex flex-col gap-2 select-none">
+                        <div className="bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/25 rounded-xl p-3 flex flex-col gap-2 select-none shadow-2xs">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1.5 font-bold text-[10px] text-amber-600 dark:text-amber-400">
                                     <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
@@ -186,7 +186,7 @@ export const MainLayout: React.FC = () => {
                                 href={latestRelease.url}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-center text-[10.5px] shadow-xs shadow-amber-500/20 transition-colors cursor-pointer block"
+                                className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-center text-[10.5px] shadow-xs shadow-amber-500/20 transition-colors cursor-pointer block"
                             >
                                 Update Now
                             </a>
@@ -194,7 +194,7 @@ export const MainLayout: React.FC = () => {
                     )}
 
                     {/* Official Game & Wube Software Support Section */}
-                    <div className="bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/15 rounded-xl p-3 flex flex-col gap-2 select-none">
+                    <div className={`${LAYER.innerRecessed} ${BORDER.inner} rounded-xl p-3.5 flex flex-col gap-2.5 select-none shadow-2xs`}>
                         <div className="flex items-center gap-1.5 font-bold text-[10px] text-indigo-600 dark:text-indigo-400">
                             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
                             <span>SUPPORT THE DEVELOPERS</span>
@@ -206,12 +206,12 @@ export const MainLayout: React.FC = () => {
                             href="https://factorio.com/buy"
                             target="_blank"
                             rel="noreferrer"
-                            className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-center text-[10.5px] shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                            className="w-full py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-center text-[10.5px] shadow-md shadow-indigo-600/20 border border-indigo-400/30 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                         >
                             <span>Buy Factorio at Factorio.com</span>
                             <ExternalLink className="w-3 h-3" />
                         </a>
-                        <p className={`text-[8.5px] leading-tight ${TEXT.muted} mt-1`}>
+                        <p className={`text-[8.5px] leading-tight ${TEXT.muted} mt-0.5`}>
                             Disclaimer: Factorio and all associated game assets, logos, and artwork are registered trademarks of Wube Software. This software is an independent community utility and is not affiliated with or endorsed by Wube Software.
                         </p>
                     </div>
