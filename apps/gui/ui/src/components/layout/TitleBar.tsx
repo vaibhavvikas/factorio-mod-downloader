@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Monitor, Minus, Square, X, Download, Heart, Folder } from 'lucide-react';
+import { Sun, Moon, Monitor, Download, Heart, Folder } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppContext } from '../../context/AppContext';
 import { LAYER } from '../../theme/layers';
