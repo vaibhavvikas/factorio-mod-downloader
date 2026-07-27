@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from '../shared/modCategory';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
 
 export interface ModSearchResultItem {
     name: string;
@@ -46,9 +46,9 @@ interface ModSearchResultCardProps {
 }
 
 const TAG_PILL_CLASS =
-    'panel-pill shrink-0 max-w-28 truncate text-slate-600 dark:text-zinc-400 bg-slate-100/80 dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700';
+    `panel-pill shrink-0 max-w-28 truncate ${TEXT.secondary} ${LAYER.summarySurface} ${BORDER.pill}`;
 const TAG_COUNT_PILL_CLASS =
-    'panel-pill shrink-0 text-slate-500 dark:text-zinc-400 bg-slate-100/80 dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700';
+    `panel-pill shrink-0 ${TEXT.secondary} ${LAYER.summarySurface} ${BORDER.pill}`;
 
 const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
     item,
@@ -464,7 +464,7 @@ const FactorioVersionDropdown: React.FC<{
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className="flex h-7 w-[165px] items-center justify-between px-2.5 py-1 rounded-lg text-xs bg-slate-100 dark:bg-zinc-700/60 border border-slate-200/80 dark:border-zinc-700/50 hover:bg-slate-200/80 dark:hover:bg-zinc-700 transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-indigo-500/30"
+                className={`flex h-7 w-[165px] items-center justify-between px-2.5 py-1 rounded-lg text-xs ${LAYER.selectTrigger} ${BORDER.inner} transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-indigo-500/30`}
                 title="Filter mods by target Factorio version"
             >
                 <div className="flex items-center gap-1.5 min-w-0">
@@ -475,7 +475,7 @@ const FactorioVersionDropdown: React.FC<{
             </button>
 
             {open && (
-                <div className={`absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl ${BORDER.dropdown} bg-white/95 dark:bg-zinc-900/95 shadow-xl backdrop-blur-md max-h-60 scroller-dropdown loose`}>
+                <div className={`absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl ${BORDER.dropdown} ${LAYER.dropdownMenu} shadow-xl backdrop-blur-md max-h-60 scroller-dropdown loose`}>
                     {FACTORIO_VERSIONS.map((item) => {
                         const isSelected = value === item.value;
                         return (
@@ -489,7 +489,7 @@ const FactorioVersionDropdown: React.FC<{
                                 className={`flex w-full items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer text-left ${
                                     isSelected
                                         ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
-                                        : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/70 font-medium'
+                                        : `text-slate-700 dark:text-zinc-300 ${INTERACTIVE.ghostHover} font-medium`
                                 }`}
                             >
                                 <span>{item.label}</span>
@@ -670,7 +670,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         type="button"
                         onClick={() => setReloadTrigger(prev => prev + 1)}
                         disabled={loading}
-                        className="h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 border border-slate-200/80 dark:border-zinc-700/60 shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                        className={`h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50`}
                         title="Reload mod results"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-500' : ''}`} />
@@ -687,7 +687,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         }}
                         className={`shrink-0 h-7.5 px-3.5 py-1 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none ${spaceAgeFilter
                             ? 'bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 text-white border-orange-400 shadow-xs'
-                            : 'bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/60'
+                            : `${LAYER.contentCard} text-slate-700 dark:text-zinc-300 ${BORDER.card} hover:bg-slate-50 dark:hover:bg-zinc-800/60`
                         }`}
                     >
                         <Rocket className={`w-3.5 h-3.5 ${spaceAgeFilter ? 'text-white' : 'text-orange-500'}`} />
@@ -779,7 +779,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
 
                         {loading && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/15 dark:bg-black/25 pointer-events-auto cursor-wait">
-                                <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 dark:border-zinc-700/70 bg-white/95 dark:bg-zinc-800/95 px-3 py-2 shadow-lg text-[11px] font-semibold text-slate-700 dark:text-zinc-200">
+                                <div className={`flex items-center gap-2 rounded-xl ${BORDER.cardSoft} ${LAYER.floatingPanel} px-3 py-2 shadow-lg text-[11px] font-semibold text-slate-700 dark:text-zinc-200`}>
                                     <span className="loading-bars" aria-hidden="true"><i /><i /><i /></span>
                                     Loading mods…
                                 </div>
@@ -790,7 +790,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                     {/* Pagination footer — always rendered at a fixed height to avoid layout
                         shift when search results return only 1 page. "Page 1 of 1" + disabled
                         nav gives the same stable visual footprint as multi-page navigation. */}
-                    <div className={`shrink-0 min-h-[40px] border-t ${DIVIDER.outer} bg-white/90 dark:bg-zinc-800/95 px-3 py-2 flex items-center justify-between text-xs select-none`}>
+                    <div className={`shrink-0 min-h-[40px] border-t ${DIVIDER.outer} ${LAYER.viewportFooter} px-3 py-2 flex items-center justify-between text-xs select-none`}>
                         <div className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">
                             Page <strong className="font-bold text-slate-700 dark:text-zinc-200">{page}</strong> of <strong className="font-bold text-slate-700 dark:text-zinc-200">{totalPages}</strong>
                         </div>
@@ -800,7 +800,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 type="button"
                                 onClick={() => setPage(current => Math.max(1, current - 1))}
                                 disabled={page === 1 || loading || totalPages <= 1}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg ${BORDER.card} ${LAYER.contentCard} text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer`}
                                 aria-label="Previous page"
                             >
                                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -824,7 +824,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                         className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 cursor-pointer disabled:cursor-not-allowed ${
                                             page === item 
                                                 ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs scale-105' 
-                                                : 'bg-white dark:bg-zinc-900/90 border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                                                : `${LAYER.contentCard} ${BORDER.card} text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800`
                                         }`}
                                     >
                                         {item}
@@ -837,7 +837,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 type="button"
                                 onClick={() => setPage(current => Math.min(totalPages, current + 1))}
                                 disabled={page === totalPages || loading || totalPages <= 1}
-                                className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg ${BORDER.card} ${LAYER.contentCard} text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer`}
                                 aria-label="Next page"
                             >
                                 <ChevronRight className="w-3.5 h-3.5" />

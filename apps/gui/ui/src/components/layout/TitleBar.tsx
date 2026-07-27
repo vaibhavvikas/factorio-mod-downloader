@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sun, Moon, Monitor, Download, Heart, Folder } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppContext } from '../../context/AppContext';
-import { LAYER } from '../../theme/layers';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
 
 interface TitleBarProps {
     onOpenFolderModal?: () => void;
@@ -110,7 +110,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         >
             <button
                 onClick={handleMinimize}
-                className="hover:text-slate-850 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800/60 w-11 h-10 flex items-center justify-center cursor-pointer transition-colors"
+                className={`hover:text-slate-800 dark:hover:text-zinc-200 ${INTERACTIVE.iconHover} w-11 h-10 flex items-center justify-center cursor-pointer transition-colors`}
                 title="Minimize"
             >
                 {/* VS Code Chrome Minimize Icon */}
@@ -120,7 +120,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             </button>
             <button
                 onClick={handleMaximize}
-                className="hover:text-slate-850 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-800/60 w-11 h-10 flex items-center justify-center cursor-pointer transition-colors"
+                className={`hover:text-slate-800 dark:hover:text-zinc-200 ${INTERACTIVE.iconHover} w-11 h-10 flex items-center justify-center cursor-pointer transition-colors`}
                 title={isMaximized ? "Restore Down" : "Maximize"}
             >
                 {isMaximized ? (
@@ -152,7 +152,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     return (
         <div
             data-tauri-drag-region
-            className={`relative h-10 bg-slate-50 dark:bg-zinc-950 border-b border-slate-200 dark:border-zinc-800/60 flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
+            className={`relative h-10 ${LAYER.chromeHeavy} border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
         >
             {/* Left Side: OS controls on Mac, Brand logo on Windows */}
             {isMac ? renderMacControls() : (
@@ -178,7 +178,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                         onOpenFolderModal && onOpenFolderModal();
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="p-1.5 rounded-md text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-800/60 transition-all cursor-pointer flex items-center justify-center relative"
+                    className={`p-1.5 rounded-md ${TEXT.secondary} hover:text-indigo-600 dark:hover:text-indigo-400 ${INTERACTIVE.iconHover} transition-all cursor-pointer flex items-center justify-center relative`}
                     title={configuredModsFolder ? `Mods Folder: ${configuredModsFolder}` : 'Configure Factorio Mods Folder'}
                 >
                     <Folder className="w-3.5 h-3.5" />
@@ -222,12 +222,12 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${profileOpen
-                        ? 'text-rose-600 dark:text-rose-455'
-                        : 'text-slate-500 dark:text-zinc-400 hover:text-rose-600 dark:hover:text-rose-455'
+                        ? 'text-rose-600 dark:text-rose-400'
+                        : `${TEXT.secondary} hover:text-rose-600 dark:hover:text-rose-400`
                         }`}
                     title="Developer Profile & Support"
                 >
-                    <Heart className={`w-3.5 h-3.5 transition-all ${profileOpen ? 'fill-rose-500 text-rose-600 dark:text-rose-450' : 'fill-transparent'}`} />
+                    <Heart className={`w-3.5 h-3.5 transition-all ${profileOpen ? 'fill-rose-500 text-rose-600 dark:text-rose-400' : 'fill-transparent'}`} />
 
                     {/* Pulsing Amber Update Dot Notification — only shown when app update is available */}
                     {hasAppUpdate && (
@@ -241,25 +241,25 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 {/* 3-way Theme Pill Switcher */}
                 <div
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="flex bg-slate-200/50 dark:bg-zinc-800/80 p-0.5 rounded-lg border border-slate-200/80 dark:border-zinc-700/60 text-slate-500 dark:text-zinc-400"
+                    className={`flex ${LAYER.pillSurface} ${BORDER.pill} p-0.5 rounded-lg ${TEXT.secondary}`}
                 >
                     <button
                         onClick={() => setThemeMode('light')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'light' ? 'bg-white text-indigo-600 shadow-sm' : 'bg-transparent hover:bg-slate-300/40 dark:hover:bg-zinc-800/60 hover:text-slate-800 dark:hover:text-zinc-200'}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'light' ? `${LAYER.contentCard} text-indigo-600 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
                         title="Light Mode"
                     >
                         <Sun className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={() => setThemeMode('dark')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'dark' ? 'bg-white dark:bg-zinc-900 text-indigo-400 shadow-sm' : 'bg-transparent hover:bg-slate-300/40 dark:hover:bg-zinc-800/60 hover:text-slate-800 dark:hover:text-zinc-200'}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'dark' ? `${LAYER.contentCard} text-indigo-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
                         title="Dark Mode"
                     >
                         <Moon className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={() => setThemeMode('system')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'system' ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 shadow-sm` : 'bg-transparent hover:bg-slate-300/40 dark:hover:bg-zinc-800/60 hover:text-slate-800 dark:hover:text-zinc-200'}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'system' ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
                         title="System Default"
                     >
                         <Monitor className="w-3.5 h-3.5" />

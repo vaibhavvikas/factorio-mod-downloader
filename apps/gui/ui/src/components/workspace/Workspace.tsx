@@ -6,7 +6,8 @@ import { InstalledTab } from './mod-manager/InstalledTab';
 import type { TargetModItem } from './mod-queue/ModAccordionCard';
 import { useAppContext } from '../../context/AppContext';
 import { invoke } from '@tauri-apps/api/core';
-import { LAYER, BORDER, DIVIDER } from '../../theme/layers';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
+import { getInitialSelectedDepIds } from './mod-queue/queueAutoSelect';
 
 export const Workspace: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'search' | 'queue' | 'installed'>('search');
@@ -63,9 +64,7 @@ export const Workspace: React.FC = () => {
             (defaultDeps.optional || []).forEach((d: any) => treeNodes.push(mapDep(d, 'optional')));
             (defaultDeps.incompatible || []).forEach((d: any) => treeNodes.push(mapDep(d, 'incompatible')));
 
-            const initialSelectedIds = treeNodes
-                .filter(d => d.type === 'required' || d.type === 'recommended')
-                .map(d => d.id);
+            const initialSelectedIds = getInitialSelectedDepIds(treeNodes);
 
             const newCard: TargetModItem = {
                 id: 'mod-' + Date.now() + '-' + Math.random(),
@@ -162,7 +161,7 @@ export const Workspace: React.FC = () => {
     return (
         <div className={`flex-1 flex flex-col min-w-[450px] ${LAYER.appCanvas} transition-colors relative overflow-hidden`}>
             {/* Primary App Navigation Header Bar */}
-            <div className={`h-14 flex items-center justify-between bg-white/80 dark:bg-zinc-900 border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none`}>
+            <div className={`h-14 flex items-center justify-between ${LAYER.navBar} border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none`}>
                 <nav className="flex items-center gap-2 h-full">
                     {/* Tab 1: Explore */}
                     <button
@@ -170,7 +169,7 @@ export const Workspace: React.FC = () => {
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'search'
                                 ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
-                                : 'bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/40'
+                                : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
                         }`}
                     >
                         <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
@@ -183,7 +182,7 @@ export const Workspace: React.FC = () => {
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'queue'
                                 ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
-                                : 'bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/40'
+                                : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
                         }`}
                     >
                         <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
@@ -205,7 +204,7 @@ export const Workspace: React.FC = () => {
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'installed'
                                 ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
-                                : 'bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/40'
+                                : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
                         }`}
                     >
                         <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
@@ -250,7 +249,7 @@ export const Workspace: React.FC = () => {
                                 <div className="flex items-center gap-2">
                                     <button 
                                         onClick={clearLogs}
-                                        className="text-slate-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer hover:bg-slate-200/60 dark:hover:bg-zinc-800/50"
+                                        className={`${TEXT.secondary} hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer ${INTERACTIVE.iconHover}`}
                                         title="Clear logs"
                                     >
                                         <Trash2 className="w-3 h-3" />
@@ -258,7 +257,7 @@ export const Workspace: React.FC = () => {
                                     </button>
                                     <button 
                                         onClick={() => setConsoleOpen(false)}
-                                        className="text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded transition-colors cursor-pointer hover:bg-slate-200/60 dark:hover:bg-zinc-800/50"
+                                        className={`${TEXT.muted} hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded transition-colors cursor-pointer ${INTERACTIVE.iconHover}`}
                                         title="Close console logs"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -286,8 +285,8 @@ export const Workspace: React.FC = () => {
                                     }[log.level];
 
                                     return (
-                                        <div key={log.id} className="flex gap-2.5 items-start py-0.5 px-2 rounded-lg transition-colors border border-transparent shrink-0 hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 hover:border-slate-200/60 dark:hover:border-zinc-700/50">
-                                            <span className="text-slate-400 dark:text-zinc-500 select-none shrink-0 font-medium">{log.timestamp}</span>
+                                        <div key={log.id} className={`flex gap-2.5 items-start py-0.5 px-2 rounded-lg transition-colors border border-transparent shrink-0 hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 hover:border-slate-200/60 dark:hover:border-zinc-700/50`}>
+                                            <span className={`${TEXT.muted} select-none shrink-0 font-medium`}>{log.timestamp}</span>
                                             <span className={`${levelColor} font-bold select-none shrink-0 uppercase text-[10px]`}>[{levelLabel}]</span>
                                             <span className="break-all font-medium">{log.message}</span>
                                         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Folder, FolderOpen, Check, AlertCircle, FolderSearch, FolderOutput, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
 
 interface ModsFolderModalProps {
     isOpen: boolean;
@@ -70,23 +71,21 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div 
-                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl w-[92vw] min-w-[360px] max-w-md md:max-w-lg overflow-hidden flex flex-col gap-4 p-6 text-slate-800 dark:text-zinc-100 relative transition-all"
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl shadow-2xl w-[92vw] min-w-[360px] max-w-md md:max-w-lg overflow-hidden flex flex-col gap-4 p-6 text-slate-800 dark:text-zinc-100 relative transition-all`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
             >
-                {/* Optional Close X Button if already configured */}
                 {canCloseOutside && (
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        className={`absolute top-4 right-4 p-1 rounded-lg ${TEXT.muted} hover:text-slate-600 dark:hover:text-zinc-200 ${INTERACTIVE.ghostHover} transition-colors cursor-pointer`}
                         title="Close Modal"
                     >
                         <X className="w-4 h-4" />
                     </button>
                 )}
 
-                {/* Header */}
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                         <Folder className="w-5 h-5" />
@@ -95,19 +94,18 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                         <h2 className="text-sm font-bold text-slate-900 dark:text-white">
                             Select Factorio Mods Directory
                         </h2>
-                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed">
+                        <p className={`text-[11px] ${TEXT.secondary} leading-relaxed`}>
                             Specify where downloaded mod files (.zip) will be stored.
                         </p>
                     </div>
                 </div>
 
-                {/* Input & Browse Section */}
                 <div className="flex flex-col gap-2">
                     <label className="text-[11px] font-semibold text-slate-700 dark:text-zinc-300">
                         Mods Folder Location:
                     </label>
                     <div className="flex items-center gap-2">
-                        <div className="flex-1 flex items-center gap-2 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 dark:text-zinc-200">
+                        <div className={`flex-1 flex items-center gap-2 ${LAYER.innerRecessed} ${BORDER.inner} rounded-xl px-3 py-2 text-xs font-mono text-slate-800 dark:text-zinc-200`}>
                             <FolderOpen className="w-4 h-4 text-indigo-500 shrink-0" />
                             <input 
                                 type="text"
@@ -118,17 +116,15 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                             />
                         </div>
 
-                        {/* Browse Folder Picker Icon Button */}
                         <button
                             type="button"
                             onClick={handleBrowseFolder}
-                            className="p-2 bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 rounded-xl transition-colors shrink-0 cursor-pointer border border-slate-300/60 dark:border-zinc-700/60"
+                            className={`p-2 ${INTERACTIVE.secondary} rounded-xl transition-colors shrink-0 cursor-pointer ${BORDER.inner}`}
                             title="Browse folder..."
                         >
                             <FolderSearch className="w-4 h-4 text-indigo-500" />
                         </button>
 
-                        {/* Open Folder in OS File Manager / Finder */}
                         <button
                             type="button"
                             onClick={async () => {
@@ -140,7 +136,7 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                                 }
                             }}
                             disabled={!modsPath.trim()}
-                            className="p-2 bg-slate-200/80 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 rounded-xl transition-colors shrink-0 cursor-pointer border border-slate-300/60 dark:border-zinc-700/60 disabled:opacity-40"
+                            className={`p-2 ${INTERACTIVE.secondary} rounded-xl transition-colors shrink-0 cursor-pointer ${BORDER.inner} disabled:opacity-40`}
                             title="Open folder in Finder / File Explorer"
                         >
                             <FolderOutput className="w-4 h-4 text-indigo-500" />
@@ -155,12 +151,11 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                     )}
                 </div>
 
-                {/* Save Footer Action Buttons */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800/60">
+                <div className={`flex items-center justify-end gap-2 pt-2 border-t ${DIVIDER.soft}`}>
                     {canCloseOutside && (
                         <button
                             onClick={onClose}
-                            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                            className={`px-3 py-2 ${LAYER.pillSurface} hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-semibold text-xs rounded-xl transition-colors cursor-pointer`}
                         >
                             Cancel
                         </button>

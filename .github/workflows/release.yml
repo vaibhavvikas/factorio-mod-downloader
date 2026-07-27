@@ -4,60 +4,136 @@ on:
   push:
     branches:
       - 'release/**'
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release Version (e.g. v0.3.1 or 0.3.1)'
-        required: false
-        default: ''
+        description: 'Release version (e.g. v0.3.1 or 0.3.1)'
+        required: true
       overwrite_release:
         description: 'Overwrite existing GitHub release tag if re-run'
         type: boolean
         required: false
         default: true
 
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event.inputs.version || 'auto' }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
+  validate:
+    name: Validate Release Branch & Version
+    runs-on: ubuntu-latest
+    outputs:
+      target_version: ${{ steps.resolve.outputs.target_version }}
+      raw_version: ${{ steps.resolve.outputs.raw_version }}
+    steps:
+      - name: Resolve and validate release version
+        id: resolve
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [[ "$BRANCH" != release/* ]]; then
+              echo "::error::Manual releases must be triggered from a release/* branch. Current branch: $BRANCH"
+              exit 1
+            fi
+
+            VERSION="${{ github.event.inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              echo "::error::Release version input is required for manual runs."
+              exit 1
+            fi
+          else
+            if [[ "$BRANCH" != release/* ]]; then
+              echo "::error::Automatic releases must run from a release/* branch. Current branch: $BRANCH"
+              exit 1
+            fi
+            VERSION="${BRANCH#release/}"
+          fi
+
+          if [[ "$VERSION" != v* ]]; then
+            VERSION="v$VERSION"
+          fi
+
+          EXPECTED_BRANCH="release/$VERSION"
+          if [ "$BRANCH" != "$EXPECTED_BRANCH" ]; then
+            echo "::error::Branch name must match the release version. Expected: $EXPECTED_BRANCH, got: $BRANCH"
+            exit 1
+          fi
+
+          RAW_VERSION="${VERSION#v}"
+          if ! [[ "$RAW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?(\+[A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid semver version: $VERSION"
+            exit 1
+          fi
+
+          echo "target_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "raw_version=$RAW_VERSION" >> $GITHUB_OUTPUT
+          echo "Validated release $VERSION on branch $BRANCH"
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'apps/gui/ui/package-lock.json'
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './ -> target'
+
+      - name: Install Linux Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Install Frontend Dependencies
+        working-directory: apps/gui/ui
+        run: npm ci
+
+      - name: Run Workspace Tests
+        run: cargo test --workspace
+
   cleanup-existing-release:
+    name: Cleanup Existing Release
+    needs: [validate, test]
     permissions:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Determine Target Version
-        id: get_version
-        shell: bash
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          if [ -z "$VERSION" ]; then
-            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-              VERSION="$TAG_NAME"
-            elif [[ "$BRANCH_NAME" == release/* ]]; then
-              VERSION="${BRANCH_NAME#release/}"
-            else
-              VERSION="v0.3.1"
-            fi
-          fi
-          if [[ "$VERSION" != v* ]]; then
-            VERSION="v$VERSION"
-          fi
-          echo "TARGET_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "Target version set to: $VERSION"
+      - uses: actions/checkout@v4
 
       - name: Delete Existing Release Tag (If Overwrite Selected)
         if: ${{ github.event.inputs.overwrite_release != 'false' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
         run: |
           gh release delete "$TARGET_VERSION" --yes --cleanup-tag || true
 
   build-and-release:
-    needs: cleanup-existing-release
+    name: Build & Publish (${{ matrix.platform }})
+    needs: [validate, cleanup-existing-release]
     permissions:
       contents: write
     strategy:
@@ -77,36 +153,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Determine Target Version
-        id: get_version
-        shell: bash
-        run: |
-          VERSION="${{ github.event.inputs.version }}"
-          if [ -z "$VERSION" ]; then
-            BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-            TAG_NAME="${GITHUB_REF#refs/tags/}"
-            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-              VERSION="$TAG_NAME"
-            elif [[ "$BRANCH_NAME" == release/* ]]; then
-              VERSION="${BRANCH_NAME#release/}"
-            else
-              VERSION="v0.3.1"
-            fi
-          fi
-          if [[ "$VERSION" != v* ]]; then
-            VERSION="v$VERSION"
-          fi
-          RAW_VERSION="${VERSION#v}"
-          echo "TARGET_VERSION=$VERSION" >> $GITHUB_ENV
-          echo "RAW_VERSION=$RAW_VERSION" >> $GITHUB_ENV
-
       - name: Sync App Version Files
         shell: bash
+        env:
+          RAW_VERSION: ${{ needs.validate.outputs.raw_version }}
         run: |
           echo "Propagating version $RAW_VERSION into config files..."
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/package.json || true
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/src-tauri/tauri.conf.json || true
-          sed -i.bak "s/^version = \".*\"/version = \"$RAW_VERSION\"/" apps/gui/ui/src-tauri/Cargo.toml || true
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/package.json
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/src-tauri/tauri.conf.json
+          sed -i.bak "s/^version = \".*\"/version = \"$RAW_VERSION\"/" apps/gui/ui/src-tauri/Cargo.toml
           rm -f apps/gui/ui/package.json.bak apps/gui/ui/src-tauri/tauri.conf.json.bak apps/gui/ui/src-tauri/Cargo.toml.bak
 
       - name: Setup Node.js
@@ -137,8 +192,7 @@ jobs:
         run: npm ci
 
       - name: Build CLI Binary
-        run: |
-          cargo build --release --bin factorio-mod-downloader-cli
+        run: cargo build --release --bin factorio-mod-downloader-cli
 
       - name: Package CLI Binary Artifacts
         shell: bash
@@ -158,17 +212,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: './apps/gui/ui'
-          tagName: ${{ env.TARGET_VERSION }}
-          releaseName: 'Factorio Mod Downloader ${{ env.TARGET_VERSION }}'
-          releaseBody: 'Release ${{ env.TARGET_VERSION }} containing cross-platform desktop GUI installers and standalone CLI binaries.'
+          tagName: ${{ needs.validate.outputs.target_version }}
+          releaseName: 'Factorio Mod Downloader ${{ needs.validate.outputs.target_version }}'
+          releaseBody: |
+            Release ${{ needs.validate.outputs.target_version }} containing cross-platform desktop GUI installers and standalone CLI binaries.
+
+            ## Downloads
+            - **Windows**: `.exe` / `.msi` installers
+            - **macOS**: Universal binary (Apple Silicon & Intel)
+            - **Linux**: `.deb` and AppImage
+            - **CLI**: Standalone command-line binary for this platform
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
 
       - name: Upload CLI Artifacts to Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.TARGET_VERSION }}
+          tag_name: ${{ needs.validate.outputs.target_version }}
           files: artifacts/*
