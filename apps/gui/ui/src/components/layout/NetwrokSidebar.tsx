@@ -1,7 +1,7 @@
 import React from 'react';
 import { Download, Inbox, RotateCcw, Trash2, X } from 'lucide-react';
 import { useAppContext, type DownloadTask } from '../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, TEXT } from '../../theme/layers';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
 
 export const NetworkSidebar: React.FC = () => {
     const { sidebarOpen, toggleSidebar, queue, clearCompleted, retryTask } = useAppContext();
@@ -31,7 +31,7 @@ export const NetworkSidebar: React.FC = () => {
                     {completedItems.length > 0 && (
                         <button 
                             onClick={clearCompleted} 
-                            className="text-slate-500 dark:text-zinc-400 hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer hover:bg-slate-200/60 dark:hover:bg-zinc-800/50"
+                            className={`${TEXT.secondary} hover:text-rose-500 dark:hover:text-rose-400 p-1 rounded transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer ${INTERACTIVE.iconHover}`}
                             title="Clear completed transfers"
                         >
                             <Trash2 className="w-3 h-3" />
@@ -40,7 +40,7 @@ export const NetworkSidebar: React.FC = () => {
                     )}
                     <button
                         onClick={() => toggleSidebar(false)}
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded transition-colors cursor-pointer hover:bg-slate-200/60 dark:hover:bg-zinc-800/50"
+                        className={`${TEXT.muted} hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded transition-colors cursor-pointer ${INTERACTIVE.iconHover}`}
                         title="Close Download Manager"
                     >
                         <X className="w-3.5 h-3.5" />

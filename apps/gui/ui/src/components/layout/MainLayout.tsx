@@ -8,7 +8,7 @@ import { useAppContext } from '../../context/AppContext';
 import { Mail, Sparkles, Heart, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
-import { LAYER, BORDER, TEXT } from '../../theme/layers';
+import { LAYER, BORDER, TEXT, HOVER_BORDER } from '../../theme/layers';
 
 export function isVersionNewer(onlineVersion: string, currentVersion: string): boolean {
     const clean = (v: string) => v.replace(/^v/i, '').trim();
@@ -106,7 +106,7 @@ export const MainLayout: React.FC = () => {
             {profileOpen && (
                 <div
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`absolute top-11 right-12 z-40 w-84 rounded-2xl ${BORDER.outer} ${LAYER.floatingPanel} backdrop-blur-xl shadow-2xl p-4 flex flex-col gap-4 animate-fade-in text-xs max-h-[85vh] overflow-y-auto`}
+                    className={`absolute top-11 right-12 z-40 w-84 rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl shadow-2xl p-4 flex flex-col gap-4 animate-fade-in text-xs max-h-[85vh] overflow-y-auto`}
                 >
                     {/* Avatar & Header */}
                     <div className="flex items-center gap-3">
@@ -142,7 +142,7 @@ export const MainLayout: React.FC = () => {
                             href="https://github.com/vaibhavvikas/factorio-mod-downloader"
                             target="_blank"
                             rel="noreferrer"
-                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} hover:border-slate-300 dark:hover:border-zinc-600 hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
                         >
                             <svg
                                 viewBox="0 0 24 24"
@@ -162,7 +162,7 @@ export const MainLayout: React.FC = () => {
                             href="https://github.com/vaibhavvikas/factorio-mod-downloader/discussions"
                             target="_blank"
                             rel="noreferrer"
-                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} hover:border-slate-300 dark:hover:border-zinc-600 hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
+                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
                         >
                             <Mail className="w-3.5 h-3.5 text-indigo-500" />
                             <span>Feedback</span>

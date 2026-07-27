@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { InstalledModItem } from '../../../context/AppContext';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../../theme/layers';
 
 export interface ConflictModalData {
     targetUpdates: { name: string; title: string; version: string }[];
@@ -140,7 +141,7 @@ export const DeleteModModal: React.FC<DeleteModModalProps> = ({ data, onClose, o
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div
-                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl w-[92vw] min-w-[360px] max-w-xl md:max-w-2xl lg:max-w-3xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text"
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl w-[92vw] min-w-[360px] max-w-xl md:max-w-2xl lg:max-w-3xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -151,16 +152,16 @@ export const DeleteModModal: React.FC<DeleteModModalProps> = ({ data, onClose, o
                     </div>
                     <div>
                         <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-100">Delete Mod & Exclusive Internal Dependencies</h3>
-                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">Removing this mod will clean up unneeded internal sub-dependencies.</p>
+                        <p className={`text-[11px] ${TEXT.secondary}`}>Removing this mod will clean up unneeded internal sub-dependencies.</p>
                     </div>
                 </div>
 
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl bg-slate-50 dark:bg-zinc-950/60 max-h-[48vh] md:max-h-[58vh] scroller-panel modal flex flex-col gap-3">
+                <div className={`${BORDER.inner} rounded-xl ${LAYER.modalBody} max-h-[48vh] md:max-h-[58vh] scroller-panel modal flex flex-col gap-3`}>
                     <div className="flex flex-col gap-1">
                         <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider px-1">Mod to Remove</span>
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-100 bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-2xs">
+                        <div className={`flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-100 ${LAYER.contentCard} px-3 py-2 rounded-xl ${BORDER.card} shadow-2xs`}>
                             <span className="truncate">{data.targetMod.title || data.targetMod.name}</span>
-                            <span className="panel-pill panel-pill-mono text-[10px] text-slate-500 dark:text-zinc-400 shrink-0 ml-2 bg-slate-100 dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700/70 select-none">v{data.targetMod.version}</span>
+                            <span className={`panel-pill panel-pill-mono text-[10px] ${TEXT.secondary} shrink-0 ml-2 ${LAYER.summarySurface} ${BORDER.pill} select-none`}>v{data.targetMod.version}</span>
                         </div>
                     </div>
 
@@ -203,7 +204,7 @@ export const DeleteModModal: React.FC<DeleteModModalProps> = ({ data, onClose, o
                                                 <span className="text-xs font-bold text-slate-800 dark:text-zinc-200 truncate">
                                                     {displayName}
                                                 </span>
-                                                <span className="bg-slate-100/80 dark:bg-zinc-800/80 px-1 py-0.5 rounded text-[9.5px] font-mono text-slate-700 dark:text-zinc-300 border border-slate-200/60 dark:border-zinc-700/60 select-none truncate">
+                                                <span className={`${LAYER.summarySurface} px-1 py-0.5 rounded text-[9.5px] font-mono text-slate-700 dark:text-zinc-300 ${BORDER.inner} select-none truncate`}>
                                                     {dep.name}
                                                 </span>
                                             </div>
@@ -218,7 +219,7 @@ export const DeleteModModal: React.FC<DeleteModModalProps> = ({ data, onClose, o
                                                 {reqList.map((reqMod, idx) => (
                                                     <span
                                                         key={idx}
-                                                        className="panel-pill panel-pill-mono text-[9.5px] bg-white/90 dark:bg-zinc-900/90 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-700/80 shadow-2xs select-none max-w-[240px]"
+                                                        className={`panel-pill panel-pill-mono text-[9.5px] ${LAYER.contentCard} text-slate-700 dark:text-zinc-300 ${BORDER.cardSoft} shadow-2xs select-none max-w-[240px]`}
                                                     >
                                                         <span className="truncate min-w-0">{reqMod}</span>
                                                     </span>
@@ -235,7 +236,7 @@ export const DeleteModModal: React.FC<DeleteModModalProps> = ({ data, onClose, o
                 <div className="flex justify-end gap-2 pt-1">
                     <button
                         onClick={onClose}
-                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold ${TEXT.secondary} ${INTERACTIVE.ghostHover} transition-colors cursor-pointer`}
                     >
                         Cancel
                     </button>
@@ -266,7 +267,7 @@ export const DependencyUpgradeConflictModal: React.FC<DependencyUpgradeConflictM
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div
-                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-6 flex flex-col gap-4 transition-all select-text"
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-6 flex flex-col gap-4 transition-all select-text`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -277,12 +278,12 @@ export const DependencyUpgradeConflictModal: React.FC<DependencyUpgradeConflictM
                     </div>
                     <div>
                         <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-100">Dependency Upgrade Required</h3>
-                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">Updating selected mods requires upgrading additional installed dependencies.</p>
+                        <p className={`text-[11px] ${TEXT.secondary}`}>Updating selected mods requires upgrading additional installed dependencies.</p>
                     </div>
                 </div>
 
-                <div className="border border-slate-200 dark:border-zinc-800 rounded-xl bg-slate-50 dark:bg-zinc-950/60 max-h-[40vh] md:max-h-[50vh] scroller-panel modal flex flex-col gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Required Mod Upgrades</span>
+                <div className={`${BORDER.inner} rounded-xl ${LAYER.modalBody} max-h-[40vh] md:max-h-[50vh] scroller-panel modal flex flex-col gap-2`}>
+                    <span className={`text-[10px] font-bold ${TEXT.muted} uppercase tracking-wider`}>Required Mod Upgrades</span>
                     {data.autoUpgradedDeps.map(dep => (
                         <div key={dep.name} className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-slate-800 dark:text-zinc-200">{dep.title}</span>
@@ -300,7 +301,7 @@ export const DependencyUpgradeConflictModal: React.FC<DependencyUpgradeConflictM
                 <div className="flex justify-end gap-2 pt-2">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                        className={`px-4 py-2 rounded-xl text-xs font-bold ${TEXT.secondary} ${INTERACTIVE.ghostHover} transition-colors cursor-pointer`}
                     >
                         Cancel
                     </button>

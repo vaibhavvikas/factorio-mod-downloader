@@ -5,7 +5,14 @@ import { useAppContext } from '../../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
-import { LAYER, BORDER, DIVIDER } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE, DEPENDENCY_TYPE } from '../../../theme/layers';
+import {
+    getInitialSelectedDepIds,
+    getQueueAutoIncludeSettings,
+    QUEUE_AUTO_OPTIONAL_KEY,
+    QUEUE_AUTO_RECOMMENDED_KEY,
+} from './queueAutoSelect';
+import { QueueSettingsDropdown } from './QueueSettingsDropdown';
 
 interface BackendDependency {
     id: string;
@@ -89,8 +96,19 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
         return modDetails?.selectedDepIds.includes(d.id);
     });
 
-    // Sort sub-dependencies alphabetically by display title
+    // Sort sub-dependencies by type rank (required -> recommended -> optional), then alphabetically by display title
+    const typeRank: Record<string, number> = {
+        required: 1,
+        recommended: 2,
+        optional: 3,
+    };
+
     const sortedSubDeps = [...activeSubDeps].sort((a, b) => {
+        const rankA = typeRank[a.type] || 99;
+        const rankB = typeRank[b.type] || 99;
+        if (rankA !== rankB) {
+            return rankA - rankB;
+        }
         const titleA = (targetMods.find(m => m.name === a.name) || treeCache[a.name])?.title || a.name;
         const titleB = (targetMods.find(m => m.name === b.name) || treeCache[b.name])?.title || b.name;
         return titleA.localeCompare(titleB);
@@ -204,6 +222,38 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     const [viewMode, setViewMode] = useState<'cards' | 'tree'>('cards');
     const [treeCache, setTreeCache] = useState<Record<string, TargetModItem>>({});
     const [isLoadingTree, setIsLoadingTree] = useState(false);
+    const [autoIncludeRecommended, setAutoIncludeRecommended] = useState<boolean>(() => {
+        return getQueueAutoIncludeSettings().recommended;
+    });
+    const [autoIncludeOptional, setAutoIncludeOptional] = useState<boolean>(() => {
+        return getQueueAutoIncludeSettings().optional;
+    });
+
+    // Sync selectedDepIds on targetMods when autoIncludeRecommended setting changes
+    const handleToggleAutoIncludeRecommended = (enabled: boolean) => {
+        setAutoIncludeRecommended(enabled);
+        localStorage.setItem(QUEUE_AUTO_RECOMMENDED_KEY, String(enabled));
+        const settings = { recommended: enabled, optional: autoIncludeOptional };
+        setTargetMods((prev: TargetModItem[]) =>
+            prev.map(mod => ({
+                ...mod,
+                selectedDepIds: getInitialSelectedDepIds(mod.dependencies, settings),
+            }))
+        );
+    };
+
+    // Sync selectedDepIds on targetMods when autoIncludeOptional setting changes
+    const handleToggleAutoIncludeOptional = (enabled: boolean) => {
+        setAutoIncludeOptional(enabled);
+        localStorage.setItem(QUEUE_AUTO_OPTIONAL_KEY, String(enabled));
+        const settings = { recommended: autoIncludeRecommended, optional: enabled };
+        setTargetMods((prev: TargetModItem[]) =>
+            prev.map(mod => ({
+                ...mod,
+                selectedDepIds: getInitialSelectedDepIds(mod.dependencies, settings),
+            }))
+        );
+    };
 
     // Auto-clear cache when targetMods is cleared
     useEffect(() => {
@@ -287,9 +337,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                     const latestVersion = reversedReleases[0]?.version || 'latest';
                     
                     const treeDeps = convertBackendDepsToTree(details.default_dependencies);
-                    const initialSelectedIds = treeDeps
-                        .filter(d => d.type === 'required' || d.type === 'recommended')
-                        .map(d => d.id);
+                    const initialSelectedIds = getInitialSelectedDepIds(treeDeps);
                         
                     newCacheUpdates[details.name] = {
                         id: 'tree-' + details.name + '-' + Math.random(),
@@ -399,9 +447,10 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                 addLog(`Loaded mod info for "${details.title || details.name}" (latest ${formattedVer})`, 'success');
 
                 const treeDeps = convertBackendDepsToTree(details.default_dependencies);
-                const initialSelectedIds = treeDeps
-                    .filter(d => d.type === 'required' || d.type === 'recommended')
-                    .map(d => d.id);
+                const initialSelectedIds = getInitialSelectedDepIds(treeDeps, {
+                    recommended: autoIncludeRecommended,
+                    optional: autoIncludeOptional,
+                });
 
                 const newCard: TargetModItem = {
                     id: 'mod-' + Date.now() + '-' + Math.random(),
@@ -483,9 +532,10 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             }
 
             const treeDeps = convertBackendDepsToTree(targetRelease.dependencies);
-            const initialSelectedIds = treeDeps
-                .filter(d => d.type === 'required' || d.type === 'recommended')
-                .map(d => d.id);
+            const initialSelectedIds = getInitialSelectedDepIds(treeDeps, {
+                recommended: autoIncludeRecommended,
+                optional: autoIncludeOptional,
+            });
 
             addLog(`Switched "${m.title}" → v${version} (instant, using cached release info)`, 'info');
 
@@ -552,10 +602,11 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             });
 
             // Call backend prepare_download_batch via Tauri invoke!
+            // Note: includeRecommended is set to false here so sub-dependencies ONLY pull required dependencies.
             const resolvedBatch = await invoke<BackendResolvedDownloadItem[]>('resolve_download_batch', {
                 mainMods,
                 directDeps,
-                includeRecommended: true
+                includeRecommended: false
             });
 
             addLog(`Dependency resolution complete: ${resolvedBatch.length} mod(s) prepared for download.`, 'success');
@@ -620,7 +671,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     const renderDependencyTreePanel = () => {
         if (isLoadingTree) {
             return (
-                <div className={`flex flex-col ${LAYER.groupPanel} rounded-2xl ${BORDER.card} shadow-xs items-center justify-center p-6 text-slate-400 dark:text-zinc-550 gap-3 select-none`}>
+                <div className={`flex flex-col ${LAYER.groupPanel} rounded-2xl ${BORDER.card} shadow-xs items-center justify-center p-6 ${TEXT.muted} gap-3 select-none`}>
                     <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
                     <div className="flex flex-col gap-1 text-center max-w-[320px]">
                         <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">
@@ -639,21 +690,21 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         return (
             <div className={`flex flex-col ${LAYER.groupPanel} ${BORDER.card} shadow-xs overflow-hidden rounded-2xl animate-fade-in`}>
             {/* Header section identical to Download Manager */}
-            <div className="h-8.5 px-3.5 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between bg-slate-100/50 dark:bg-zinc-900/55 shrink-0 select-none">
+            <div className={`h-8.5 min-h-8.5 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                     <Layers className="w-3.5 h-3.5 text-indigo-500" />
                     <span>Dependency Graph Explorer</span>
-                    <span className="bg-slate-200/70 dark:bg-zinc-800 text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300">
+                    <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>
                         {targetMods.length + Object.keys(treeCache).length} resolved
                     </span>
                 </div>
 
                 {/* Inline Color Legend */}
-                <div className="flex items-center gap-3 text-[10px] text-slate-400 dark:text-zinc-500 font-medium select-none ml-auto mr-1.5 shrink-0">
+                <div className={`flex items-center gap-3 text-[10px] ${TEXT.muted} font-medium select-none ml-auto mr-1.5 shrink-0`}>
                     <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-zinc-500 shrink-0" /> Root</span>
-                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" /> Required</span>
-                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" /> Recommended</span>
-                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" /> Optional</span>
+                    <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.required.dot}`} /> Required</span>
+                    <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.recommended.dot}`} /> Recommended</span>
+                    <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.optional.dot}`} /> Optional</span>
                 </div>
             </div>
 
@@ -699,9 +750,16 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                         />
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                        <QueueSettingsDropdown
+                            autoIncludeRecommended={autoIncludeRecommended}
+                            autoIncludeOptional={autoIncludeOptional}
+                            onToggleRecommended={handleToggleAutoIncludeRecommended}
+                            onToggleOptional={handleToggleAutoIncludeOptional}
+                        />
+
                         <button
                             onClick={() => document.getElementById('file-import')?.click()}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 px-3 py-1.5 rounded-lg text-[11px] font-medium border border-slate-200/80 dark:border-zinc-700/60 cursor-pointer flex items-center gap-1.5 transition-colors"
+                            className={`${INTERACTIVE.secondary} px-3 py-1.5 rounded-lg text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors`}
                             title="Import mod list from text file"
                         >
                             <FileText className="w-3.5 h-3.5 text-indigo-500" />
@@ -782,7 +840,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                         <div className="w-full flex flex-col">
                             {targetMods.length === 0 ? (
                                 <div className="h-full min-h-[200px] text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
-                                    <div className={`p-4 rounded-full bg-slate-200/50 dark:bg-zinc-800/60 ${BORDER.dropdown} flex items-center justify-center text-indigo-500`}>
+                                    <div className={`p-4 rounded-full ${LAYER.pillSurface} ${BORDER.inner} flex items-center justify-center text-indigo-500`}>
                                         <Inbox className="w-8 h-8 stroke-[1.2]" />
                                     </div>
                                     <div className="flex flex-col gap-1 max-w-[280px] text-center select-none">

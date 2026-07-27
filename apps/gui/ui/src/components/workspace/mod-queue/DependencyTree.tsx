@@ -2,7 +2,7 @@ import React from 'react';
 import { Layers } from 'lucide-react';
 import { useAppContext } from '../../../context/AppContext';
 import { Checkbox } from '../../ui/Checkbox';
-import { TEXT } from '../../../theme/layers';
+import { LAYER, BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
 
 export type DependencyType = 'required' | 'recommended' | 'optional' | 'incompatible';
 
@@ -84,9 +84,9 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                         </div>
                         <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Always Included</span>
                     </div>
-                    <div className="bg-white dark:bg-zinc-900/70 border border-slate-200/80 dark:border-zinc-700/70 rounded-xl divide-y divide-slate-100 dark:divide-zinc-700/50 overflow-hidden shadow-2xs">
+                    <div className={`${LAYER.listSurface} ${BORDER.cardSoft} rounded-xl divide-y divide-slate-100 dark:divide-zinc-700/50 overflow-hidden shadow-2xs`}>
                         {requiredNodes.map(node => (
-                            <div key={node.id} className="flex items-center justify-between p-2.5 text-xs select-none cursor-default bg-slate-50/30 dark:bg-zinc-950/30">
+                            <div key={node.id} className={`flex items-center justify-between p-2.5 text-xs select-none cursor-default ${LAYER.innerInset}`}>
                                 <div className="flex items-center gap-2.5 overflow-hidden">
                                     <Checkbox checked disabled readOnly accent="sky" aria-label={`${node.name} required`} />
                                     <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
@@ -125,14 +125,14 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                             <span>Recommended Dependencies ({recommendedSelectedCount}/{recommendedNodes.length})</span>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-zinc-900/70 border border-slate-200/80 dark:border-zinc-700/70 rounded-xl divide-y divide-slate-100 dark:divide-zinc-700/50 overflow-hidden shadow-2xs ">
+                    <div className={`${LAYER.listSurface} ${BORDER.cardSoft} rounded-xl divide-y divide-slate-100 dark:divide-zinc-700/50 overflow-hidden shadow-2xs`}>
                         {recommendedNodes.map(node => {
                             const isSelected = selectedDepIds.includes(node.id);
                             return (
                                 <div
                                     key={node.id}
                                     onClick={() => onToggleDep(node.id)}
-                                    className={`flex items-center justify-between p-2.5 text-xs hover:bg-slate-100 dark:hover:bg-zinc-800/80 cursor-pointer transition-colors ${!isSelected ? 'opacity-50' : ''}`}
+                                    className={`flex items-center justify-between p-2.5 text-xs ${INTERACTIVE.rowHover} cursor-pointer transition-colors ${!isSelected ? 'opacity-50' : ''}`}
                                 >
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <Checkbox
@@ -178,14 +178,14 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                             <span>Optional Dependencies ({optionalSelectedCount}/{optionalNodes.length})</span>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-zinc-900/70 border border-slate-200/80 dark:border-zinc-700/70 rounded-xl divide-y divide-slate-100 dark:divide-zinc-700/50 overflow-hidden shadow-2xs ">
+                    <div className={`${LAYER.listSurface} ${BORDER.cardSoft} rounded-xl divide-y divide-slate-100 dark:divide-zinc-700/50 overflow-hidden shadow-2xs`}>
                         {optionalNodes.map(node => {
                             const isSelected = selectedDepIds.includes(node.id);
                             return (
                                 <div
                                     key={node.id}
                                     onClick={() => onToggleDep(node.id)}
-                                    className={`flex items-center justify-between p-2.5 text-xs hover:bg-slate-100 dark:hover:bg-zinc-800/80 cursor-pointer transition-colors ${!isSelected ? 'opacity-60' : ''}`}
+                                    className={`flex items-center justify-between p-2.5 text-xs ${INTERACTIVE.rowHover} cursor-pointer transition-colors ${!isSelected ? 'opacity-60' : ''}`}
                                 >
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <Checkbox

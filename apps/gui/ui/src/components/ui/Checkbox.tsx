@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Check, Minus } from 'lucide-react';
+import { LAYER } from '../../theme/layers';
 
 export type CheckboxAccent = 'indigo' | 'emerald' | 'amber' | 'sky' | 'violet' | 'teal';
 
@@ -100,7 +101,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
                 data-checked={isOn ? 'true' : 'false'}
                 aria-hidden="true"
                 className={[
-                    'pointer-events-none flex items-center justify-center border bg-white dark:bg-zinc-950/80 transition-all duration-150',
+                    `pointer-events-none flex items-center justify-center border ${LAYER.contentCard} transition-all duration-150`,
                     'peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500/40 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-white dark:peer-focus-visible:ring-offset-zinc-950',
                     'peer-disabled:opacity-55',
                     sizeClass[size],

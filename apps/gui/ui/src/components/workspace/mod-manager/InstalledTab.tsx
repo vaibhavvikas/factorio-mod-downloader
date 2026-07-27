@@ -3,7 +3,7 @@ import { FolderOpen, FolderSearch, FolderOutput, RefreshCw, Package, Sparkles } 
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import type { InstalledModItem } from '../../../context/AppContext';
-import { LAYER, BORDER, DIVIDER } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, INTERACTIVE } from '../../../theme/layers';
 import {
     DeleteModModal,
     DependencyUpgradeConflictModal,
@@ -221,7 +221,7 @@ export const InstalledTab: React.FC = () => {
                                 e.currentTarget.blur();
                                 handleBrowseFolder();
                             }}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-700/60 cursor-pointer transition-colors"
+                            className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
                             title="Browse / Change Folder"
                         >
                             <FolderSearch className="w-3.5 h-3.5 text-indigo-500" />
@@ -237,7 +237,7 @@ export const InstalledTab: React.FC = () => {
                                     console.error('Failed to open folder:', err);
                                 }
                             }}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-700/60 cursor-pointer transition-colors"
+                            className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
                             title="Open folder in Finder / File Explorer"
                         >
                             <FolderOutput className="w-3.5 h-3.5 text-indigo-500" />
@@ -249,7 +249,7 @@ export const InstalledTab: React.FC = () => {
                                 loadInstalledMods(folderPath);
                             }}
                             disabled={isAnyLoading}
-                            className="bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 p-1.5 rounded-lg border border-slate-200 dark:border-zinc-700/60 cursor-pointer transition-colors disabled:opacity-50"
+                            className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors disabled:opacity-50`}
                             title="Refresh Installed Mods"
                         >
                             <RefreshCw className={`w-3.5 h-3.5 ${isAnyLoading ? 'animate-spin' : ''}`} />
