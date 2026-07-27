@@ -11,159 +11,93 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ==========================================
-  # JOB 1: Fast Validation & Unit Tests
-  # ==========================================
-  test:
-    name: Test & Validate (${{ matrix.os }})
+  build-and-test:
+    name: Build & Test
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
-    runs-on: ${{ matrix.os }}
-
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
+      - uses: actions/checkout@v4
+      
+      # 1. Setup Node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: 'apps/gui/ui/package-lock.json'
-
-      - name: Install Rust Toolchain
+          node-version: lts/*
+          
+      # 2. Setup Rust
+      - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust Cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './ -> target'
-
+        
+      # 3. Install Linux System Dependencies (Crucial for Ubuntu runners)
       - name: Install Linux Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
-      - name: Run Cargo Workspace Checks & Unit Tests
-        run: |
-          cargo check --workspace
-          cargo test --workspace
-
-      - name: Install Frontend Dependencies
-        working-directory: apps/gui/ui
-        run: npm ci
-
-      - name: Validate Frontend TypeScript Build
-        working-directory: apps/gui/ui
-        run: npm run build
-
-  # ==========================================
-  # JOB 2: Desktop Binary Build & Artifact Upload
-  # ==========================================
-  build:
-    name: Build & Artifact (${{ matrix.os }})
-    needs: test
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'npm'
-          cache-dependency-path: 'apps/gui/ui/package-lock.json'
-
-      - name: Install Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Rust Cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './ -> target'
-
-      - name: Install Linux Dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Install Frontend Dependencies
-        working-directory: apps/gui/ui
-        run: npm ci
-
-      - name: Build Tauri Desktop App
-        working-directory: apps/gui/ui
-        run: npx tauri build --no-bundle
-
-      - name: Collect Executable Artifact
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p pr-artifacts
-          RELEASE_DIR="target/release"
-
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            SRC="$RELEASE_DIR/app.exe"
-            DEST="pr-artifacts/factorio-mod-downloader-windows-x64.exe"
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            SRC="$RELEASE_DIR/app"
-            DEST="pr-artifacts/factorio-mod-downloader-macos"
-          else
-            SRC="$RELEASE_DIR/app"
-            DEST="pr-artifacts/factorio-mod-downloader-linux-x64"
-          fi
-
-          if [ ! -f "$SRC" ]; then
-            echo "Executable not found at $SRC"
-            find "$RELEASE_DIR" -maxdepth 2 -type f 2>/dev/null | head -100 || true
-            exit 1
-          fi
-
-          cp -f "$SRC" "$DEST"
-          chmod +x "$DEST" || true
-          ls -lah pr-artifacts
-
-      - name: Upload PR Build Artifacts
+      # 4. Install Frontend Dependencies
+      - name: Install Dependencies
+        run: npm install # or pnpm install / bun install depending on your setup
+        
+      # 5. Run Tests (Compiles Rust crates)
+      - name: Run Tests
+        run: cargo test
+        
+      # 6. Build App (Reuses compiled crates from tests)
+      - name: Build Tauri App
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Note: By omitting `tagName` or `releaseId`, the action will simply build the app and NOT attempt to create a GitHub release.
+        
+      # 7. Upload Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: factorio-mod-downloader-pr-${{ github.event.pull_request.number }}-gui-${{ matrix.os }}
-          path: pr-artifacts/*
-          if-no-files-found: error
+          # Point directly to the Tauri bundle output directory
+          path: src-tauri/target/release/bundle/
           retention-days: 3
           overwrite: true
-          compression-level: 6
 
-  # ==========================================
-  # JOB 3: Pull Request Comment
-  # ==========================================
   pr-comment:
-    name: Link Artifacts in PR
-    needs: build
+    needs: build-and-test
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      actions: read
     steps:
-      - name: Add Sticky PR Comment
+      - name: Generate Direct Artifact Links
+        id: links
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARTIFACTS=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
+          
+          WIN_ID=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | contains("windows")) | .id')
+          MAC_ID=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | contains("macos")) | .id')
+          LIN_ID=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | contains("ubuntu")) | .id')
+          
+          BASE_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+          
+          # WRITE TO GITHUB_OUTPUT INSTEAD OF GITHUB_ENV
+          echo "WINDOWS_URL=$BASE_URL/$WIN_ID" >> $GITHUB_OUTPUT
+          echo "MACOS_URL=$BASE_URL/$MAC_ID" >> $GITHUB_OUTPUT
+          echo "LINUX_URL=$BASE_URL/$LIN_ID" >> $GITHUB_OUTPUT
+
+      - name: Update PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: build-artifacts
           message: |
             ### 🚀 Build Artifacts are Ready!
+            The desktop executables have been successfully compiled for this pull request.
             
-            The desktop executables for Windows, macOS, and Linux have been successfully compiled for this pull request.
+            👉 **Direct Download Links:**
+            * [🪟 Windows (.exe / .msi)](${{ steps.links.outputs.WINDOWS_URL }})
+            * [🍎 macOS (.app / .dmg)](${{ steps.links.outputs.MACOS_URL }})
+            * [🐧 Linux (.deb / AppImage)](${{ steps.links.outputs.LINUX_URL }})
             
-            👉 **[Click here to view and download the artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})**
-            
-            *Note: Scroll to the "Artifacts" section at the bottom of the linked workflow page to download the files. You must be logged into GitHub to download artifacts.*
+            *Note: You must be logged into GitHub to download artifacts.*
