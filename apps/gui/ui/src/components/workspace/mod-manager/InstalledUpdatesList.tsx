@@ -130,7 +130,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                                     <div className="flex flex-col min-w-0">
                                                         <div className="flex min-w-0 items-center gap-2">
                                                             <h3 className="min-w-0 truncate text-sm font-bold text-slate-900 dark:text-white">{mod.title || mod.name}</h3>
-                                                            <span className="max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-slate-200/60 dark:border-zinc-700/60" title={mod.name}>
+                                                            <span className={`max-w-[150px] shrink truncate whitespace-nowrap text-xs font-mono ${TEXT.secondary} ${LAYER.pillSurface} px-2.5 py-0.5 rounded-full ${BORDER.pill}`} title={mod.name}>
                                                                 {mod.name}
                                                             </span>
                                                         </div>

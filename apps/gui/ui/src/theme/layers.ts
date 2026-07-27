@@ -12,6 +12,13 @@ export const LAYER = {
     innerInset: 'bg-slate-100/50 dark:bg-zinc-900/50',
     pillSurface: 'bg-slate-200/60 dark:bg-zinc-900/60',
     summarySurface: 'bg-slate-100/80 dark:bg-zinc-900/50',
+    navBar: 'bg-white/80 dark:bg-zinc-900',
+    modalPanel: 'bg-white dark:bg-zinc-900',
+    modalBody: 'bg-slate-50 dark:bg-zinc-950/60',
+    listSurface: 'bg-white dark:bg-zinc-900/70',
+    viewportFooter: 'bg-white/90 dark:bg-zinc-800/95',
+    selectTrigger: 'bg-slate-100 dark:bg-zinc-700/60 hover:bg-slate-200/80 dark:hover:bg-zinc-700',
+    dropdownMenu: 'bg-white/95 dark:bg-zinc-900/95',
 } as const;
 
 /* IMPORTANT — BORDER token design (theme-flash-safe):
@@ -66,6 +73,42 @@ export const TEXT = {
     secondary: 'text-slate-500 dark:text-zinc-300',
     muted: 'text-slate-400 dark:text-zinc-400',
     dim: 'text-slate-500 dark:text-zinc-400',
+    primary: 'text-slate-900 dark:text-zinc-100',
+    emphasis: 'text-slate-800 dark:text-zinc-200',
+} as const;
+
+/** Primary brand / action accent — icons, active triggers, selected menu items */
+export const ACCENT = {
+    icon: 'text-indigo-500',
+    text: 'text-indigo-600 dark:text-indigo-400',
+    triggerActive: 'bg-indigo-50 border-indigo-300 text-indigo-600 dark:bg-indigo-950/50 dark:border-indigo-700 dark:text-indigo-400',
+    menuItemSelected: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400',
+} as const;
+
+/** Dependency-type colors shared by queue settings, dependency tree, and graph legend */
+export const DEPENDENCY_TYPE = {
+    required: {
+        label: 'text-sky-600 dark:text-sky-400',
+        icon: 'text-sky-500 dark:text-sky-400',
+        dot: 'bg-sky-500',
+    },
+    recommended: {
+        label: 'text-indigo-600 dark:text-indigo-400',
+        icon: 'text-indigo-500 dark:text-indigo-400',
+        dot: 'bg-indigo-500',
+        rowSelected: 'bg-indigo-50/80 dark:bg-indigo-950/30 border-indigo-200/70 dark:border-indigo-800/50',
+    },
+    optional: {
+        label: 'text-violet-600 dark:text-violet-400',
+        icon: 'text-violet-500 dark:text-violet-400',
+        dot: 'bg-violet-500',
+        rowSelected: 'bg-violet-50/80 dark:bg-violet-950/30 border-violet-200/70 dark:border-violet-800/50',
+    },
+    incompatible: {
+        label: 'text-rose-600 dark:text-rose-400',
+        icon: 'text-rose-500 dark:text-rose-400',
+        dot: 'bg-rose-500',
+    },
 } as const;
 
 /* HOVER borders: pure color change only, width/style already set via BORDER.*
@@ -74,4 +117,13 @@ export const HOVER_BORDER = {
     card: 'hover:border-slate-300 dark:hover:border-zinc-700',
     cardBright: 'hover:border-slate-300 dark:hover:border-zinc-600/80',
     cardSoft: 'hover:border-slate-300 dark:hover:border-zinc-700/80',
+    pill: 'hover:border-slate-300 dark:hover:border-zinc-600',
+} as const;
+
+export const INTERACTIVE = {
+    secondary: 'bg-slate-50 hover:bg-slate-100 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200',
+    iconHover: 'hover:bg-slate-200/60 dark:hover:bg-zinc-800/50',
+    rowHover: 'hover:bg-slate-100 dark:hover:bg-zinc-800/80',
+    ghostHover: 'hover:bg-slate-100 dark:hover:bg-zinc-800',
+    navTabHover: 'hover:bg-slate-100 dark:hover:bg-zinc-800/40',
 } as const;
