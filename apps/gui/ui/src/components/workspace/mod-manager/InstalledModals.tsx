@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import type { InstalledModItem } from '../../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
 
 export interface ConflictModalData {
     targetUpdates: { name: string; title: string; version: string }[];
