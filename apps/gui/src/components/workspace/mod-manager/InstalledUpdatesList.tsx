@@ -78,7 +78,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                 </div>
             ) : anyUpdates ? (
                 <>
-                    <div className="grid grid-cols-[repeat(auto-fit,minmax(28rem,1fr))] gap-2.5">
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(28rem,1fr))] gap-3">
                         {[...modsWithUpdates]
                             .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
                             .map(mod => {

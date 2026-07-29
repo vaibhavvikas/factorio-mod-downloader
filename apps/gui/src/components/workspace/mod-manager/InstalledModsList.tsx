@@ -22,7 +22,7 @@ interface InstalledModsListProps {
 
 export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, dependentsMap, onOpenDeleteModal }) => {
     return (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-3">
             {[...mods]
                 .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
                 .map(mod => {
