@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.3.1"
+version = "0.3.2"
 description = "A Factorio mod dependency resolver and downloader desktop app"
 authors = ["Vaibhav Vikas <vaibhavvikas@users.noreply.github.com>"]
 license = "MIT"
