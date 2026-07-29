@@ -20,39 +20,39 @@ export interface CategoryPillColors {
 const CATEGORY_PILL_STYLES: Record<string, CategoryPillColors> = {
     all: {
         active: 'bg-blue-600 text-white border-blue-600 shadow-xs font-bold',
-        inactive: 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/60'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     content: {
         active: 'bg-sky-600 text-white border-sky-600 shadow-xs font-bold',
-        inactive: 'bg-sky-500/10 dark:bg-sky-500/25 text-sky-700 dark:text-sky-400 border-sky-500/35 hover:bg-sky-500/20 dark:hover:bg-sky-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     overhaul: {
         active: 'bg-purple-600 text-white border-purple-600 shadow-xs font-bold',
-        inactive: 'bg-purple-500/10 dark:bg-purple-500/25 text-purple-700 dark:text-purple-400 border-purple-500/35 hover:bg-purple-500/20 dark:hover:bg-purple-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     tweaks: {
         active: 'bg-amber-600 text-white border-amber-600 shadow-xs font-bold',
-        inactive: 'bg-amber-500/10 dark:bg-amber-500/25 text-amber-700 dark:text-amber-400 border-amber-500/35 hover:bg-amber-500/20 dark:hover:bg-amber-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     utilities: {
         active: 'bg-teal-600 text-white border-teal-600 shadow-xs font-bold',
-        inactive: 'bg-teal-500/10 dark:bg-teal-500/25 text-teal-700 dark:text-teal-400 border-teal-500/35 hover:bg-teal-500/20 dark:hover:bg-teal-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     'mod-packs': {
         active: 'bg-rose-600 text-white border-rose-600 shadow-xs font-bold',
-        inactive: 'bg-rose-500/10 dark:bg-rose-500/25 text-rose-700 dark:text-rose-400 border-rose-500/35 hover:bg-rose-500/20 dark:hover:bg-rose-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     scenarios: {
         active: 'bg-orange-600 text-white border-orange-600 shadow-xs font-bold',
-        inactive: 'bg-orange-500/10 dark:bg-orange-500/25 text-orange-700 dark:text-orange-400 border-orange-500/35 hover:bg-orange-500/20 dark:hover:bg-orange-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     localizations: {
         active: 'bg-cyan-600 text-white border-cyan-600 shadow-xs font-bold',
-        inactive: 'bg-cyan-500/10 dark:bg-cyan-500/25 text-cyan-700 dark:text-cyan-400 border-cyan-500/35 hover:bg-cyan-500/20 dark:hover:bg-cyan-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     },
     'no-category': {
         active: 'bg-slate-700 text-white border-slate-700 shadow-xs font-bold',
-        inactive: 'bg-slate-500/10 dark:bg-slate-500/25 text-slate-700 dark:text-slate-400 border-slate-500/35 hover:bg-slate-500/20 dark:hover:bg-slate-500/35'
+        inactive: 'bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700/80 hover:bg-slate-50 dark:hover:bg-zinc-700/60'
     }
 };
 

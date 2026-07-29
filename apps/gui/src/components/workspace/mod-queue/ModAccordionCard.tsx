@@ -109,7 +109,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className={`panel-pill panel-pill-mono px-3 h-6 min-h-6 max-h-6 rounded-full items-center gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.tabActive} ${INTERACTIVE.pillHover} ${ACCENT.text} text-[10px] font-mono font-bold transition-colors cursor-pointer max-w-[320px]`}
+                className={`panel-pill panel-pill-mono px-3 h-6.5 min-h-6.5 rounded-lg border flex items-center gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.pill} ${INTERACTIVE.pillHover} ${ACCENT.text} text-[11px] font-mono font-bold transition-all cursor-pointer shadow-2xs max-w-[320px]`}
             >
                 <span className={`text-[10px] font-bold ${TEXT.muted} shrink-0 font-sans`}>Ver:</span>
                 <span className="truncate max-w-[240px]">{displayLabel}</span>
@@ -245,7 +245,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                 <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
                                     {mod.title || mod.name}
                                 </h3>
-                                <span className={`shrink truncate whitespace-nowrap text-xs font-mono ${TEXT.secondary} ${LAYER.pillSurface} px-2.5 py-0.5 rounded-full ${BORDER.pill}`} title={mod.name}>
+                                <span className={`shrink truncate whitespace-nowrap text-[11px] font-mono ${TEXT.secondary} ${LAYER.pillSurface} px-2 py-0.5 rounded-md ${BORDER.pill}`} title={mod.name}>
                                     {mod.name}
                                 </span>
                                 <span className={`panel-pill tracking-wide border ${categoryBadgeStyle}`}>

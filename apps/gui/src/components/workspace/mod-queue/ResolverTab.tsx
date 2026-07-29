@@ -782,7 +782,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
                 <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {targetMods.length > 0 && (
-                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-3 pt-3 pb-0 flex items-start justify-between rounded-t-2xl`}>
+                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 pt-3.5 pb-0 flex items-start justify-between rounded-t-2xl`}>
                              <div className="inline-flex gap-6 text-xs font-bold select-none">
                                  <button
                                      onClick={() => setViewMode('cards')}
@@ -846,7 +846,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                 </div>
                             ) : (
                                 <div key="view-cards" className={`w-full ${ANIMATION.subTabPane}`}>
-                                    <div className="w-full flex flex-col gap-4">
+                                    <div className="w-full flex flex-col gap-3">
                                         {[...targetMods]
                                             .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
                                             .map((mod: TargetModItem) => (

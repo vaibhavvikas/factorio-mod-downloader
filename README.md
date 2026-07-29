@@ -8,15 +8,19 @@
 
 Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect version constraints and optional dependencies, and click **Download All**.
 
-> **Note**: *If you love Factorio, please support Wube Software by purchasing the game at [factorio.com](https://factorio.com).*
+> **Disclaimer**: *Factorio Mod Downloader* is an independent open-source community utility and is **not developed by, affiliated with, or endorsed by Wube Software**. Factorio and all associated game assets, logos, and artwork are registered trademarks of Wube Software. If you love Factorio, please support the game developers by purchasing the official game at [factorio.com](https://factorio.com).
 
 ---
 
 ## 📸 Screenshots
 
-| **Explore & Online Search** | **Dependency Resolver & Queue** | **Installed Mod Manager** |
-|:---:|:---:|:---:|
-| ![Explore & Online Search](docs/screenshots/1.png) | ![Dependency Resolver & Queue](docs/screenshots/2.png) | ![Installed Mod Manager](docs/screenshots/3.png) |
+| **🔍 Explore & Online Search** |
+|:---:|
+| ![Explore & Online Search](docs/screenshots/1.png) |
+
+| **🌳 Dependency Resolver & Queue** | **📦 Installed Mod Manager** |
+|:---:|:---:|
+| ![Dependency Resolver & Queue](docs/screenshots/2.png) | ![Installed Mod Manager](docs/screenshots/3.png) |
 
 ---
 
@@ -30,13 +34,13 @@ Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect ve
 - **🔄 Parallel Download Manager**: Multi-threaded parallel downloading with streaming speed indicators, exact file sizes, and inactivity timeout guards.
 - **🔁 Auto-Retry & Recovery**: Automatic 3-attempt retry loop for interrupted downloads, plus manual one-click **Retry** buttons for failed items.
 - **🎨 Modern Design System & GPU Animations**: Glassmorphic theme tokens, light/dark mode support, hardware-accelerated GPU transitions, and fluid window scaling.
-- **🌐 Cross-Platform Installers**: Native support for **Windows (x64)**, **macOS (Universal / Apple Silicon & Intel)**, and **Linux (x86_64 AppImage & .deb)**.
+- **🌐 Direct Standalone Executables**: Native portable binaries for **Windows (x64 .exe)**, **macOS (Universal Binary)**, and **Linux (x86_64 ELF)**—no installation or setup wizard required.
 
 ---
 
 ## 🖥️ How to Use
 
-1. Download the latest installer for your OS from the [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases/latest) page.
+1. Download the direct standalone executable for your OS from the [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases/latest) page.
 2. Launch **Factorio Mod Downloader**.
 3. Set your target **Mods Folder** (automatically detected on boot).
 4. Browse mods in the **Explore** tab or paste a mod URL (e.g., `https://mods.factorio.com/mod/Krastorio2`) in the **Mod Queue**.
@@ -51,7 +55,7 @@ Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect ve
 .
 ├── apps/
 │   ├── cli/             # Standalone Rust CLI runner (planned)
-│   └── gui/ui/          # Tauri v2 Desktop GUI (Rust + React + Vite + TailwindCSS)
+│   └── gui/             # Tauri v2 Desktop GUI (Rust + React + Vite + TailwindCSS)
 ├── crates/
 │   ├── factorio/        # Factorio Mod Portal API client & dependency graph resolver
 │   ├── parser/          # Info.json dependency parser & version constraint evaluator
@@ -72,16 +76,16 @@ Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect ve
 ```bash
 # Clone the repository
 git clone https://github.com/vaibhavvikas/factorio-mod-downloader.git
-cd factorio-mod-downloader/apps/gui/ui
+cd factorio-mod-downloader/apps/gui
 
 # Install npm dependencies
 npm install
 
 # Run in Development Mode
-npm run tauri dev
+npx tauri dev
 
 # Build Production Bundle
-npm run tauri build
+npx tauri build
 ```
 
 ---
@@ -89,6 +93,11 @@ npm run tauri build
 ## 💳 Credits & Acknowledgments
 - Factorio Mod Portal API & [Factorio.com](https://factorio.com) by Wube Software.
 - Community storage mirrors by [re146.dev](https://re146.dev) & [@radioegor146](https://github.com/radioegor146).
+
+---
+
+## ⚠️ Disclaimer
+*Factorio Mod Downloader* is an independent, community-developed open-source software and is **not developed by, affiliated with, or endorsed by Wube Software**. Factorio and all associated game logos, trademarks, and assets belong to Wube Software.
 
 ---
 

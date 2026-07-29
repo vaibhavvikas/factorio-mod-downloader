@@ -3,7 +3,7 @@ resolver = "2"
 
 members = [
     "apps/cli",
-    "apps/gui/ui/src-tauri",
+    "apps/gui/src-tauri",
     "crates/factorio",
     "crates/downloader",
     "crates/parser",

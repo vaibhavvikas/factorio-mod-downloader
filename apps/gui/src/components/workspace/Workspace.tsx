@@ -167,12 +167,10 @@ export const Workspace: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('search')}
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${
-                            activeTab === 'search'
-                                ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
-                                : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
+                            activeTab === 'search' ? LAYER.navTabActive : LAYER.navTabInactive
                         }`}
                     >
-                        <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                        <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
                         <span>Explore</span>
                     </button>
 
@@ -180,18 +178,16 @@ export const Workspace: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('queue')}
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${
-                            activeTab === 'queue'
-                                ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
-                                : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
+                            activeTab === 'queue' ? LAYER.navTabActive : LAYER.navTabInactive
                         }`}
                     >
-                        <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                        <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
                         <span>Mod Queue</span>
                         {targetMods.length > 0 && (
                             <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1.5 text-[9.5px] font-mono font-bold leading-none ${
                                 activeTab === 'queue'
                                     ? 'bg-blue-600 text-white dark:bg-blue-500'
-                                    : 'bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                                    : 'bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-zinc-200'
                             }`}>
                                 {targetMods.length}
                             </span>
@@ -202,12 +198,10 @@ export const Workspace: React.FC = () => {
                     <button
                         onClick={() => setActiveTab('installed')}
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${
-                            activeTab === 'installed'
-                                ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
-                                : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
+                            activeTab === 'installed' ? LAYER.navTabActive : LAYER.navTabInactive
                         }`}
                     >
-                        <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                        <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
                         <span>Mod Manager</span>
                     </button>
                 </nav>
@@ -216,23 +210,29 @@ export const Workspace: React.FC = () => {
             {/* Content Rendering and Console wrapper */}
             <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
                 <div className="flex-1 min-h-0 overflow-hidden relative">
-                    <div key="tab-search" className={activeTab === 'search' ? `h-full ${ANIMATION.tabPane}` : 'hidden'}>
-                        <SearchTab 
-                            existingModNames={targetMods.map(m => m.name)}
-                            onAddModToQueue={handleAddModToQueue}
-                        />
-                    </div>
-                    <div key="tab-queue" className={activeTab === 'queue' ? `h-full overflow-hidden ${ANIMATION.tabPane}` : 'hidden'}>
-                        <ResolverTab 
-                            targetMods={targetMods}
-                            setTargetMods={setTargetMods}
-                            loading={loading}
-                            parseAndAddMods={handleParseAndAddMods}
-                        />
-                    </div>
-                    <div key="tab-installed" className={activeTab === 'installed' ? `h-full ${ANIMATION.tabPane}` : 'hidden'}>
-                        <InstalledTab />
-                    </div>
+                    {activeTab === 'search' && (
+                        <div key="tab-search" className={`h-full ${ANIMATION.tabPane}`}>
+                            <SearchTab 
+                                existingModNames={targetMods.map(m => m.name)}
+                                onAddModToQueue={handleAddModToQueue}
+                            />
+                        </div>
+                    )}
+                    {activeTab === 'queue' && (
+                        <div key="tab-queue" className={`h-full overflow-hidden ${ANIMATION.tabPane}`}>
+                            <ResolverTab 
+                                targetMods={targetMods}
+                                setTargetMods={setTargetMods}
+                                loading={loading}
+                                parseAndAddMods={handleParseAndAddMods}
+                            />
+                        </div>
+                    )}
+                    {activeTab === 'installed' && (
+                        <div key="tab-installed" className={`h-full ${ANIMATION.tabPane}`}>
+                            <InstalledTab />
+                        </div>
+                    )}
                 </div>
 
                 {/* System Console Logs Panel — Bottom Docked Persistent Window pushing content up */}

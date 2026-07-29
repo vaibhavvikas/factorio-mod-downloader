@@ -26,7 +26,7 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: 'apps/gui/ui/package-lock.json'
+          cache-dependency-path: 'apps/gui/package-lock.json'
 
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
@@ -43,24 +43,35 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Install Frontend Dependencies
-        working-directory: apps/gui/ui
+        working-directory: apps/gui
         run: npm ci
 
       - name: Run Workspace Tests
         run: cargo test --workspace
 
-      - name: Build Tauri App
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          projectPath: apps/gui/ui
+      - name: Build Standalone Desktop GUI Executable
+        working-directory: apps/gui
+        run: |
+          npm run build
+          npx tauri build --no-bundle
+
+      - name: Stage Standalone Executable Artifact
+        shell: bash
+        run: |
+          mkdir -p dist_executable
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp target/release/app.exe dist_executable/factorio-mod-downloader-gui-windows-x64.exe
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            cp target/release/app dist_executable/factorio-mod-downloader-gui-macos-x64
+          else
+            cp target/release/app dist_executable/factorio-mod-downloader-gui-linux-x64
+          fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: factorio-mod-downloader-pr-${{ github.event.pull_request.number }}-gui-${{ matrix.os }}
-          path: target/release/bundle/
+          path: dist_executable/
           retention-days: 3
           overwrite: true
 
@@ -96,11 +107,11 @@ jobs:
           header: build-artifacts
           message: |
             ### 🚀 Build Artifacts are Ready!
-            The desktop executables have been successfully compiled for this pull request.
+            The desktop standalone executables have been successfully compiled for this pull request.
 
-            👉 **Direct Download Links:**
-            * [🪟 Windows (.exe / .msi)](${{ steps.links.outputs.WINDOWS_URL }})
-            * [🍎 macOS (.app / .dmg)](${{ steps.links.outputs.MACOS_URL }})
-            * [🐧 Linux (.deb / AppImage)](${{ steps.links.outputs.LINUX_URL }})
+            👉 **Direct Executable Artifacts:**
+            * [🪟 Windows (.exe standalone)](${{ steps.links.outputs.WINDOWS_URL }})
+            * [🍎 macOS (Standalone Executable)](${{ steps.links.outputs.MACOS_URL }})
+            * [🐧 Linux (Standalone Executable)](${{ steps.links.outputs.LINUX_URL }})
 
             *Note: You must be logged into GitHub to download artifacts.*
