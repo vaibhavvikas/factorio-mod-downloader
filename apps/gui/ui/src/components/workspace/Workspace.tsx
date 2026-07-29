@@ -6,7 +6,7 @@ import { InstalledTab } from './mod-manager/InstalledTab';
 import type { TargetModItem } from './mod-queue/ModAccordionCard';
 import { useAppContext } from '../../context/AppContext';
 import { invoke } from '@tauri-apps/api/core';
-import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE, ANIMATION } from '../../theme/layers';
 import { getInitialSelectedDepIds } from './mod-queue/queueAutoSelect';
 
 export const Workspace: React.FC = () => {
@@ -159,14 +159,14 @@ export const Workspace: React.FC = () => {
     };
 
     return (
-        <div className={`flex-1 flex flex-col min-w-[450px] ${LAYER.appCanvas} transition-colors relative overflow-hidden`}>
+        <div className={`flex-1 flex flex-col w-full h-full min-w-0 min-h-0 ${LAYER.appCanvas} transition-colors relative overflow-hidden`}>
             {/* Primary App Navigation Header Bar */}
             <div className={`h-14 flex items-center justify-between ${LAYER.navBar} border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none`}>
                 <nav className="flex items-center gap-2 h-full">
                     {/* Tab 1: Explore */}
                     <button
                         onClick={() => setActiveTab('search')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
+                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${
                             activeTab === 'search'
                                 ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
                                 : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
@@ -179,7 +179,7 @@ export const Workspace: React.FC = () => {
                     {/* Tab 2: Mod Queue */}
                     <button
                         onClick={() => setActiveTab('queue')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
+                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${
                             activeTab === 'queue'
                                 ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
                                 : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
@@ -201,7 +201,7 @@ export const Workspace: React.FC = () => {
                     {/* Tab 3: Mod Manager */}
                     <button
                         onClick={() => setActiveTab('installed')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
+                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${
                             activeTab === 'installed'
                                 ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
                                 : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
@@ -216,13 +216,13 @@ export const Workspace: React.FC = () => {
             {/* Content Rendering and Console wrapper */}
             <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
                 <div className="flex-1 min-h-0 overflow-hidden relative">
-                    <div className={activeTab === 'search' ? 'h-full' : 'hidden'}>
+                    <div key="tab-search" className={activeTab === 'search' ? `h-full ${ANIMATION.tabPane}` : 'hidden'}>
                         <SearchTab 
                             existingModNames={targetMods.map(m => m.name)}
                             onAddModToQueue={handleAddModToQueue}
                         />
                     </div>
-                    <div className={activeTab === 'queue' ? 'h-full overflow-hidden' : 'hidden'}>
+                    <div key="tab-queue" className={activeTab === 'queue' ? `h-full overflow-hidden ${ANIMATION.tabPane}` : 'hidden'}>
                         <ResolverTab 
                             targetMods={targetMods}
                             setTargetMods={setTargetMods}
@@ -230,7 +230,7 @@ export const Workspace: React.FC = () => {
                             parseAndAddMods={handleParseAndAddMods}
                         />
                     </div>
-                    <div className={activeTab === 'installed' ? 'h-full' : 'hidden'}>
+                    <div key="tab-installed" className={activeTab === 'installed' ? `h-full ${ANIMATION.tabPane}` : 'hidden'}>
                         <InstalledTab />
                     </div>
                 </div>

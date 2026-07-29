@@ -59,15 +59,14 @@ jobs:
             VERSION="v$VERSION"
           fi
 
-          EXPECTED_BRANCH="release/$VERSION"
-          if [ "$BRANCH" != "$EXPECTED_BRANCH" ]; then
-            echo "::error::Branch name must match the release version. Expected: $EXPECTED_BRANCH, got: $BRANCH"
-            exit 1
-          fi
-
           RAW_VERSION="${VERSION#v}"
           if ! [[ "$RAW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?(\+[A-Za-z0-9.-]+)?$ ]]; then
             echo "::error::Invalid semver version: $VERSION"
+            exit 1
+          fi
+
+          if [ "$BRANCH" != "release/$VERSION" ] && [ "$BRANCH" != "release/$RAW_VERSION" ]; then
+            echo "::error::Branch name must match the release version. Expected: release/$VERSION or release/$RAW_VERSION, got: $BRANCH"
             exit 1
           fi
 
@@ -159,10 +158,41 @@ jobs:
           RAW_VERSION: ${{ needs.validate.outputs.raw_version }}
         run: |
           echo "Propagating version $RAW_VERSION into config files..."
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/package.json
-          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$RAW_VERSION\"/g" apps/gui/ui/src-tauri/tauri.conf.json
-          sed -i.bak "s/^version = \".*\"/version = \"$RAW_VERSION\"/" apps/gui/ui/src-tauri/Cargo.toml
-          rm -f apps/gui/ui/package.json.bak apps/gui/ui/src-tauri/tauri.conf.json.bak apps/gui/ui/src-tauri/Cargo.toml.bak
+          node -e "
+            const fs = require('fs');
+
+            // apps/gui/ui/package.json
+            const pkgPath = 'apps/gui/ui/package.json';
+            if (fs.existsSync(pkgPath)) {
+              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+              pkg.version = process.env.RAW_VERSION;
+              fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+            }
+
+            // apps/gui/ui/src-tauri/tauri.conf.json
+            const tauriPath = 'apps/gui/ui/src-tauri/tauri.conf.json';
+            if (fs.existsSync(tauriPath)) {
+              const tauriConf = JSON.parse(fs.readFileSync(tauriPath, 'utf8'));
+              tauriConf.version = process.env.RAW_VERSION;
+              fs.writeFileSync(tauriPath, JSON.stringify(tauriConf, null, 2) + '\n');
+            }
+
+            // apps/gui/ui/src-tauri/Cargo.toml
+            const cargoTauriPath = 'apps/gui/ui/src-tauri/Cargo.toml';
+            if (fs.existsSync(cargoTauriPath)) {
+              let cargoTauri = fs.readFileSync(cargoTauriPath, 'utf8');
+              cargoTauri = cargoTauri.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(cargoTauriPath, cargoTauri);
+            }
+
+            // apps/cli/Cargo.toml
+            const cargoCliPath = 'apps/cli/Cargo.toml';
+            if (fs.existsSync(cargoCliPath)) {
+              let cargoCli = fs.readFileSync(cargoCliPath, 'utf8');
+              cargoCli = cargoCli.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(cargoCliPath, cargoCli);
+            }
+          "
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -185,26 +215,11 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Install Frontend Dependencies
         working-directory: apps/gui/ui
         run: npm ci
-
-      - name: Build CLI Binary
-        run: cargo build --release --bin factorio-mod-downloader-cli
-
-      - name: Package CLI Binary Artifacts
-        shell: bash
-        run: |
-          mkdir -p artifacts
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp target/release/factorio-mod-downloader-cli.exe artifacts/factorio-mod-downloader-cli-windows-x64.exe
-          elif [ "${{ runner.os }}" = "macOS" ]; then
-            cp target/release/factorio-mod-downloader-cli artifacts/factorio-mod-downloader-cli-macos
-          else
-            cp target/release/factorio-mod-downloader-cli artifacts/factorio-mod-downloader-cli-linux-x64
-          fi
 
       - name: Build Tauri Desktop GUI App
         uses: tauri-apps/tauri-action@v0
@@ -215,21 +230,12 @@ jobs:
           tagName: ${{ needs.validate.outputs.target_version }}
           releaseName: 'Factorio Mod Downloader ${{ needs.validate.outputs.target_version }}'
           releaseBody: |
-            Release ${{ needs.validate.outputs.target_version }} containing cross-platform desktop GUI installers and standalone CLI binaries.
+            Release ${{ needs.validate.outputs.target_version }} containing cross-platform desktop GUI installers.
 
             ## Downloads
             - **Windows**: `.exe` / `.msi` installers
-            - **macOS**: Universal binary (Apple Silicon & Intel)
+            - **macOS**: Universal binary `.dmg` (Apple Silicon & Intel)
             - **Linux**: `.deb` and AppImage
-            - **CLI**: Standalone command-line binary for this platform
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
-
-      - name: Upload CLI Artifacts to Release
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.validate.outputs.target_version }}
-          files: artifacts/*

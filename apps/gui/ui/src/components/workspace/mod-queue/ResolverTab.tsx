@@ -5,7 +5,7 @@ import { useAppContext } from '../../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
-import { LAYER, BORDER, TEXT, INTERACTIVE, DEPENDENCY_TYPE, ACCENT } from '../../../theme/layers';
+import { LAYER, BORDER, TEXT, INTERACTIVE, DEPENDENCY_TYPE, ACCENT, ANIMATION } from '../../../theme/layers';
 import {
     getInitialSelectedDepIds,
     getQueueAutoIncludeSettings,
@@ -786,7 +786,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                              <div className="inline-flex gap-6 text-xs font-bold select-none">
                                  <button
                                      onClick={() => setViewMode('cards')}
-                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'cards'
+                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'cards'
                                          ? ACCENT.text
                                          : `${TEXT.dim} ${TEXT.hoverEmphasis}`
                                          }`}
@@ -794,12 +794,12 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                      <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
                                      <span>Mod Cards</span>
                                      {viewMode === 'cards' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                      )}
                                  </button>
                                  <button
                                      onClick={() => setViewMode('tree')}
-                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'tree'
+                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'tree'
                                          ? ACCENT.text
                                          : `${TEXT.dim} ${TEXT.hoverEmphasis}`
                                          }`}
@@ -807,7 +807,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                      <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
                                      <span>Dependency Tree</span>
                                      {viewMode === 'tree' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                      )}
                                  </button>
                              </div>
@@ -829,11 +829,11 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                     </div>
                                 </div>
                             ) : viewMode === 'tree' ? (
-                                <>
+                                <div key="view-tree" className={`w-full ${ANIMATION.subTabPane}`}>
                                     <div className="w-full">
                                         {renderDependencyTreePanel()}
                                     </div>
-                                    <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pointer-events-none -ml-5 -mr-3 pl-5 pr-3">
+                                    <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
                                         <button
                                             onClick={handleStartDownloadAll}
                                             disabled={isBusy}
@@ -843,9 +843,9 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
                                         </button>
                                     </div>
-                                </>
+                                </div>
                             ) : (
-                                <>
+                                <div key="view-cards" className={`w-full ${ANIMATION.subTabPane}`}>
                                     <div className="w-full flex flex-col gap-4">
                                         {[...targetMods]
                                             .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
@@ -862,7 +862,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                                 />
                                             ))}
                                     </div>
-                                    <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pointer-events-none -ml-5 -mr-3 pl-5 pr-3">
+                                    <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
                                         <button
                                             onClick={handleStartDownloadAll}
                                             disabled={isBusy}
@@ -872,7 +872,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
                                         </button>
                                     </div>
-                                </>
+                                </div>
                             )}
                         </div>
                     </div>

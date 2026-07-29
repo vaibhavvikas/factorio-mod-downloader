@@ -15,8 +15,10 @@
     "windows": [
       {
         "title": "Factorio Mod Downloader",
-        "width": 1024,
-        "height": 768,
+        "width": 1280,
+        "height": 720,
+        "minWidth": 1280,
+        "minHeight": 720,
         "decorations": false,
         "transparent": true,
         "resizable": true

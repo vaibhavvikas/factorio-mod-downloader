@@ -462,3 +462,51 @@ html[data-theme-transitioning]::before {
   will-change: opacity;
   isolation: isolate;
 }
+
+/* 6. Cross-Platform Tab Switching & Pane Transition Animations
+   —————————————————————————————————————————————————————————————————————————
+   Uses GPU-accelerated opacity and transform for 60fps rendering across
+   Windows (WebView2), macOS (WKWebView), Linux (WebKitGTK), and Browsers.
+   Includes reduced-motion accessibility overrides. */
+
+@keyframes tab-pane-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.998);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes subtab-pane-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tab-pane-in {
+  animation: tab-pane-in 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-subtab-pane-in {
+  animation: subtab-pane-in 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* Reduced motion preference fallback for cross-platform accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-tab-pane-in,
+  .animate-subtab-pane-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
