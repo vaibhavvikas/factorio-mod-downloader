@@ -207,6 +207,7 @@ jobs:
 
       - name: Build Desktop GUI App
         working-directory: apps/gui
+        shell: bash
         run: |
           npm run build
           if [ "${{ matrix.platform }}" = "macos-latest" ]; then
