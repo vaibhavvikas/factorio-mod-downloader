@@ -3,7 +3,7 @@ import { FolderOpen, FolderSearch, FolderOutput, RefreshCw, Package, Sparkles } 
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import type { InstalledModItem } from '../../../context/AppContext';
-import { LAYER, BORDER, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, INTERACTIVE, ANIMATION } from '../../../theme/layers';
 import {
     DeleteModModal,
     DependencyUpgradeConflictModal,
@@ -265,7 +265,7 @@ export const InstalledTab: React.FC = () => {
                              <div className="inline-flex gap-6 text-xs font-bold select-none">
                                  <button
                                      onClick={() => setActiveTab('installed')}
-                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${
                                          activeTab === 'installed'
                                              ? 'text-blue-600 dark:text-blue-400'
                                              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
@@ -277,12 +277,12 @@ export const InstalledTab: React.FC = () => {
                                          {installedMods.length}
                                      </span>
                                      {activeTab === 'installed' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                      )}
                                  </button>
                                  <button
                                      onClick={() => setActiveTab('updates')}
-                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${
                                          activeTab === 'updates'
                                              ? 'text-blue-600 dark:text-blue-400'
                                              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
@@ -296,7 +296,7 @@ export const InstalledTab: React.FC = () => {
                                          </span>
                                      )}
                                      {activeTab === 'updates' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                      )}
                                  </button>
                              </div>
@@ -316,22 +316,26 @@ export const InstalledTab: React.FC = () => {
                                     {isAnyLoading ? 'Scanning installed mods & checking online updates...' : 'No installed mods found in selected folder.'}
                                 </div>
                             ) : activeTab === 'installed' ? (
-                                <InstalledModsList
-                                    mods={installedMods}
-                                    dependentsMap={dependentsMap}
-                                    onOpenDeleteModal={handleOpenDeleteModal}
-                                />
+                                <div key="subtab-installed" className={`w-full ${ANIMATION.subTabPane}`}>
+                                    <InstalledModsList
+                                        mods={installedMods}
+                                        dependentsMap={dependentsMap}
+                                        onOpenDeleteModal={handleOpenDeleteModal}
+                                    />
+                                </div>
                             ) : (
-                                <InstalledUpdatesList
-                                    mods={installedMods}
-                                    queue={queue}
-                                    isCheckingUpdates={isCheckingUpdates}
-                                    isAnyLoading={isAnyLoading}
-                                    selectedUpdateCount={selectedUpdateCount}
-                                    onToggleSelect={handleToggleSelect}
-                                    onSelectVersion={handleSelectVersion}
-                                    onStartUpdateBatch={handleStartUpdateBatch}
-                                />
+                                <div key="subtab-updates" className={`w-full ${ANIMATION.subTabPane}`}>
+                                    <InstalledUpdatesList
+                                        mods={installedMods}
+                                        queue={queue}
+                                        isCheckingUpdates={isCheckingUpdates}
+                                        isAnyLoading={isAnyLoading}
+                                        selectedUpdateCount={selectedUpdateCount}
+                                        onToggleSelect={handleToggleSelect}
+                                        onSelectVersion={handleSelectVersion}
+                                        onStartUpdateBatch={handleStartUpdateBatch}
+                                    />
+                                </div>
                             )}
                         </div>
                     </div>

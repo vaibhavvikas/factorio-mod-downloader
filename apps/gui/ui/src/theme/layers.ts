@@ -22,6 +22,9 @@ export const LAYER = {
     viewportFooter: 'bg-white/90 dark:bg-zinc-800/95',
     selectTrigger: 'bg-slate-100 dark:bg-zinc-700/60 hover:bg-slate-200/80 dark:hover:bg-zinc-700',
     dropdownMenu: 'bg-white dark:bg-zinc-900',
+    tooltipSurface: 'bg-slate-900 dark:bg-zinc-950 text-slate-100 dark:text-zinc-200',
+    tooltipArrowAbove: 'bg-slate-900 dark:bg-zinc-950 border-r border-b border-slate-800 dark:border-zinc-800/90',
+    tooltipArrowBelow: 'bg-slate-900 dark:bg-zinc-950 border-l border-t border-slate-800 dark:border-zinc-800/90',
 } as const;
 
 const BW = 'border border-solid';  /* border-width + style only, never animates */
@@ -35,6 +38,7 @@ export const BORDER = {
     pill: `${BW} border-slate-200/80 dark:border-zinc-700/50`,
     tabActive: `border-slate-200 dark:border-zinc-700/60`,
     dropdown: `${BW} border-slate-200 dark:border-zinc-700/80`,
+    tooltip: `${BW} border-slate-800 dark:border-zinc-800/90`,
 } as const;
 
 export const DIVIDER = {
@@ -100,4 +104,19 @@ export const INTERACTIVE = {
     ghostHover: 'hover:bg-slate-100 dark:hover:bg-zinc-800',
     navTabHover: 'hover:bg-slate-100 dark:hover:bg-zinc-800/40',
     pillHover: 'hover:bg-slate-150 dark:hover:bg-zinc-900',
+} as const;
+
+export const ANIMATION = {
+    fast: 'transition-all duration-150 ease-out',
+    normal: 'transition-all duration-200 ease-out',
+    smooth: 'transition-all duration-300 cubic-bezier(0.16, 1, 0.3, 1)',
+    gpu: 'transition-gpu',
+
+    // Tab pane switching transitions (cross-platform GPU hardware accelerated)
+    tabPane: 'animate-tab-pane-in',
+    subTabPane: 'animate-subtab-pane-in',
+
+    // Navigation item & button micro-interactions
+    tabButton: 'transition-all duration-200 ease-out active:scale-[0.97]',
+    pillPress: 'transition-transform duration-100 active:scale-95',
 } as const;
