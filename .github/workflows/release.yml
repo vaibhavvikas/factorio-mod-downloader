@@ -205,11 +205,15 @@ jobs:
         working-directory: apps/gui
         run: npm ci
 
-      - name: Build Standalone Desktop GUI App
+      - name: Build Desktop GUI App
         working-directory: apps/gui
         run: |
           npm run build
-          npx tauri build --no-bundle ${{ matrix.args }}
+          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            npx tauri build ${{ matrix.args }}
+          else
+            npx tauri build --no-bundle ${{ matrix.args }}
+          fi
 
       - name: Stage Release Executables
         shell: bash
@@ -220,14 +224,16 @@ jobs:
           TARGET_DIR="target/release"
           if [ "${{ matrix.platform }}" = "macos-latest" ]; then
             TARGET_DIR="target/universal-apple-darwin/release"
-          fi
-
-          if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+            cd "${TARGET_DIR}/bundle/macos"
+            zip -r "${GITHUB_WORKSPACE}/stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal.app.zip" "Factorio Mod Downloader.app"
+          elif [ "${{ matrix.platform }}" = "windows-latest" ]; then
             cp "${TARGET_DIR}/app.exe" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe"
-          elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
-            cp "${TARGET_DIR}/app" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal"
           else
+            chmod +x "${TARGET_DIR}/app"
             cp "${TARGET_DIR}/app" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
+            cd stage_assets
+            tar -czvf "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64.tar.gz" "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
+            rm "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
           fi
 
       - name: Upload Platform Executables Artifact
@@ -280,8 +286,8 @@ jobs:
         run: |
           EXPECTED=(
             "factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe"
-            "factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal"
-            "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
+            "factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal.app.zip"
+            "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64.tar.gz"
           )
           MISSING=0
           for file in "${EXPECTED[@]}"; do
@@ -314,17 +320,19 @@ jobs:
           cat << 'EOF' > release_body.md
           ## 🚀 Factorio Mod Downloader ${{ env.TARGET_VERSION }}
 
+          ![GitHub Downloads (all assets, specific tag)](https://img.shields.io/github/downloads/vaibhavvikas/factorio-mod-downloader/${{ env.TARGET_VERSION }}/total)
+
           High-performance standalone desktop GUI mod downloader for **Factorio**. Resolves recursive dependency graphs, checks online updates, and downloads modpacks in parallel.
 
-          ### 📦 Standalone Executables (No Installation Required)
+          ### 📦 Desktop Executables & Archives
 
-          Download the direct executable for your OS below. Run it directly—no installer wizard or setup required.
+          Download the direct executable or archive for your OS below:
 
-          | Platform | GUI Executable (Standalone) |
+          | Platform | GUI Executable / Archive |
           | :--- | :--- |
           | 🪟 **Windows (x64)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe` |
-          | 🍎 **macOS (Universal)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal` |
-          | 🐧 **Linux (x86_64)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64` |
+          | 🍎 **macOS (Universal)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal.app.zip` |
+          | 🐧 **Linux (x86_64)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64.tar.gz` |
 
           ---
 

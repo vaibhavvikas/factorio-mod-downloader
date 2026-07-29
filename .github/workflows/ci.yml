@@ -49,11 +49,15 @@ jobs:
       - name: Run Workspace Tests
         run: cargo test --workspace
 
-      - name: Build Standalone Desktop GUI Executable
+      - name: Build Desktop GUI Executable
         working-directory: apps/gui
         run: |
           npm run build
-          npx tauri build --no-bundle
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            npx tauri build
+          else
+            npx tauri build --no-bundle
+          fi
 
       - name: Stage Standalone Executable Artifact
         shell: bash
@@ -62,9 +66,14 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             cp target/release/app.exe dist_executable/factorio-mod-downloader-gui-windows-x64.exe
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            cp target/release/app dist_executable/factorio-mod-downloader-gui-macos-x64
+            cd target/release/bundle/macos
+            zip -r "${GITHUB_WORKSPACE}/dist_executable/factorio-mod-downloader-gui-macos-x64.app.zip" "Factorio Mod Downloader.app"
           else
+            chmod +x target/release/app
             cp target/release/app dist_executable/factorio-mod-downloader-gui-linux-x64
+            cd dist_executable
+            tar -czvf factorio-mod-downloader-gui-linux-x64.tar.gz factorio-mod-downloader-gui-linux-x64
+            rm factorio-mod-downloader-gui-linux-x64
           fi
 
       - name: Upload Artifact
@@ -111,7 +120,7 @@ jobs:
 
             👉 **Direct Executable Artifacts:**
             * [🪟 Windows (.exe standalone)](${{ steps.links.outputs.WINDOWS_URL }})
-            * [🍎 macOS (Standalone Executable)](${{ steps.links.outputs.MACOS_URL }})
-            * [🐧 Linux (Standalone Executable)](${{ steps.links.outputs.LINUX_URL }})
+            * [🍎 macOS (.app.zip bundle)](${{ steps.links.outputs.MACOS_URL }})
+            * [🐧 Linux (.tar.gz standalone)](${{ steps.links.outputs.LINUX_URL }})
 
             *Note: You must be logged into GitHub to download artifacts.*
