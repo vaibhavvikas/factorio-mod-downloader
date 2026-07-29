@@ -79,7 +79,7 @@ jobs:
     needs: validate
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
@@ -114,28 +114,11 @@ jobs:
       - name: Run Workspace Tests
         run: cargo test --workspace
 
-  cleanup-existing-release:
-    name: Cleanup Existing Release Tag
-    needs: [validate, test]
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Delete Existing Release Tag (If Overwrite Selected)
-        if: ${{ github.event.inputs.overwrite_release != 'false' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
-        run: |
-          gh release delete "$TARGET_VERSION" --yes --cleanup-tag || true
-
   build-executables:
     name: Build Standalone Executables (${{ matrix.platform }})
-    needs: [validate, cleanup-existing-release]
+    needs: [validate, test]
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - platform: 'macos-latest'
@@ -261,9 +244,26 @@ jobs:
           retention-days: 1
           overwrite: true
 
+  cleanup-existing-release:
+    name: Cleanup Existing Release Tag (Only After Successful Builds)
+    needs: [validate, test, build-executables]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Delete Existing Release Tag (If Overwrite Selected)
+        if: ${{ github.event.inputs.overwrite_release != 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
+        run: |
+          gh release delete "$TARGET_VERSION" --yes --cleanup-tag || true
+
   publish-github-release:
     name: Publish Official GitHub Release
-    needs: [validate, cleanup-existing-release, build-executables]
+    needs: [validate, test, build-executables, cleanup-existing-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -278,6 +278,31 @@ jobs:
           path: release_assets/
           pattern: release-binaries-*
           merge-multiple: true
+
+      - name: Assert Complete Platform Executable Suite
+        shell: bash
+        run: |
+          EXPECTED=(
+            "factorio-mod-downloader-gui-windows-x64.exe"
+            "factorio-mod-downloader-cli-windows-x64.exe"
+            "factorio-mod-downloader-gui-macos-universal"
+            "factorio-mod-downloader-cli-macos-universal"
+            "factorio-mod-downloader-gui-linux-x64"
+            "factorio-mod-downloader-cli-linux-x64"
+          )
+          MISSING=0
+          for file in "${EXPECTED[@]}"; do
+            if [ ! -f "release_assets/$file" ]; then
+              echo "::error::Missing expected release asset: $file"
+              MISSING=$((MISSING + 1))
+            fi
+          done
+
+          if [ $MISSING -gt 0 ]; then
+            echo "::error::$MISSING required platform binaries are missing. Aborting GitHub release publication!"
+            exit 1
+          fi
+          echo "All 6 expected platform executables successfully verified!"
 
       - name: Compute SHA-256 Checksums for File Authenticity
         shell: bash
