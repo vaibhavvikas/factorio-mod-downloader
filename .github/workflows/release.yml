@@ -245,26 +245,9 @@ jobs:
           retention-days: 1
           overwrite: true
 
-  cleanup-existing-release:
-    name: Cleanup Existing Release Tag (Only After Successful Builds)
-    needs: [validate, test, build-executables]
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Delete Existing Release Tag (If Overwrite Selected)
-        if: ${{ github.event.inputs.overwrite_release != 'false' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
-        run: |
-          gh release delete "$TARGET_VERSION" --yes --cleanup-tag || true
-
   publish-github-release:
     name: Publish Official GitHub Release
-    needs: [validate, test, build-executables, cleanup-existing-release]
+    needs: [validate, test, build-executables]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -362,12 +345,20 @@ jobs:
           > **Disclaimer**: *Factorio Mod Downloader* is an independent open-source community utility and is not affiliated with or endorsed by Wube Software.
           EOF
 
-      - name: Publish Official GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ needs.validate.outputs.target_version }}
-          name: 'Factorio Mod Downloader ${{ needs.validate.outputs.target_version }}'
-          body_path: release_body.md
-          files: release_assets/*
+      - name: Publish or Update GitHub Release
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
+        run: |
+          TITLE="Factorio Mod Downloader ${TARGET_VERSION}"
+
+          if gh release view "$TARGET_VERSION" >/dev/null 2>&1; then
+            echo "Updating existing release $TARGET_VERSION..."
+            gh release edit "$TARGET_VERSION" --title "$TITLE" --notes-file release_body.md
+            gh release upload "$TARGET_VERSION" release_assets/* --clobber
+          else
+            echo "Creating new release $TARGET_VERSION..."
+            gh release create "$TARGET_VERSION" release_assets/* --title "$TITLE" --notes-file release_body.md
+          fi
+          echo "Successfully published release $TARGET_VERSION!"
