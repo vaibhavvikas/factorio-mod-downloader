@@ -95,7 +95,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                     )}
                                     {node.isShared && (
                                         <span className={`flex items-center gap-1 text-[9px] bg-slate-100 dark:bg-zinc-800 ${TEXT.secondary} px-1.5 py-0.2 rounded font-mono font-medium shrink-0`}>
-                                            <Layers className="w-2.5 h-2.5 text-indigo-400" />
+                                                <Layers className="w-2.5 h-2.5 text-blue-400" />
                                             shared
                                         </span>
                                     )}
@@ -112,13 +112,13 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                 <div className="flex flex-col gap-1.5">
                     <div
                         onClick={() => onToggleSection('recommended', !isAllRecommendedSelected)}
-                        className="flex items-center justify-between px-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-pointer select-none"
+                        className="flex items-center justify-between px-1 text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer select-none"
                     >
                         <div className="flex items-center gap-2">
                             <Checkbox
                                 checked={isAllRecommendedSelected}
                                 indeterminate={isSomeRecommendedSelected}
-                                accent="indigo"
+                                accent="blue"
                                 aria-label="Toggle all recommended dependencies"
                                 onChange={() => onToggleSection('recommended', !isAllRecommendedSelected)}
                             />
@@ -137,7 +137,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <Checkbox
                                             checked={isSelected}
-                                            accent="indigo"
+                                            accent="blue"
                                             aria-label={`Toggle ${node.name}`}
                                             onChange={() => onToggleDep(node.id)}
                                         />
@@ -147,7 +147,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                         )}
                                         {node.isShared && (
                                             <span className={`flex items-center gap-1 text-[9px] bg-slate-100 dark:bg-zinc-800 ${TEXT.secondary} px-1.5 py-0.2 rounded font-mono font-medium shrink-0`}>
-                                                <Layers className="w-2.5 h-2.5 text-indigo-400" />
+                                            <Layers className="w-2.5 h-2.5 text-blue-400" />
                                                 shared
                                             </span>
                                         )}
@@ -165,13 +165,13 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                 <div className="flex flex-col gap-1.5">
                     <div
                         onClick={() => onToggleSection('optional', !isAllOptionalSelected)}
-                        className="flex items-center justify-between px-1 text-xs font-bold text-violet-600 dark:text-violet-400 cursor-pointer select-none"
+                        className="flex items-center justify-between px-1 text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer select-none"
                     >
                         <div className="flex items-center gap-2">
                             <Checkbox
                                 checked={isAllOptionalSelected}
                                 indeterminate={isSomeOptionalSelected}
-                                accent="violet"
+                                accent="blue"
                                 aria-label="Toggle all optional dependencies"
                                 onChange={() => onToggleSection('optional', !isAllOptionalSelected)}
                             />
@@ -190,7 +190,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <Checkbox
                                             checked={isSelected}
-                                            accent="violet"
+                                            accent="blue"
                                             aria-label={`Toggle ${node.name}`}
                                             onChange={() => onToggleDep(node.id)}
                                         />

@@ -30,9 +30,9 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                     const isDependentLocked = dependents.length > 0;
 
                     return (
-                        <div key={mod.name} className={`p-4 ${LAYER.contentCard} ${BORDER.card} rounded-2xl flex items-center justify-between shadow-xs ${HOVER_BORDER.card} transition-all`}>
+                        <div key={mod.name} className={`p-4 ${LAYER.contentCard} ${BORDER.card} rounded-2xl flex items-center justify-between shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200`}>
                             <div className="flex items-center gap-4 min-w-0">
-                                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-xs text-indigo-600 dark:text-indigo-400 shrink-0 shadow-inner overflow-hidden">
+                                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 flex items-center justify-center font-bold text-xs text-blue-600 dark:text-blue-400 shrink-0 shadow-inner overflow-hidden">
                                     {mod.thumbnail ? (
                                         <img src={mod.thumbnail} alt={mod.title} className="w-full h-full object-cover rounded-xl" />
                                     ) : (

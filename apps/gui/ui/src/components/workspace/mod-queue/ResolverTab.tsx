@@ -5,7 +5,7 @@ import { useAppContext } from '../../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
-import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE, DEPENDENCY_TYPE } from '../../../theme/layers';
+import { LAYER, BORDER, TEXT, INTERACTIVE, DEPENDENCY_TYPE, ACCENT } from '../../../theme/layers';
 import {
     getInitialSelectedDepIds,
     getQueueAutoIncludeSettings,
@@ -73,22 +73,22 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     depth,
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
-    
+
     // Find if we have details (a card) for this dependency in our targetMods queue or treeCache
     const modDetails = targetMods.find(m => m.name === name) || treeCache[name];
-    
+
     // Determine title
     const displayTitle = modDetails ? (modDetails.title || modDetails.name) : name;
-    
+
     // Detect recursion cycles
     const hasCycle = visited.has(name);
     const newVisited = new Set(visited).add(name);
-    
+
     // Get sub-dependencies from details if present (excluding incompatible)
-    const directDeps = modDetails 
+    const directDeps = modDetails
         ? modDetails.dependencies.filter(d => d.type !== 'incompatible')
         : [];
-        
+
     // Filter sub-dependencies to only show checked ones in cards
     const activeSubDeps = directDeps.filter(d => {
         if (d.type === 'required') return true;
@@ -119,7 +119,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     const iconColorClass = {
         root: 'text-slate-400 dark:text-zinc-500',
         required: 'text-sky-500 dark:text-sky-400',
-        recommended: 'text-indigo-500 dark:text-indigo-400',
+        recommended: 'text-blue-500 dark:text-blue-400',
         optional: 'text-violet-500 dark:text-violet-400',
         incompatible: 'text-rose-500 dark:text-rose-400',
     }[type];
@@ -127,11 +127,11 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     return (
         <div className="flex flex-col">
             {/* Tree Node Row */}
-            <div 
-                className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 group cursor-pointer select-none transition-colors" 
-                onClick={(e) => { 
-                    e.stopPropagation(); 
-                    if (hasChildren) setIsExpanded(!isExpanded); 
+            <div
+                className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 group cursor-pointer select-none transition-colors"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (hasChildren) setIsExpanded(!isExpanded);
                 }}
             >
                 {/* Chevron spacing / VS Code guide lines */}
@@ -160,16 +160,14 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
 
                 {/* Version Requirement Badge */}
                 {versionReq && (
-                    <span className="text-[10px] font-mono text-indigo-500 dark:text-indigo-400">
+                    <span className={`text-[10px] font-mono ${iconColorClass}`}>
                         {versionReq}
                     </span>
                 )}
 
-
-
                 {/* Recursion / Cycle warning */}
                 {hasCycle && (
-                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono">
+                    <span className={`text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono`}>
                         cycle detected
                     </span>
                 )}
@@ -313,7 +311,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
             if (missingNames.length > 0) {
                 addLog(`Fetching details for ${missingNames.length} tree dependencies...`, 'info');
-                
+
                 // Fetch in parallel:
                 const fetchedDetails = await Promise.all(
                     missingNames.map(async (item) => {
@@ -329,16 +327,16 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
                 // Convert details to TargetModItem and put in cache:
                 const newCacheUpdates: Record<string, TargetModItem> = {};
-                
+
                 fetchedDetails.forEach(details => {
                     if (!details) return;
-                    
+
                     const reversedReleases = details.releases.slice().reverse();
                     const latestVersion = reversedReleases[0]?.version || 'latest';
-                    
+
                     const treeDeps = convertBackendDepsToTree(details.default_dependencies);
                     const initialSelectedIds = getInitialSelectedDepIds(treeDeps);
-                        
+
                     newCacheUpdates[details.name] = {
                         id: 'tree-' + details.name + '-' + Math.random(),
                         name: details.name,
@@ -363,7 +361,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
                 setTreeCache(prev => ({ ...prev, ...newCacheUpdates }));
             }
-            
+
             addLog('Dependency tree resolved successfully.', 'success');
         } catch (e) {
             addLog(`Failed to resolve dependency tree: ${e}`, 'error');
@@ -650,7 +648,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                 }
             });
         });
-        
+
         // Also check treeCache to see what is required
         Object.values(treeCache).forEach(m => {
             m.dependencies.forEach(d => {
@@ -659,10 +657,10 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                 }
             });
         });
-        
+
         // Root mods are targetMods whose name is NOT in allDepNames
         const roots = targetMods.filter(m => !allDepNames.has(m.name));
-        
+
         // If there's a cycle or empty, fall back to all targetMods
         if (roots.length === 0) return targetMods;
         return roots;
@@ -672,9 +670,9 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         if (isLoadingTree) {
             return (
                 <div className={`flex flex-col ${LAYER.groupPanel} rounded-2xl ${BORDER.card} shadow-xs items-center justify-center p-6 ${TEXT.muted} gap-3 select-none`}>
-                    <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                     <div className="flex flex-col gap-1 text-center max-w-[320px]">
-                        <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">
+                        <span className={`font-bold ${TEXT.emphasis} text-xs`}>
                             Resolving Dependency Graph
                         </span>
                         <span className="text-[11px] leading-relaxed text-slate-500 dark:text-zinc-500">
@@ -689,53 +687,47 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
         return (
             <div className={`flex flex-col ${LAYER.groupPanel} ${BORDER.card} shadow-xs overflow-hidden rounded-2xl animate-fade-in`}>
-            {/* Header section identical to Download Manager */}
-            <div className={`h-8.5 min-h-8.5 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
-                <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
-                    <Layers className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>Dependency Graph Explorer</span>
-                    <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>
-                        {targetMods.length + Object.keys(treeCache).length} resolved
-                    </span>
+                <div className={`h-8.5 min-h-8.5 px-3.5 border-b ${BORDER.card} flex items-center justify-between ${LAYER.contentCard} shrink-0 select-none rounded-t-2xl`}>
+                    <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
+                        <Layers className="w-3.5 h-3.5 text-blue-500" />
+                        <span>Dependency Graph Explorer</span>
+                        <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>
+                            {targetMods.length + Object.keys(treeCache).length} resolved
+                        </span>
+                    </div>
+
+                    {/* Inline Color Legend */}
+                    <div className={`flex items-center gap-3 text-[10px] ${TEXT.muted} font-medium select-none ml-auto mr-1.5 shrink-0`}>
+                        <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-zinc-500 shrink-0" /> Root</span>
+                        <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.required.dot}`} /> Required</span>
+                        <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.recommended.dot}`} /> Recommended</span>
+                        <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.optional.dot}`} /> Optional</span>
+                    </div>
                 </div>
 
-                {/* Inline Color Legend */}
-                <div className={`flex items-center gap-3 text-[10px] ${TEXT.muted} font-medium select-none ml-auto mr-1.5 shrink-0`}>
-                    <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-zinc-500 shrink-0" /> Root</span>
-                    <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.required.dot}`} /> Required</span>
-                    <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.recommended.dot}`} /> Recommended</span>
-                    <span className="flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DEPENDENCY_TYPE.optional.dot}`} /> Optional</span>
+                <div className={`flex flex-col gap-1 p-6 pr-4 ${LAYER.innerRecessed}`}>
+                    {[...rootMods].sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name)).map(m => (
+                        <DependencyTreeNode
+                            key={m.id}
+                            name={m.name}
+                            versionReq={m.selectedVersion}
+                            type="root"
+                            targetMods={targetMods}
+                            treeCache={treeCache}
+                            visited={new Set()}
+                            depth={0}
+                        />
+                    ))}
                 </div>
             </div>
-
-            {/* Tree content — sizes naturally to content. The outer scroll
-                container handles overflow when the tree is tall.
-                Padding matches .scroller-panel.tree (24×24 visual frame: p-6 pr-4)
-                without overflow-y:auto so scroll events pass through
-                to the outer container. */}
-            <div className="flex flex-col gap-1 p-6 pr-4">
-                {[...rootMods].sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name)).map(m => (
-                    <DependencyTreeNode
-                        key={m.id}
-                        name={m.name}
-                        versionReq={m.selectedVersion}
-                        type="root"
-                        targetMods={targetMods}
-                        treeCache={treeCache}
-                        visited={new Set()}
-                        depth={0}
-                    />
-                ))}
-            </div>
-        </div>
-    );
-};
+        );
+    };
 
     return (
         <div className={`flex h-full min-h-0 flex-col ${LAYER.appCanvas} relative`}>
             {/* Input Bar Section */}
             <div className="pt-3 px-3 pb-0 shrink-0 flex flex-col gap-4">
-                <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between shadow-xs gap-3 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all`}>
+                <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between shadow-xs gap-3 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all`}>
                     <div className="flex-1 min-w-0 flex items-center gap-2">
                         <Search className="w-4 h-4 text-slate-400 shrink-0" />
                         <input
@@ -762,13 +754,13 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                             className={`${INTERACTIVE.secondary} px-3 py-1.5 rounded-lg text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors`}
                             title="Import mod list from text file"
                         >
-                            <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                            <FileText className="w-3.5 h-3.5 text-blue-500" />
                             <span>Import .txt</span>
                         </button>
                         <button
                             onClick={handleAddClick}
                             disabled={isBusy}
-                            className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg text-[11px] font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-[11px] font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                         >
                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                             <span>{isBusy ? 'Fetching...' : 'Add Mods'}</span>
@@ -790,62 +782,50 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
                 <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {targetMods.length > 0 && (
-                        <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.viewportHeader} px-3 pt-3 pb-0 flex items-start justify-between`}>
-                            <div className="inline-flex gap-6 text-xs font-bold select-none -mb-px">
-                                <button
-                                    onClick={() => setViewMode('cards')}
-                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
-                                        viewMode === 'cards'
-                                            ? 'text-indigo-600 dark:text-indigo-400'
-                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                                    }`}
-                                >
-                                    <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
-                                    <span>Mod Cards</span>
-                                    {viewMode === 'cards' && (
-                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('tree')}
-                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
-                                        viewMode === 'tree'
-                                            ? 'text-indigo-600 dark:text-indigo-400'
-                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                                    }`}
-                                >
-                                    <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
-                                    <span>Dependency Tree</span>
-                                    {viewMode === 'tree' && (
-                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                                    )}
-                                </button>
-                            </div>
+                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-3 pt-3 pb-0 flex items-start justify-between rounded-t-2xl`}>
+                             <div className="inline-flex gap-6 text-xs font-bold select-none">
+                                 <button
+                                     onClick={() => setViewMode('cards')}
+                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'cards'
+                                         ? ACCENT.text
+                                         : `${TEXT.dim} ${TEXT.hoverEmphasis}`
+                                         }`}
+                                 >
+                                     <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
+                                     <span>Mod Cards</span>
+                                     {viewMode === 'cards' && (
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                     )}
+                                 </button>
+                                 <button
+                                     onClick={() => setViewMode('tree')}
+                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${viewMode === 'tree'
+                                         ? ACCENT.text
+                                         : `${TEXT.dim} ${TEXT.hoverEmphasis}`
+                                         }`}
+                                 >
+                                     <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
+                                     <span>Dependency Tree</span>
+                                     {viewMode === 'tree' && (
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                     )}
+                                 </button>
+                             </div>
                             <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 pb-3">
                                 {targetMods.length} Target Mods
                             </span>
                         </div>
                     )}
-                    {/* Scrollable body region. Rules:
-                          • Content (cards / tree) sizes naturally — NO internal
-                            scroll constraints (flex-1/min-h-0 removed from children).
-                          • When content overflows, this outer container scrolls
-                            (overflow-y-auto).
-                          • Download button uses sticky bottom-0 so it floats at
-                            the bottom-right when content is tall, or sits directly
-                            below content when short.
-                        Padding provides symmetric air gap around inner content. */}
                     <div className="relative flex-1 min-h-0 flex flex-col items-start overflow-y-auto p-5 pr-3">
-                        {/* Single layout that handles BOTH sizes via max-height cap. */}
                         <div className="w-full flex flex-col">
                             {targetMods.length === 0 ? (
                                 <div className="h-full min-h-[200px] text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
-                                    <div className={`p-4 rounded-full ${LAYER.pillSurface} ${BORDER.inner} flex items-center justify-center text-indigo-500`}>
+                                    <div className={`p-4 rounded-full ${LAYER.pillSurface} ${BORDER.inner} flex items-center justify-center text-blue-500`}>
                                         <Inbox className="w-8 h-8 stroke-[1.2]" />
                                     </div>
                                     <div className="flex flex-col gap-1 max-w-[280px] text-center select-none">
-                                        <span className="font-bold text-slate-800 dark:text-zinc-200 text-xs">No target mods added</span>
-                                        <span className="text-[11px] leading-relaxed text-slate-500 dark:text-zinc-500">Paste mod URLs or import a text file to inspect target mods, toggle recommended/optional dependencies, and download.</span>
+                                        <span className={`${TEXT.emphasis} text-xs`}>No target mods added</span>
+                                        <span className={`${TEXT.dim} text-[11px] leading-relaxed`}>Paste mod URLs or import a text file to inspect target mods, toggle recommended/optional dependencies, and download.</span>
                                     </div>
                                 </div>
                             ) : viewMode === 'tree' ? (
@@ -857,7 +837,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                         <button
                                             onClick={handleStartDownloadAll}
                                             disabled={isBusy}
-                                            className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:from-blue-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/25 border border-blue-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
                                         >
                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
@@ -866,8 +846,6 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                 </>
                             ) : (
                                 <>
-                                    {/* Cards list — natural flow, no internal scroll.
-                                        Outer overflow-y-auto handles scrolling. */}
                                     <div className="w-full flex flex-col gap-4">
                                         {[...targetMods]
                                             .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
@@ -888,7 +866,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                         <button
                                             onClick={handleStartDownloadAll}
                                             disabled={isBusy}
-                                            className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:from-blue-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/25 border border-blue-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
                                         >
                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
