@@ -87,7 +87,7 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                 )}
 
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                         <Folder className="w-5 h-5" />
                     </div>
                     <div>
@@ -106,7 +106,7 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                     </label>
                     <div className="flex items-center gap-2">
                         <div className={`flex-1 flex items-center gap-2 ${LAYER.innerRecessed} ${BORDER.inner} rounded-xl px-3 py-2 text-xs font-mono text-slate-800 dark:text-zinc-200`}>
-                            <FolderOpen className="w-4 h-4 text-indigo-500 shrink-0" />
+                            <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
                             <input 
                                 type="text"
                                 value={modsPath}
@@ -122,7 +122,7 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                             className={`p-2 ${INTERACTIVE.secondary} rounded-xl transition-colors shrink-0 cursor-pointer ${BORDER.inner}`}
                             title="Browse folder..."
                         >
-                            <FolderSearch className="w-4 h-4 text-indigo-500" />
+                            <FolderSearch className="w-4 h-4 text-blue-500" />
                         </button>
 
                         <button
@@ -139,7 +139,7 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                             className={`p-2 ${INTERACTIVE.secondary} rounded-xl transition-colors shrink-0 cursor-pointer ${BORDER.inner} disabled:opacity-40`}
                             title="Open folder in Finder / File Explorer"
                         >
-                            <FolderOutput className="w-4 h-4 text-indigo-500" />
+                            <FolderOutput className="w-4 h-4 text-blue-500" />
                         </button>
                     </div>
 
@@ -163,7 +163,7 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                     <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
                     >
                         <Check className="w-4 h-4" />
                         <span>{saving ? 'Saving...' : 'Confirm & Save'}</span>

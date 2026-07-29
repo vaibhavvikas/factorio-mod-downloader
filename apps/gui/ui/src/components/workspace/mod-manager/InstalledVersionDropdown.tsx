@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
-import { LAYER, BORDER } from '../../../theme/layers';
+import { LAYER, BORDER, ACCENT, TEXT, INTERACTIVE } from '../../../theme/layers';
 
 
 export interface VersionDropdownProps {
@@ -61,12 +61,11 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                 type="button"
                 onClick={toggleOpen}
                 disabled={disabled}
-                className={`panel-pill panel-pill-mono h-6 min-h-6 max-h-6 px-3 shrink-0 items-center gap-1.5 rounded-full font-semibold text-[10px] max-w-[300px] transition-colors cursor-pointer disabled:opacity-50 ${LAYER.pillSurface} ${BORDER.tabActive}
-                    hover:bg-slate-200/70 dark:hover:bg-zinc-900/80 text-indigo-600 dark:text-indigo-400`}
+                className={`panel-pill panel-pill-mono h-6 min-h-6 max-h-6 px-3 shrink-0 items-center gap-1.5 rounded-full font-semibold text-[10px] max-w-[300px] transition-colors cursor-pointer disabled:opacity-50 ${LAYER.pillSurface} ${BORDER.tabActive} ${INTERACTIVE.pillHover} ${ACCENT.text}`}
             >
-                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 shrink-0">{label.replace(/:+$/, '')}:</span>
+                <span className={`text-[10px] font-bold ${TEXT.muted} shrink-0`}>{label.replace(/:+$/, '')}:</span>
                 <span className={`truncate font-mono font-bold ${valueClassName} ${compact ? 'max-w-[180px]' : 'max-w-[240px]'}`}>v{selectedVersion}</span>
-                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform text-slate-400 dark:text-zinc-500 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${TEXT.muted} ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isOpen && createPortal(
@@ -80,7 +79,7 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                         onMouseDown={(event) => event.stopPropagation()}
                     />
                     <div
-                        className={`fixed z-[101] ${LAYER.contentCard} ${BORDER.toolbar} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
+                        className={`fixed z-[101] ${LAYER.dropdownMenu} ${BORDER.dropdown} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
                         style={{
                             top: dropdownPos.top,
                             left: dropdownPos.left,
@@ -103,8 +102,8 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                                         }}
                                         onMouseDown={(event) => event.stopPropagation()}
                                         className={`px-3 py-2 rounded-lg flex items-center justify-start cursor-pointer transition-colors ${isSelected
-                                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                                            : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700/80'
+                                            ? `${ACCENT.menuItemSelected} font-bold`
+                                            : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                             }`}
                                     >
                                         <span>v{ver}</span>

@@ -10,7 +10,7 @@ const CATEGORY_BADGE_STYLES: Record<string, string> = {
     'no-category': 'text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/90 border-zinc-200 dark:border-zinc-700/80',
 };
 
-const DEFAULT_CATEGORY_BADGE_STYLE = 'text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800/60';
+const DEFAULT_CATEGORY_BADGE_STYLE = 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/60';
 
 export interface CategoryPillColors {
     active: string;
@@ -19,7 +19,7 @@ export interface CategoryPillColors {
 
 const CATEGORY_PILL_STYLES: Record<string, CategoryPillColors> = {
     all: {
-        active: 'bg-indigo-600 text-white border-indigo-600 shadow-xs font-bold',
+        active: 'bg-blue-600 text-white border-blue-600 shadow-xs font-bold',
         inactive: 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800/60'
     },
     content: {

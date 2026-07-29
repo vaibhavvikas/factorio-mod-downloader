@@ -178,7 +178,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                         onOpenFolderModal && onOpenFolderModal();
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded-md ${TEXT.secondary} hover:text-indigo-600 dark:hover:text-indigo-400 ${INTERACTIVE.iconHover} transition-all cursor-pointer flex items-center justify-center relative`}
+                    className={`p-1.5 rounded-md ${TEXT.secondary} hover:text-blue-600 dark:hover:text-blue-400 ${INTERACTIVE.iconHover} transition-all cursor-pointer flex items-center justify-center relative`}
                     title={configuredModsFolder ? `Mods Folder: ${configuredModsFolder}` : 'Configure Factorio Mods Folder'}
                 >
                     <Folder className="w-3.5 h-3.5" />
@@ -195,15 +195,15 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
                     className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${sidebarOpen
-                        ? (isDownloading ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100/50 dark:bg-indigo-900/20' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20')
-                        : (isDownloading ? 'text-slate-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400' : 'text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400')
+                        ? (isDownloading ? 'text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/20' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20')
+                        : (isDownloading ? 'text-slate-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400' : 'text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400')
                         }`}
                     title="Toggle Downloads Manager"
                 >
                     <Download className="w-4 h-4" />
                     {queue.length > 0 && (
                         <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-zinc-900 shadow-sm ${isDownloading
-                            ? 'bg-indigo-500 text-white animate-pulse'
+                            ? 'bg-blue-500 text-white animate-pulse'
                             : 'bg-emerald-500 text-white'
                             }`}>
                             {queue.length}
@@ -245,21 +245,21 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 >
                     <button
                         onClick={() => setThemeMode('light')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'light' ? `${LAYER.contentCard} text-indigo-600 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'light' ? `${LAYER.contentCard} text-blue-600 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
                         title="Light Mode"
                     >
                         <Sun className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={() => setThemeMode('dark')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'dark' ? `${LAYER.contentCard} text-indigo-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'dark' ? `${LAYER.contentCard} text-blue-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
                         title="Dark Mode"
                     >
                         <Moon className="w-3.5 h-3.5" />
                     </button>
                     <button
                         onClick={() => setThemeMode('system')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'system' ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
+                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'system' ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
                         title="System Default"
                     >
                         <Monitor className="w-3.5 h-3.5" />

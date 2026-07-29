@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from '../shared/modCategory';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE, ACCENT } from '../../../theme/layers';
 
 export interface ModSearchResultItem {
     name: string;
@@ -94,6 +94,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
             rafId = window.requestAnimationFrame(() => {
                 if (cancelled || !container) return;
                 const available = container.clientWidth;
+                if (available === 0) return;
                 const children = Array.from(container.children) as HTMLElement[];
                 const pillEls: HTMLElement[] = [];
                 let countPillEl: HTMLElement | null = null;
@@ -277,7 +278,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
 
     return (
         <div
-            className={`relative self-start ${LAYER.groupPanel} ${BORDER.card} rounded-2xl p-3 shadow-xs hover:z-10 ${HOVER_BORDER.cardSoft} hover:shadow-md transition-all duration-200 flex flex-col gap-2.5`}
+            className={`relative self-start ${LAYER.contentCard} ${BORDER.card} rounded-2xl p-3 shadow-xs hover:z-10 ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 flex flex-col gap-2.5`}
         >
             <div className="flex min-h-12 items-center gap-2.5">
                 {item.thumbnail && !hasImgError ? (
@@ -288,7 +289,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                         onError={() => onImageError(item.name)}
                     />
                 ) : (
-                    <div className="w-12 h-12 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-lg shrink-0 select-none shadow-xs">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/15 dark:bg-blue-500/25 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg shrink-0 select-none shadow-xs">
                         {initialLetter}
                     </div>
                 )}
@@ -390,7 +391,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                             event.preventDefault();
                             await openUrl(`https://mods.factorio.com/mod/${item.name}`);
                         }}
-                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-indigo-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-indigo-400"
+                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
                         aria-label={`View ${item.title || item.name} on Mod Portal`}
                         title="View on Mod Portal"
                     >
@@ -408,7 +409,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                                 onAddQueue(item.name);
                             }}
                             disabled={addingModNames.has(item.name)}
-                            className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
+                            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
                         >
                             {addingModNames.has(item.name) ? (
                                 <>
@@ -464,14 +465,14 @@ const FactorioVersionDropdown: React.FC<{
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className={`flex h-7 w-[165px] items-center justify-between px-2.5 py-1 rounded-lg text-xs ${LAYER.selectTrigger} ${BORDER.inner} transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-indigo-500/30`}
+                className={`flex h-7 w-[165px] items-center justify-between px-2.5 py-1 rounded-lg text-xs ${LAYER.selectTrigger} ${BORDER.inner} transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-blue-500/30`}
                 title="Filter mods by target Factorio version"
             >
                 <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 shrink-0">Factorio Version:</span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400 truncate">{activeItem.label}</span>
+                    <span className={`text-[11px] font-medium ${TEXT.muted} shrink-0`}>Factorio Version:</span>
+                    <span className={`font-bold ${ACCENT.text} truncate`}>{activeItem.label}</span>
                 </div>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 ${TEXT.muted} shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
             </button>
 
             {open && (
@@ -488,12 +489,12 @@ const FactorioVersionDropdown: React.FC<{
                                 }}
                                 className={`flex w-full items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer text-left ${
                                     isSelected
-                                        ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold'
-                                        : `text-slate-700 dark:text-zinc-300 ${INTERACTIVE.ghostHover} font-medium`
+                                        ? `${ACCENT.menuItemSelected} font-bold`
+                                        : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                 }`}
                             >
                                 <span>{item.label}</span>
-                                {isSelected && <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />}
+                                        {isSelected && <Check className={`w-3.5 h-3.5 ${ACCENT.text}`} />}
                             </button>
                         );
                     })}
@@ -628,7 +629,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
         <div className={`relative h-full min-h-0 flex flex-col gap-4 px-3 pt-3 pb-2 ${LAYER.appCanvas}`}>
             {/* Top Search Bar & Category Filter Pills */}
             <div className="flex flex-col gap-4 shrink-0">
-                <div className={`flex h-10 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl pl-3.5 pr-1.5 py-1.5 items-center gap-2 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all shadow-xs`}>
+                <div className={`flex h-10 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl pl-3.5 pr-1.5 py-1.5 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
                     <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
                     <input
                         type="text"
@@ -673,7 +674,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         className={`h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50`}
                         title="Reload mod results"
                     >
-                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-500' : ''}`} />
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-blue-500' : ''}`} />
                     </button>
                 </div>
 
@@ -745,7 +746,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         <div ref={resultsScrollRef} className="scroller-panel card h-full">
                             {results.length === 0 && !loading ? (
                                 <div className="text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
-                                    <div className="p-4 rounded-full bg-slate-200/50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 text-indigo-500">
+                                    <div className="p-4 rounded-full bg-slate-200/50 dark:bg-zinc-900/60 border border-slate-200 dark:border-zinc-800 text-blue-500">
                                         <Sparkles className="w-8 h-8 stroke-[1.2]" />
                                     </div>
                                     <div className="flex flex-col gap-1 max-w-[300px] text-center select-none">
@@ -809,7 +810,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 // Single-page: one fixed page-1 pill (active + visually disabled)
                                 // so the button-row footprint and height are identical to multi-page.
                                 <span
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold bg-indigo-600 border-indigo-600 text-white shadow-xs opacity-80 cursor-default select-none"
+                                    className="w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold bg-blue-600 border-blue-600 text-white shadow-xs opacity-80 cursor-default select-none"
                                     aria-current="page"
                                 >
                                     1
@@ -823,7 +824,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                         disabled={loading} 
                                         className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 cursor-pointer disabled:cursor-not-allowed ${
                                             page === item 
-                                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs scale-105' 
+                                                ? 'bg-blue-600 border-blue-600 text-white shadow-xs scale-105' 
                                                 : `${LAYER.contentCard} ${BORDER.card} text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800`
                                         }`}
                                     >

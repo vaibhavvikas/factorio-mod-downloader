@@ -52,11 +52,11 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
         <>
             {isCheckingUpdates && (
                 <div className={`mb-3 px-3 py-2 rounded-xl flex items-center gap-2.5 ${LAYER.innerInset} ${BORDER.inner} text-[11px]`}>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500 shrink-0" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500 shrink-0" />
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                         <span className={`font-semibold ${TEXT.secondary} shrink-0`}>Checking updates...</span>
                         {totalMods > 0 && (
-                            <span className="font-mono text-indigo-500 font-bold shrink-0">
+                            <span className="font-mono text-blue-500 font-bold shrink-0">
                                 {Math.min(modsCheckedCount, totalMods)}/{totalMods} mods
                             </span>
                         )}
@@ -105,7 +105,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                             );
                                             if (interactive) (event as any).__ignoreCardToggle = true;
                                         }}
-                                        className={`h-full cursor-pointer ${LAYER.groupPanel} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardSoft} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
+                                        className={`h-full cursor-pointer ${LAYER.contentCard} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
                                         <div className="h-full p-4 flex flex-col gap-3">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex min-w-0 items-start gap-3 overflow-hidden">
@@ -114,7 +114,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                                         onChange={() => onToggleSelect(mod.name)}
                                                         disabled={activeDownloading}
                                                         size="md"
-                                                        accent="indigo"
+                                                        accent="blue"
                                                         className="mt-[13px]"
                                                         aria-label={`Select ${mod.title || mod.name} for update`}
                                                     />
@@ -122,7 +122,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                                     {mod.thumbnail ? (
                                                         <img src={mod.thumbnail} alt={mod.title} className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-zinc-800 shadow-sm shrink-0 mt-0.5" />
                                                     ) : (
-                                                        <div className="w-10 h-10 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs shrink-0 mt-0.5 select-none shadow-xs">
+                                                        <div className="w-10 h-10 rounded-xl bg-blue-500/15 dark:bg-blue-500/25 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs shrink-0 mt-0.5 select-none shadow-xs">
                                                             {getInitials(mod.title || mod.name)}
                                                         </div>
                                                     )}
@@ -150,14 +150,14 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                                     onClick={event => event.stopPropagation()}
                                                     title={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
                                                     aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                                    className="p-1.5 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
+                                                    className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
                                                 >
                                                     <ExternalLink className="w-4 h-4" />
                                                 </a>
                                             </div>
 
                                             <div className="mt-auto flex items-center gap-1.5 flex-wrap pl-7">
-                                                <span className={`panel-pill panel-pill-mono h-6 min-h-6 max-h-6 px-3 shrink-0 inline-flex items-center gap-1.5 rounded-full font-semibold text-[10px] select-none cursor-default ${LAYER.innerInset} ${BORDER.inner} text-slate-600/90 dark:text-zinc-400`}>
+                                                <span className={`panel-pill panel-pill-mono h-6 min-h-6 max-h-6 px-3 shrink-0 inline-flex items-center gap-1.5 rounded-full font-semibold text-[10px] select-none cursor-default ${LAYER.staticPill} ${BORDER.card} text-slate-500 dark:text-zinc-400`}>
                                                     <span className="text-emerald-600/80 dark:text-emerald-500/80" aria-hidden="true">
                                                         <Check className="w-3 h-3 shrink-0" strokeWidth={2.5} />
                                                     </span>
@@ -171,7 +171,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                                     onSelect={ver => onSelectVersion(mod.name, ver)}
                                                     disabled={activeDownloading}
                                                     label="Ver:"
-                                                    valueClassName="font-extrabold text-indigo-600 dark:text-indigo-400"
+                                                    valueClassName="font-extrabold text-blue-600 dark:text-blue-400"
                                                     compact
                                                 />
                                             </div>
@@ -185,7 +185,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                             <button
                                 onClick={onStartUpdateBatch}
                                 disabled={isAnyLoading || selectedUpdateCount === 0}
-                                className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:from-indigo-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/25 border border-indigo-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:from-blue-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/25 border border-blue-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
                             >
                                 {isAnyLoading ? (
                                     <>
@@ -211,7 +211,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                 </>
             ) : (
                 <div className="text-center py-16 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center gap-3 select-none">
-                    <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
                     <span>Checking for updates, no updates found so far...</span>
                 </div>
             )}
@@ -232,7 +232,7 @@ export const UpdatesHeaderActions: React.FC<UpdatesHeaderActionsProps> = ({ upda
     return (
         <button
             onClick={() => onSelectAll(!allUpdatesSelected)}
-            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1.5 cursor-pointer select-none pb-3"
+            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1.5 cursor-pointer select-none pb-3"
         >
             {allUpdatesSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             <span>{allUpdatesSelected ? 'Deselect All' : 'Select All'}</span>

@@ -20,18 +20,10 @@ interface QueueSettingsDropdownProps {
 
 const SETTING_ROWS = [
     {
-        key: 'required' as const,
-        label: 'Required',
-        description: 'Always included — cannot be disabled',
-        accent: 'sky' as const,
-        style: DEPENDENCY_TYPE.required,
-        locked: true,
-    },
-    {
         key: 'recommended' as const,
         label: 'Recommended',
         description: 'Soft dependencies suggested by mod authors',
-        accent: 'indigo' as const,
+        accent: 'blue' as const,
         style: DEPENDENCY_TYPE.recommended,
         locked: false,
     },
@@ -39,7 +31,7 @@ const SETTING_ROWS = [
         key: 'optional' as const,
         label: 'Optional',
         description: 'Extra mods that enhance but are not needed',
-        accent: 'violet' as const,
+        accent: 'blue' as const,
         style: DEPENDENCY_TYPE.optional,
         locked: false,
     },
@@ -82,9 +74,8 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${
-                    open ? ACCENT.triggerActive : `${INTERACTIVE.secondary} ${BORDER.inner}`
-                }`}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${open ? ACCENT.triggerActive : `${INTERACTIVE.secondary} ${BORDER.inner}`
+                    }`}
                 title="Queue dependency auto-select settings"
                 aria-expanded={open}
                 aria-haspopup="true"
@@ -97,7 +88,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
 
             {open && (
                 <div
-                    className={`absolute right-0 top-full mt-1.5 z-50 w-72 rounded-xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl shadow-2xl p-3 flex flex-col gap-2 animate-fade-in`}
+                    className={`absolute right-0 top-full mt-1.5 z-50 w-72 rounded-xl ${BORDER.dropdown} ${LAYER.dropdownMenu} shadow-xl p-3 flex flex-col gap-2 animate-fade-in`}
                     onMouseDown={(e) => e.stopPropagation()}
                 >
                     <div className={`pb-2 border-b ${DIVIDER.inner}`}>
@@ -117,8 +108,8 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
                                 row.key === 'recommended'
                                     ? DEPENDENCY_TYPE.recommended.rowSelected
                                     : row.key === 'optional'
-                                      ? DEPENDENCY_TYPE.optional.rowSelected
-                                      : '';
+                                        ? DEPENDENCY_TYPE.optional.rowSelected
+                                        : '';
 
                             const rowContent = (
                                 <>
@@ -177,11 +168,10 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
                                     onClick={() =>
                                         toggleByKey[row.key as 'recommended' | 'optional'](!checked)
                                     }
-                                    className={`w-full text-left rounded-lg px-2.5 py-2 flex items-start gap-2.5 transition-colors cursor-pointer border ${
-                                        checked
-                                            ? rowSelectedClass
-                                            : `${LAYER.listSurface} ${BORDER.inner} ${INTERACTIVE.rowHover}`
-                                    }`}
+                                    className={`w-full text-left rounded-lg px-2.5 py-2 flex items-start gap-2.5 transition-colors cursor-pointer border ${checked
+                                        ? rowSelectedClass
+                                        : `${LAYER.listSurface} ${BORDER.inner} ${INTERACTIVE.rowHover}`
+                                        }`}
                                 >
                                     {rowContent}
                                 </button>

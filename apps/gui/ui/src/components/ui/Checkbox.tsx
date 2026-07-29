@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Check, Minus } from 'lucide-react';
 import { LAYER } from '../../theme/layers';
 
-export type CheckboxAccent = 'indigo' | 'emerald' | 'amber' | 'sky' | 'violet' | 'teal';
+export type CheckboxAccent = 'blue' | 'emerald' | 'amber' | 'sky' | 'violet' | 'teal';
 
 interface CheckboxProps {
     checked?: boolean;
@@ -28,8 +28,8 @@ const iconSizeClass = {
 } as const;
 
 const accentClass: Record<CheckboxAccent, { box: string; mark: string }> = {
-    indigo: {
-        box: 'border-indigo-400/80 dark:border-indigo-500/70 data-[checked=true]:bg-indigo-600 data-[checked=true]:border-indigo-600 data-[checked=true]:shadow-indigo-600/25 dark:data-[checked=true]:bg-indigo-500 dark:data-[checked=true]:border-indigo-500',
+    blue: {
+        box: 'border-blue-400/80 dark:border-blue-500/70 data-[checked=true]:bg-blue-600 data-[checked=true]:border-blue-600 data-[checked=true]:shadow-blue-600/25 dark:data-[checked=true]:bg-blue-500 dark:data-[checked=true]:border-blue-500',
         mark: 'text-white',
     },
     emerald: {
@@ -44,7 +44,7 @@ const accentClass: Record<CheckboxAccent, { box: string; mark: string }> = {
         box: 'border-sky-400/80 dark:border-sky-500/70 data-[checked=true]:bg-sky-600 data-[checked=true]:border-sky-600 data-[checked=true]:shadow-sky-600/25 dark:data-[checked=true]:bg-sky-500 dark:data-[checked=true]:border-sky-500',
         mark: 'text-white',
     },
-    violet: {
+        violet: {
         box: 'border-violet-400/80 dark:border-violet-500/70 data-[checked=true]:bg-violet-600 data-[checked=true]:border-violet-600 data-[checked=true]:shadow-violet-600/25 dark:data-[checked=true]:bg-violet-500 dark:data-[checked=true]:border-violet-500',
         mark: 'text-white',
     },
@@ -63,7 +63,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
     onClick,
     className = '',
     size = 'sm',
-    accent = 'indigo',
+    accent = 'blue',
     'aria-label': ariaLabel,
 }) => {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -102,7 +102,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
                 aria-hidden="true"
                 className={[
                     `pointer-events-none flex items-center justify-center border ${LAYER.contentCard} transition-all duration-150`,
-                    'peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500/40 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-white dark:peer-focus-visible:ring-offset-zinc-950',
+                    'peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500/40 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-white dark:peer-focus-visible:ring-offset-zinc-950',
                     'peer-disabled:opacity-55',
                     sizeClass[size],
                     accentClass[accent].box,
