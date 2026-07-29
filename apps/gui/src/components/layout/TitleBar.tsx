@@ -67,10 +67,11 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     // Render macOS style traffic light buttons
     const renderMacControls = () => (
         <div
-            className="flex items-center gap-1.5 mr-4 h-6"
+            className="flex items-center gap-1.5 mr-4 h-6 z-10"
             onMouseEnter={() => setHoverControls(true)}
             onMouseLeave={() => setHoverControls(false)}
             onMouseDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
         >
             {/* Close Button */}
             <button
@@ -106,7 +107,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     const renderWindowsControls = () => (
         <div
             onMouseDown={(e) => e.stopPropagation()}
-            className="flex items-center text-slate-400 dark:text-zinc-500 text-xs ml-2 border-l border-slate-200 dark:border-zinc-800/80 pl-2 h-10 shrink-0 select-none"
+            onDoubleClick={(e) => e.stopPropagation()}
+            className="flex items-center text-slate-400 dark:text-zinc-500 text-xs ml-2 border-l border-slate-200 dark:border-zinc-800/80 pl-2 h-10 shrink-0 select-none z-10"
         >
             <button
                 onClick={handleMinimize}
@@ -152,6 +154,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     return (
         <div
             data-tauri-drag-region
+            onDoubleClick={handleMaximize}
             className={`relative h-10 ${LAYER.chromeHeavy} border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
         >
             {/* Left Side: OS controls on Mac, Brand logo on Windows */}

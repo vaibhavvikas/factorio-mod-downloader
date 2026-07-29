@@ -40,8 +40,20 @@ Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect ve
 
 ## 🖥️ How to Use
 
-1. Download the direct standalone executable for your OS from the [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases/latest) page.
-2. Launch **Factorio Mod Downloader**.
+1. Download the direct executable or archive for your OS from the [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases/latest) page.
+2. Launch **Factorio Mod Downloader**:
+   - **🪟 Windows**: Double-click `factorio-mod-downloader-gui-windows-x64.exe`.
+   - **🍎 macOS**: Unzip `factorio-mod-downloader-gui-macos-universal.app.zip` and double-click `Factorio Mod Downloader.app`.
+   - **🐧 Linux**: Extract the `.tar.gz` archive, grant executable permission, and run:
+     ```bash
+     tar -xzvf factorio-mod-downloader-gui-*-linux-x64.tar.gz
+     chmod +x factorio-mod-downloader-gui-linux-x64
+     ./factorio-mod-downloader-gui-linux-x64
+     ```
+     > 💡 **Linux Dependency Note**: Tauri desktop applications on Linux require WebKitGTK 4.1. If you get a missing `libwebkit2gtk-4.1.so.0` error, install it using your package manager:
+     > - **Ubuntu / Debian / Mint**: `sudo apt update && sudo apt install -y libwebkit2gtk-4.1-0 libgtk-3-0`
+     > - **Fedora / RHEL**: `sudo dnf install webkit2gtk4.1 gtk3`
+     > - **Arch Linux / Manjaro**: `sudo pacman -S webkit2gtk-4.1 gtk3`
 3. Set your target **Mods Folder** (automatically detected on boot).
 4. Browse mods in the **Explore** tab or paste a mod URL (e.g., `https://mods.factorio.com/mod/Krastorio2`) in the **Mod Queue**.
 5. Adjust versions or optional dependencies if needed, then click **Download All**.

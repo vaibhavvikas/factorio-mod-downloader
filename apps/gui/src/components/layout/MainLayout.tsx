@@ -8,6 +8,7 @@ import { useAppContext } from '../../context/AppContext';
 import { Mail, Sparkles, Heart, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LAYER, BORDER, TEXT, HOVER_BORDER } from '../../theme/layers';
 
 export function isVersionNewer(onlineVersion: string, currentVersion: string): boolean {
@@ -32,6 +33,23 @@ export const MainLayout: React.FC = () => {
     const [configuredModsFolder, setConfiguredModsFolder] = useState<string | null>(null);
 
     const [latestRelease, setLatestRelease] = useState<{ version: string; url: string; hasUpdate: boolean } | null>(null);
+    const [isMaximized, setIsMaximized] = useState(false);
+
+    useEffect(() => {
+        const appWindow = getCurrentWindow();
+        const updateMaxed = async () => {
+            try {
+                const maxed = await appWindow.isMaximized();
+                setIsMaximized(maxed);
+            } catch (e) {}
+        };
+        updateMaxed();
+        let unlisten: (() => void) | undefined;
+        appWindow.onResized(() => updateMaxed()).then(u => { unlisten = u; });
+        return () => {
+            if (unlisten) unlisten();
+        };
+    }, []);
 
     // Auto-scroll console to bottom on new logs & check Factorio Mods folder on startup
     useEffect(() => {
@@ -70,7 +88,7 @@ export const MainLayout: React.FC = () => {
     }, []);
 
     return (
-        <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative`}>
+        <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative ${isMaximized ? 'rounded-none border-none' : 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl'}`}>
             <TitleBar
                 onOpenFolderModal={() => setFolderModalOpen(true)}
                 configuredModsFolder={configuredModsFolder}
