@@ -3,6 +3,7 @@ import { Search as SearchIcon, Download, Check, Sparkles, X, ChevronLeft, Chevro
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { createPortal } from 'react-dom';
 import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from '../shared/modCategory';
 import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE, ACCENT } from '../../../theme/layers';
 
@@ -72,12 +73,14 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
     // and refreshed on scroll/resize so the tooltip stays pinned to its anchor while
     // the user scrolls the results viewport.
     const summaryRef = useRef<HTMLDivElement | null>(null);
+    const summaryTextRef = useRef<HTMLParagraphElement | null>(null);
     const summaryTooltipRef = useRef<HTMLDivElement | null>(null);
     const [showSummaryTooltip, setShowSummaryTooltip] = useState(false);
-    const [summaryTooltipPlacement, setSummaryTooltipPlacement] = useState<'above' | 'below'>('above');
-    const [tooltipPos, setTooltipPos] = useState<{ left: number; top: number; ready: boolean }>({
+    const [summaryTooltipPlacement, setSummaryTooltipPlacement] = useState<'above' | 'below'>('below');
+    const [tooltipPos, setTooltipPos] = useState<{ left: number; top: number; arrowLeft: number; ready: boolean }>({
         left: 0,
         top: 0,
+        arrowLeft: 0,
         ready: false,
     });
 
@@ -176,8 +179,8 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
     }, [item.tags.length]);
 
     // Reposition the summary tooltip whenever it becomes visible, and while it is
-    // shown also track window scroll/resize (and the nearest scrollable ancestor,
-    // i.e. the results viewport) so it stays anchored to its host while scrolling.
+    // shown also track window scroll/resize and all scrollable ancestor containers
+    // so it stays anchored to its host while scrolling or hides when scrolled out of view.
     useEffect(() => {
         if (!showSummaryTooltip) {
             setTooltipPos(p => ({ ...p, ready: false }));
@@ -188,29 +191,55 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
         if (!container || !tooltip) return;
 
         const GAP = 8;
-        const BUFFER = 6;
+        const BUFFER = 8;
+
+        const scrollAncestors: Element[] = [];
+        let current: Element | null = container.parentElement;
+        while (current && current !== document.body) {
+            const style = window.getComputedStyle(current);
+            const overflowY = style.overflowY;
+            if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') {
+                scrollAncestors.push(current);
+            }
+            current = current.parentElement;
+        }
 
         const reposition = () => {
             const hostRect = container.getBoundingClientRect();
-            const tooltipW = tooltip.offsetWidth || 260;
-            const tooltipH = tooltip.offsetHeight || 44;
             const vw = window.innerWidth;
             const vh = window.innerHeight;
 
-            // Horizontal: center on the summary container, then clamp to viewport edges.
-            let left = hostRect.left + hostRect.width / 2 - tooltipW / 2;
+            // Hide tooltip if host card container is scrolled out of view in any ancestor
+            for (const scrollEl of scrollAncestors) {
+                const sRect = scrollEl.getBoundingClientRect();
+                if (hostRect.bottom < sRect.top || hostRect.top > sRect.bottom) {
+                    setTooltipPos(p => ({ ...p, ready: false }));
+                    return;
+                }
+            }
+
+            if (hostRect.bottom < 0 || hostRect.top > vh || hostRect.right < 0 || hostRect.left > vw) {
+                setTooltipPos(p => ({ ...p, ready: false }));
+                return;
+            }
+
+            const tooltipW = tooltip.offsetWidth || 260;
+            const tooltipH = tooltip.offsetHeight || 44;
+
+            const hostCenter = hostRect.left + hostRect.width / 2;
+            let left = hostCenter - tooltipW / 2;
             left = Math.max(BUFFER, Math.min(vw - tooltipW - BUFFER, left));
 
-            // Vertical smart flip: prefer below (tooltip drops down from the
-            // summary). If the card is so close to the bottom of the viewport
-            // that the tooltip would clip, flip it above instead. When neither
-            // side has full clearance, pick whichever side has more room.
+            const rawArrowLeft = hostCenter - left;
+            const arrowLeft = Math.max(14, Math.min(tooltipW - 14, rawArrowLeft));
+
             const spaceAbove = hostRect.top;
             const spaceBelow = vh - hostRect.bottom;
             let top: number;
             let placement: 'above' | 'below';
             const fitsBelow = spaceBelow >= tooltipH + GAP + BUFFER;
             const fitsAbove = spaceAbove >= tooltipH + GAP + BUFFER;
+
             if (fitsBelow) {
                 top = hostRect.bottom + GAP;
                 placement = 'below';
@@ -224,45 +253,44 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                 top = hostRect.top - tooltipH - GAP;
                 placement = 'above';
             }
-            // Final safety clamp so the tooltip is never painted outside the viewport.
+
             top = Math.max(BUFFER, Math.min(vh - tooltipH - BUFFER, top));
 
-            setTooltipPos({ left, top, ready: true });
+            setTooltipPos({ left, top, arrowLeft, ready: true });
             setSummaryTooltipPlacement(placement);
         };
 
         reposition();
-        // Run a second pass on the next animation frame in case the tooltip
-        // hadn't been fully laid out during the synchronous call above.
         const raf = window.requestAnimationFrame(reposition);
 
-        // Keep tooltip anchored while the user scrolls or resizes the window.
         const listenerOpts: AddEventListenerOptions = { passive: true };
         const onScroll = () => reposition();
         const onResize = () => reposition();
+
         window.addEventListener('scroll', onScroll, listenerOpts);
         window.addEventListener('resize', onResize, listenerOpts);
-        // Also attach to the nearest scrollable ancestor (the results viewport)
-        // so scrolling inside the panel re-anchors the tooltip correctly.
-        let nearestScroll: Element | null = container.parentElement;
-        while (nearestScroll) {
-            const y = getComputedStyle(nearestScroll).overflowY;
-            if (y === 'auto' || y === 'scroll' || y === 'overlay') break;
-            nearestScroll = nearestScroll.parentElement;
-        }
-        if (nearestScroll) {
-            nearestScroll.addEventListener('scroll', onScroll, listenerOpts);
-        }
+        scrollAncestors.forEach(el => el.addEventListener('scroll', onScroll, listenerOpts));
+
+        const resizeObserver = new ResizeObserver(() => reposition());
+        resizeObserver.observe(tooltip);
+        resizeObserver.observe(container);
 
         return () => {
             window.cancelAnimationFrame(raf);
             window.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onResize);
-            if (nearestScroll) {
-                nearestScroll.removeEventListener('scroll', onScroll);
-            }
+            scrollAncestors.forEach(el => el.removeEventListener('scroll', onScroll));
+            resizeObserver.disconnect();
         };
     }, [showSummaryTooltip]);
+
+    // Handle mouse enter on summary container — show tooltip if text is truncated or if hovered
+    const handleMouseEnterSummary = () => {
+        const textEl = summaryTextRef.current;
+        if (textEl && (textEl.scrollHeight > textEl.clientHeight + 1 || item.summary.length > 80)) {
+            setShowSummaryTooltip(true);
+        }
+    };
 
     // Decide how many tag pills / +N pill to render.
     // While visibleTagCount === null (first paint before measurement), render ALL tags + a
@@ -296,7 +324,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
 
                 <div className="flex flex-col justify-center min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5">
-                        <h4 className="min-w-0 flex-1 text-sm font-bold text-slate-900 dark:text-white truncate" title={item.title || item.name}>
+                        <h4 className="min-w-0 flex-1 text-sm font-bold text-slate-900 dark:text-white truncate">
                             {item.title || item.name}
                         </h4>
                         {item.requires_space_age && (
@@ -333,16 +361,16 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
             <div
                 ref={summaryRef}
                 className={`group relative min-h-12 flex items-center ${LAYER.innerInset} p-2 rounded-xl ${BORDER.inner}`}
-                onMouseEnter={() => setShowSummaryTooltip(true)}
+                onMouseEnter={handleMouseEnterSummary}
                 onMouseLeave={() => setShowSummaryTooltip(false)}
             >
-                <p className="text-xs text-slate-600 dark:text-zinc-400 line-clamp-2-custom m-0 p-0">
+                <p ref={summaryTextRef} className="text-xs text-slate-600 dark:text-zinc-400 line-clamp-2-custom m-0 p-0">
                     {item.summary || 'No summary available.'}
                 </p>
-                {item.summary && showSummaryTooltip && (
+                {item.summary && showSummaryTooltip && createPortal(
                     <div
                         ref={summaryTooltipRef}
-                        className={`pointer-events-none fixed z-[80] min-w-[180px] w-fit max-w-[420px] whitespace-pre-wrap rounded-lg ${BORDER.toolbar} ${LAYER.contentCard} px-3 py-2 text-[11px] leading-relaxed text-slate-700 dark:text-zinc-300 shadow-[0_10px_30px_-10px_rgba(15,23,42,0.35)]`}
+                        className={`pointer-events-none fixed z-[80] min-w-[180px] w-fit max-w-[420px] whitespace-pre-wrap rounded-lg ${BORDER.tooltip} ${LAYER.tooltipSurface} px-3 py-2 text-[11px] leading-relaxed shadow-xl`}
                         style={{
                             left: `${tooltipPos.left}px`,
                             top: `${tooltipPos.top}px`,
@@ -353,18 +381,21 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                     >
                         {summaryTooltipPlacement === 'above' && (
                             <div
-                                className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 rotate-45 bg-white dark:bg-zinc-800 border-r border-b border-slate-200/80 dark:border-zinc-700/80"
+                                className={`absolute -bottom-1.5 -translate-x-1/2 w-3 h-3 rotate-45 ${LAYER.tooltipArrowAbove}`}
+                                style={{ left: `${tooltipPos.arrowLeft}px` }}
                                 aria-hidden
                             />
                         )}
                         {summaryTooltipPlacement === 'below' && (
                             <div
-                                className="absolute left-1/2 -translate-x-1/2 -top-1.5 w-3 h-3 rotate-45 bg-white dark:bg-zinc-800 border-l border-t border-slate-200/80 dark:border-zinc-700/80"
+                                className={`absolute -top-1.5 -translate-x-1/2 w-3 h-3 rotate-45 ${LAYER.tooltipArrowBelow}`}
+                                style={{ left: `${tooltipPos.arrowLeft}px` }}
                                 aria-hidden
                             />
                         )}
                         {item.summary}
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </div>
 

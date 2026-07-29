@@ -10,6 +10,14 @@ fn default_theme_mode() -> String {
     "system".to_string()
 }
 
+fn default_window_width() -> u32 {
+    1280
+}
+
+fn default_window_height() -> u32 {
+    720
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub mods_folder: Option<String>,
@@ -17,6 +25,12 @@ pub struct AppConfig {
     pub factorio_version: String,
     #[serde(default = "default_theme_mode")]
     pub theme_mode: String,
+    #[serde(default = "default_window_width")]
+    pub window_width: u32,
+    #[serde(default = "default_window_height")]
+    pub window_height: u32,
+    #[serde(default)]
+    pub window_maximized: bool,
 }
 
 impl Default for AppConfig {
@@ -25,6 +39,9 @@ impl Default for AppConfig {
             mods_folder: None,
             factorio_version: default_factorio_version(),
             theme_mode: default_theme_mode(),
+            window_width: default_window_width(),
+            window_height: default_window_height(),
+            window_maximized: false,
         }
     }
 }
@@ -184,5 +201,50 @@ pub fn open_folder_in_explorer(path: String) -> Result<(), String> {
             .map_err(|e| e.to_string())?;
     }
 
+    Ok(())
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WindowState {
+    pub width: u32,
+    pub height: u32,
+    pub maximized: bool,
+}
+
+#[tauri::command]
+pub fn get_window_state() -> Result<WindowState, String> {
+    let config_path = get_config_file_path()?;
+    if !config_path.exists() {
+        return Ok(WindowState {
+            width: default_window_width(),
+            height: default_window_height(),
+            maximized: false,
+        });
+    }
+
+    let content = fs::read_to_string(config_path).map_err(|e| e.to_string())?;
+    let config: AppConfig = serde_json::from_str(&content).unwrap_or_default();
+    Ok(WindowState {
+        width: config.window_width.max(default_window_width()),
+        height: config.window_height.max(default_window_height()),
+        maximized: config.window_maximized,
+    })
+}
+
+#[tauri::command]
+pub fn save_window_state(width: u32, height: u32, maximized: bool) -> Result<(), String> {
+    let config_path = get_config_file_path()?;
+    let mut config: AppConfig = if config_path.exists() {
+        let content = fs::read_to_string(&config_path).unwrap_or_default();
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        AppConfig::default()
+    };
+
+    config.window_width = width.max(default_window_width());
+    config.window_height = height.max(default_window_height());
+    config.window_maximized = maximized;
+    let content = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
+    fs::write(config_path, content).map_err(|e| e.to_string())?;
     Ok(())
 }
