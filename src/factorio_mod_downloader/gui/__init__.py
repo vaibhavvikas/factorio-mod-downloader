@@ -1,3 +1,0 @@
-"""
-GUI package initialization
-"""

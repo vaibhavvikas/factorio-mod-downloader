@@ -1,0 +1,12 @@
+[package]
+name = "factorio-mod-downloader-cli"
+version = "0.3.1"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "factorio-mod-downloader-cli"
+path = "src/main.rs"
+

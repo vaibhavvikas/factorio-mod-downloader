@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Factorio Mod Downloader</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        background-color: #f1f5f9;
+        color: #18181b;
+      }
+      @media (prefers-color-scheme: dark) {
+        html, body {
+          background-color: #18181b;
+          color: #f4f4f5;
+        }
+      }
+      html.dark, html.dark body {
+        background-color: #18181b !important;
+        color: #f4f4f5 !important;
+      }
+    </style>
+    <script>
+      (function () {
+        try {
+          var STORAGE_KEY = 'fmd_theme_mode';
+          var saved = null;
+          try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+
+          var mode = saved && (saved === 'light' || saved === 'dark' || saved === 'system')
+            ? saved
+            : 'system';
+
+          var isDark = mode === 'system'
+            ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+            : (mode === 'dark');
+
+          var html = document.documentElement;
+          if (isDark) html.classList.add('dark');
+          else html.classList.remove('dark');
+
+          var bg = isDark ? '#18181b' : '#f1f5f9';
+          var fg = isDark ? '#f4f4f5' : '#18181b';
+
+          // Inject theme rule directly into head so body inherits before DOM creation
+          var style = document.createElement('style');
+          style.id = 'theme-instant-bg';
+          style.textContent = 'html, body { background-color: ' + bg + ' !important; color: ' + fg + ' !important; }';
+          document.head.appendChild(style);
+
+          html.setAttribute('data-pref-theme', mode);
+          if (isDark) html.setAttribute('data-is-dark', '1');
+          else html.removeAttribute('data-is-dark');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body style="margin: 0; padding: 0; overflow: hidden; height: 100vh; width: 100vw;">
+    <div id="root">
+      <div style="position: fixed; inset: 0; display: flex; flex-direction: column; items: center; justify-content: center; align-items: center; gap: 16px; font-family: system-ui, -apple-system, sans-serif; user-select: none;">
+        <div style="position: relative; display: flex; items-center; justify-content: center;">
+          <img src="/app.png" alt="Factorio Mod Downloader" style="width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(99, 102, 241, 0.25));" />
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span style="font-size: 13px; font-weight: 700; opacity: 0.85; letter-spacing: 0.02em;">Factorio Mod Downloader</span>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
