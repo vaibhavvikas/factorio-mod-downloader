@@ -23,9 +23,9 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.11.5", features = ["macos-private-api"] }
 tauri-plugin-log = "2"
-factorio = { path = "../../../../crates/factorio" }
-downloader = { path = "../../../../crates/downloader" }
-parser = { path = "../../../../crates/parser" }
+factorio = { path = "../../../crates/factorio" }
+downloader = { path = "../../../crates/downloader" }
+parser = { path = "../../../crates/parser" }
 dirs = "6.0"
 rfd = "0.15"
 tauri-plugin-opener = "2"
