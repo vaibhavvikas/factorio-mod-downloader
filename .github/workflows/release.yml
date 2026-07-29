@@ -213,6 +213,8 @@ jobs:
 
       - name: Stage Release Executables
         shell: bash
+        env:
+          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
         run: |
           mkdir -p stage_assets
           TARGET_DIR="target/release"
@@ -221,11 +223,11 @@ jobs:
           fi
 
           if [ "${{ matrix.platform }}" = "windows-latest" ]; then
-            cp "${TARGET_DIR}/app.exe" stage_assets/factorio-mod-downloader-gui-windows-x64.exe
+            cp "${TARGET_DIR}/app.exe" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe"
           elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
-            cp "${TARGET_DIR}/app" stage_assets/factorio-mod-downloader-gui-macos-universal
+            cp "${TARGET_DIR}/app" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal"
           else
-            cp "${TARGET_DIR}/app" stage_assets/factorio-mod-downloader-gui-linux-x64
+            cp "${TARGET_DIR}/app" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
           fi
 
       - name: Upload Platform Executables Artifact
@@ -273,11 +275,13 @@ jobs:
 
       - name: Assert Complete Platform Executable Suite
         shell: bash
+        env:
+          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
         run: |
           EXPECTED=(
-            "factorio-mod-downloader-gui-windows-x64.exe"
-            "factorio-mod-downloader-gui-macos-universal"
-            "factorio-mod-downloader-gui-linux-x64"
+            "factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe"
+            "factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal"
+            "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
           )
           MISSING=0
           for file in "${EXPECTED[@]}"; do
@@ -318,9 +322,9 @@ jobs:
 
           | Platform | GUI Executable (Standalone) |
           | :--- | :--- |
-          | 🪟 **Windows (x64)** | `factorio-mod-downloader-gui-windows-x64.exe` |
-          | 🍎 **macOS (Universal)** | `factorio-mod-downloader-gui-macos-universal` |
-          | 🐧 **Linux (x86_64)** | `factorio-mod-downloader-gui-linux-x64` |
+          | 🪟 **Windows (x64)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe` |
+          | 🍎 **macOS (Universal)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal` |
+          | 🐧 **Linux (x86_64)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64` |
 
           ---
 
