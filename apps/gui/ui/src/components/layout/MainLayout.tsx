@@ -121,7 +121,7 @@ export const MainLayout: React.FC = () => {
                                     if (fallback) fallback.style.display = 'flex';
                                 }}
                             />
-                            <div style={{ display: 'none' }} className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-rose-500 items-center justify-center text-white font-black text-sm shadow-md select-none">
+                            <div style={{ display: 'none' }} className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-rose-500 items-center justify-center text-white font-black text-sm shadow-md select-none">
                                 V
                             </div>
                         </div>
@@ -164,7 +164,7 @@ export const MainLayout: React.FC = () => {
                             rel="noreferrer"
                             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
                         >
-                            <Mail className="w-3.5 h-3.5 text-indigo-500" />
+                            <Mail className="w-3.5 h-3.5 text-blue-500" />
                             <span>Feedback</span>
                         </a>
                     </div>
@@ -195,7 +195,7 @@ export const MainLayout: React.FC = () => {
 
                     {/* Official Game & Wube Software Support Section */}
                     <div className={`${LAYER.innerRecessed} ${BORDER.inner} rounded-xl p-3.5 flex flex-col gap-2.5 select-none shadow-2xs`}>
-                        <div className="flex items-center gap-1.5 font-bold text-[10px] text-indigo-600 dark:text-indigo-400">
+                        <div className="flex items-center gap-1.5 font-bold text-[10px] text-blue-600 dark:text-blue-400">
                             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
                             <span>SUPPORT THE DEVELOPERS</span>
                         </div>
@@ -206,7 +206,7 @@ export const MainLayout: React.FC = () => {
                             href="https://factorio.com/buy"
                             target="_blank"
                             rel="noreferrer"
-                            className="w-full py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-center text-[10.5px] shadow-md shadow-indigo-600/20 border border-indigo-400/30 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                            className="w-full py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-center text-[10.5px] shadow-md shadow-blue-600/20 border border-blue-400/30 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                         >
                             <span>Buy Factorio at Factorio.com</span>
                             <ExternalLink className="w-3 h-3" />

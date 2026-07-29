@@ -3,7 +3,7 @@ import { FolderOpen, FolderSearch, FolderOutput, RefreshCw, Package, Sparkles } 
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import type { InstalledModItem } from '../../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, INTERACTIVE } from '../../../theme/layers';
 import {
     DeleteModModal,
     DependencyUpgradeConflictModal,
@@ -211,7 +211,7 @@ export const InstalledTab: React.FC = () => {
             <div className="pt-3 px-3 pb-0 shrink-0 flex flex-col gap-4">
                 <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between text-xs shadow-xs`}>
                     <div className="flex items-center gap-2.5 text-slate-600 dark:text-zinc-300 overflow-hidden">
-                        <FolderOpen className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
                         <span className="font-semibold text-slate-400 dark:text-zinc-500">Mods Path:</span>
                         <span className="font-mono text-[11px] truncate text-slate-900 dark:text-zinc-100">{folderPath || 'Detecting folder...'}</span>
                     </div>
@@ -224,7 +224,7 @@ export const InstalledTab: React.FC = () => {
                             className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
                             title="Browse / Change Folder"
                         >
-                            <FolderSearch className="w-3.5 h-3.5 text-indigo-500" />
+                            <FolderSearch className="w-3.5 h-3.5 text-blue-500" />
                         </button>
 
                         <button
@@ -240,7 +240,7 @@ export const InstalledTab: React.FC = () => {
                             className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
                             title="Open folder in Finder / File Explorer"
                         >
-                            <FolderOutput className="w-3.5 h-3.5 text-indigo-500" />
+                            <FolderOutput className="w-3.5 h-3.5 text-blue-500" />
                         </button>
 
                         <button
@@ -261,45 +261,45 @@ export const InstalledTab: React.FC = () => {
             <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
                 <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {installedMods.length > 0 && (
-                        <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.viewportHeader} px-3 pt-3 pb-0 flex items-start justify-between`}>
-                            <div className="inline-flex gap-6 text-xs font-bold select-none -mb-px">
-                                <button
-                                    onClick={() => setActiveTab('installed')}
-                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
-                                        activeTab === 'installed'
-                                            ? 'text-indigo-600 dark:text-indigo-400'
-                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                                    }`}
-                                >
-                                    <Package className={`w-3.5 h-3.5 ${activeTab === 'installed' ? 'text-indigo-500' : 'text-slate-400 dark:text-zinc-500'}`} />
-                                    <span>Installed Mods</span>
-                                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${activeTab === 'installed' ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-zinc-700/60 text-slate-600 dark:text-zinc-300'}`}>
-                                        {installedMods.length}
-                                    </span>
-                                    {activeTab === 'installed' && (
-                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('updates')}
-                                    className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
-                                        activeTab === 'updates'
-                                            ? 'text-indigo-600 dark:text-indigo-400'
-                                            : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
-                                    }`}
-                                >
-                                    <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
-                                    <span>Updates Available</span>
-                                    {updateCount > 0 && (
-                                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                                            {updateCount}
-                                        </span>
-                                    )}
-                                    {activeTab === 'updates' && (
-                                        <span className="absolute bottom-0 -left-2 -right-2 h-0.5 bg-indigo-600 dark:bg-indigo-400 rounded-full" />
-                                    )}
-                                </button>
-                            </div>
+                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-3 pt-3 pb-0 flex items-start justify-between rounded-t-2xl`}>
+                             <div className="inline-flex gap-6 text-xs font-bold select-none">
+                                 <button
+                                     onClick={() => setActiveTab('installed')}
+                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                         activeTab === 'installed'
+                                             ? 'text-blue-600 dark:text-blue-400'
+                                             : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                     }`}
+                                 >
+                                     <Package className={`w-3.5 h-3.5 ${activeTab === 'installed' ? 'text-blue-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                     <span>Installed Mods</span>
+                                     <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${activeTab === 'installed' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-zinc-700/60 text-slate-600 dark:text-zinc-300'}`}>
+                                         {installedMods.length}
+                                     </span>
+                                     {activeTab === 'installed' && (
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                     )}
+                                 </button>
+                                 <button
+                                     onClick={() => setActiveTab('updates')}
+                                     className={`relative pb-3 flex items-center gap-1.5 transition-all cursor-pointer ${
+                                         activeTab === 'updates'
+                                             ? 'text-blue-600 dark:text-blue-400'
+                                             : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                                     }`}
+                                 >
+                                     <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                     <span>Updates Available</span>
+                                     {updateCount > 0 && (
+                                         <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                             {updateCount}
+                                         </span>
+                                     )}
+                                     {activeTab === 'updates' && (
+                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" />
+                                     )}
+                                 </button>
+                             </div>
                             {activeTab === 'updates' && (
                                 <UpdatesHeaderActions
                                     updateCount={updateCount}

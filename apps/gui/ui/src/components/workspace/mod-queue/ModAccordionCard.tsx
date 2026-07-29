@@ -5,7 +5,7 @@ import { DependencyTree } from './DependencyTree';
 import type { TreeNode } from './DependencyTree';
 import { formatCategoryLabel, getCategoryBadgeStyle } from '../shared/modCategory';
 import { useAppContext } from '../../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, ACCENT, INTERACTIVE } from '../../../theme/layers';
 
 export interface ModVersionRelease {
     version: string;
@@ -93,7 +93,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
             if (preferredLeft < MIN_EDGE) {
                 left = Math.min(leftAnchorLeft, maxLeft);
             }
-            // Never clip on the right viewport edge either.
+
             left = Math.min(left, maxLeft);
             left = Math.max(MIN_EDGE, left);
 
@@ -104,18 +104,18 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
 
     return (
         <div className="relative select-none">
+
             <button
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className={`panel-pill panel-pill-mono px-3 h-6 min-h-6 max-h-6 rounded-full items-center gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.tabActive} text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 hover:bg-slate-200/60 dark:hover:bg-zinc-900/90 transition-colors cursor-pointer max-w-[320px]`}
+                className={`panel-pill panel-pill-mono px-3 h-6 min-h-6 max-h-6 rounded-full items-center gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.tabActive} ${INTERACTIVE.pillHover} ${ACCENT.text} text-[10px] font-mono font-bold transition-colors cursor-pointer max-w-[320px]`}
             >
-                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 shrink-0 font-sans">Ver:</span>
+                <span className={`text-[10px] font-bold ${TEXT.muted} shrink-0 font-sans`}>Ver:</span>
                 <span className="truncate max-w-[240px]">{displayLabel}</span>
-                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform text-slate-400 dark:text-zinc-500 ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${TEXT.muted} ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Portal-rendered dropdown — escapes sticky/overflow-hidden ancestors */}
             {isOpen && createPortal(
                 <>
                     <div
@@ -127,7 +127,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                         onMouseDown={(event) => event.stopPropagation()}
                     />
                     <div
-                        className={`fixed z-[101] ${LAYER.contentCard} ${BORDER.toolbar} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
+                        className={`fixed z-[101] ${LAYER.dropdownMenu} ${BORDER.dropdown} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
                         style={{
                             top: dropdownPos.top,
                             left: dropdownPos.left,
@@ -151,8 +151,8 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                                             }}
                                             onMouseDown={(event) => event.stopPropagation()}
                                             className={`px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors gap-3 ${isSelected
-                                                ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                                                : 'text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-700/80'
+                                                ? `${ACCENT.menuItemSelected} font-bold`
+                                                : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                                 }`}
                                         >
                                             <span className="min-w-0 truncate">{formatVer(rel.version)}</span>
@@ -163,7 +163,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                                     );
                                 })
                             ) : (
-                                <div className="px-3 py-2 text-slate-700 dark:text-zinc-200 font-bold">
+                                <div className={`px-3 py-2 ${TEXT.emphasis} font-bold`}>
                                     {formatVer(selectedVersion)}
                                 </div>
                             )}
@@ -221,9 +221,9 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     const categoryBadgeStyle = getCategoryBadgeStyle(mod.category);
 
     return (
-        <div className={`${LAYER.contentCard} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden`}>
+        <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden`}>
             {/* Sticky Header — pins to top of scroll container like VS Code sticky scroll */}
-            <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.contentCard} rounded-t-2xl`}>
+            <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.cardSurface} rounded-t-2xl`}>
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 overflow-hidden">
                         {/* Mod Thumbnail image with initial letter fallback */}
@@ -235,7 +235,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                 onError={() => setImgError(true)}
                             />
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-indigo-500/15 dark:bg-indigo-500/25 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-base shrink-0 mt-0.5 select-none shadow-xs">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/15 dark:bg-blue-500/25 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-base shrink-0 mt-0.5 select-none shadow-xs">
                                 {initialLetter}
                             </div>
                         )}
@@ -273,7 +273,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                     href={`https://mods.factorio.com/mod/${mod.name}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-indigo-500 hover:text-indigo-400 flex items-center gap-1 hover:underline cursor-pointer font-medium"
+                                    className="text-blue-500 hover:text-blue-400 flex items-center gap-1 hover:underline cursor-pointer font-medium"
                                 >
                                     <span>Portal</span>
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -311,11 +311,11 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 
                         {installed && (
                             installed.version === mod.selectedVersion ? (
-                                <span className="panel-pill bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-semibold text-[10px] select-none">
+                                <span className="panel-pill panel-pill-mono bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-semibold text-[10px] select-none">
                                     Installed: v{installed.version}
                                 </span>
                             ) : (
-                                <span className="panel-pill bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 font-semibold text-[10px] select-none">
+                                <span className="panel-pill panel-pill-mono bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 font-semibold text-[10px] select-none">
                                     Installed: v{installed.version} (Update Available)
                                 </span>
                             )
@@ -333,7 +333,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             </span>
                         )}
                         {recommendedNodes.length > 0 && (
-                            <span className="panel-pill panel-pill-mono bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60 select-none">
+                            <span className="panel-pill panel-pill-mono bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 select-none">
                                 {recommendedSelected}/{recommendedNodes.length} recommended
                             </span>
                         )}
@@ -349,7 +349,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                         onClick={toggleExpanded}
                         disabled={!hasDependencies}
                         className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors select-none ${hasDependencies
-                            ? `${TEXT.secondary} hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 cursor-pointer`
+                            ? `${TEXT.secondary} hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`
                             : 'text-slate-300 dark:text-zinc-600 cursor-not-allowed opacity-50'
                             }`}
                         title={hasDependencies ? "Toggle Dependencies List" : "No dependencies for this version"}

@@ -168,11 +168,11 @@ export const Workspace: React.FC = () => {
                         onClick={() => setActiveTab('search')}
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'search'
-                                ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
+                                ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
                                 : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
                         }`}
                     >
-                        <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                        <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                         <span>Explore</span>
                     </button>
 
@@ -181,16 +181,16 @@ export const Workspace: React.FC = () => {
                         onClick={() => setActiveTab('queue')}
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'queue'
-                                ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
+                                ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
                                 : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
                         }`}
                     >
-                        <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                        <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                         <span>Mod Queue</span>
                         {targetMods.length > 0 && (
                             <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1.5 text-[9.5px] font-mono font-bold leading-none ${
                                 activeTab === 'queue'
-                                    ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                                    ? 'bg-blue-600 text-white dark:bg-blue-500'
                                     : 'bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
                             }`}>
                                 {targetMods.length}
@@ -203,11 +203,11 @@ export const Workspace: React.FC = () => {
                         onClick={() => setActiveTab('installed')}
                         className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer rounded-xl border ${
                             activeTab === 'installed'
-                                ? `${LAYER.contentCard} text-indigo-600 dark:text-indigo-400 ${BORDER.tabActive} shadow-md shadow-indigo-500/5`
+                                ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 ${BORDER.tabActive} shadow-md shadow-blue-500/5`
                                 : `bg-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 border-transparent ${INTERACTIVE.navTabHover}`
                         }`}
                     >
-                        <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                        <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                         <span>Mod Manager</span>
                     </button>
                 </nav>
@@ -242,7 +242,7 @@ export const Workspace: React.FC = () => {
                             {/* Console Header */}
                             <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
                                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
-                                    <Terminal className="w-3.5 h-3.5 text-indigo-500" />
+                                    <Terminal className="w-3.5 h-3.5 text-blue-500" />
                                     <span>System Console Logs</span>
                                     <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>{logs.length}</span>
                                 </div>

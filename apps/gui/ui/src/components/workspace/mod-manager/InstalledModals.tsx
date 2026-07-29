@@ -287,7 +287,7 @@ export const DependencyUpgradeConflictModal: React.FC<DependencyUpgradeConflictM
                     {data.autoUpgradedDeps.map(dep => (
                         <div key={dep.name} className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-slate-800 dark:text-zinc-200">{dep.title}</span>
-                            <span className="font-mono text-[10px] text-indigo-500 font-bold">
+                            <span className="font-mono text-[10px] text-blue-500 font-bold">
                                 v{dep.fromVersion} ➔ v{dep.toVersion}
                             </span>
                         </div>
@@ -307,7 +307,7 @@ export const DependencyUpgradeConflictModal: React.FC<DependencyUpgradeConflictM
                     </button>
                     <button
                         onClick={() => onProceed(data.fullBatch)}
-                        className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md cursor-pointer transition-all"
+                        className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md cursor-pointer transition-all"
                     >
                         Proceed & Update All
                     </button>
