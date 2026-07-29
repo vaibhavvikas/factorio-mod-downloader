@@ -12,17 +12,17 @@
         overflow: hidden;
         height: 100vh;
         width: 100vw;
-        background-color: #f1f5f9;
+        background-color: transparent !important;
         color: #18181b;
       }
       @media (prefers-color-scheme: dark) {
         html, body {
-          background-color: #18181b;
+          background-color: transparent !important;
           color: #f4f4f5;
         }
       }
       html.dark, html.dark body {
-        background-color: #18181b !important;
+        background-color: transparent !important;
         color: #f4f4f5 !important;
       }
     </style>
@@ -45,13 +45,12 @@
           if (isDark) html.classList.add('dark');
           else html.classList.remove('dark');
 
-          var bg = isDark ? '#18181b' : '#f1f5f9';
           var fg = isDark ? '#f4f4f5' : '#18181b';
 
           // Inject theme rule directly into head so body inherits before DOM creation
           var style = document.createElement('style');
           style.id = 'theme-instant-bg';
-          style.textContent = 'html, body { background-color: ' + bg + ' !important; color: ' + fg + ' !important; }';
+          style.textContent = 'html, body { background-color: transparent !important; color: ' + fg + ' !important; }';
           document.head.appendChild(style);
 
           html.setAttribute('data-pref-theme', mode);
