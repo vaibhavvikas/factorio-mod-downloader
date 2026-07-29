@@ -1,60 +1,106 @@
-
 # Factorio Mod Downloader
 
 [![GitHub Release](https://img.shields.io/github/v/release/vaibhavvikas/factorio-mod-downloader)](https://github.com/vaibhavvikas/factorio-mod-downloader/releases)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/vaibhavvikas/factorio-mod-downloader/total)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Factorio mod downloader, recursively downloads a mod and its all required dependencies. No hassle, no login required. Just put the mod url and select the path. Thats all.
+**Factorio Mod Downloader** is a high-performance cross-platform desktop application built in **100% Rust and Tauri v2**. It recursively resolves mod dependency trees, fetches compatibility requirements, and downloads full modpacks in parallel—**no browser drivers, no python scripts, and no login required**.
 
-It is really helpful if you want to download a mod or modpack containing various different recommended mods, that if you want to download separately will take you a lot of clicks and headache.
+Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect version constraints and optional dependencies, and click **Download All**.
 
-**If you love the game please buy it and support the developers. I am a big fan of the game.**
+> **Disclaimer**: *Factorio Mod Downloader* is an independent open-source community utility and is **not developed by, affiliated with, or endorsed by Wube Software**. Factorio and all associated game assets, logos, and artwork are registered trademarks of Wube Software. If you love Factorio, please support the game developers by purchasing the official game at [factorio.com](https://factorio.com).
 
-[Official Factorio Link](https://factorio.com)
+---
 
-![Factorio Mod Downloader](factorio_mod_downloader.png)
+## 📸 Screenshots
 
+| **🔍 Explore & Online Search** |
+|:---:|
+| ![Explore & Online Search](docs/screenshots/1.png) |
 
-### Features
-1. Added Dark Mode
-2. Added progress bars and logs to see what files are being downloaded.
-3. Added a seperate downloads section to track each file with custom progress and success icons.
-4. Added speed and progress bar specific updates while file is getting downloaded.
-5. Added multithreading downloads, i.e. file will be getting downloaded in background while new dependencies are being analyzed.
-6. Updated to add the option to downlaod optional dependencies as well (Use with caution as it may significantly increase number of files getting downloaded).
-7. Completely interactive and requires no other dependency. 100% standalone app.
+| **🌳 Dependency Resolver & Queue** | **📦 Installed Mod Manager** |
+|:---:|:---:|
+| ![Dependency Resolver & Queue](docs/screenshots/2.png) | ![Installed Mod Manager](docs/screenshots/3.png) |
 
+---
 
-### How to download
-1. Go to [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases/latest) 
-2. Download the latest executable i.e. **\*.exe file** from the latest version added inside the assets dropdown. Latest release version is mentioned on the top of README.md file.
+## ✨ Features
 
+- **🚀 100% Native Rust Performance**: Built with a modular Rust workspace (`factorio`, `parser`, `downloader`, `cli`, and `gui`). Zero browser automation drivers needed.
+- **🔍 Online Explore & Category Search**: Browse Factorio Mod Portal releases with real-time text search, version selection (2.1, 2.0, 1.1, etc.), category filters (*Library*, *Logistics*, *Space Age*), and smart description tooltips.
+- **🌳 Recursive Dependency Graph Resolver**: Automatically resolves required, recommended, and optional dependencies for complex overhauls (*Krastorio 2*, *Space Age*, *Freight Forwarding*, etc.). Toggle between **Mod Cards** and interactive **Dependency Tree** graph view.
+- **📦 Installed Mod Manager & One-Click Updates**: Automatically scan your installed mods folder, compute reverse dependency locks, detect online updates, and resolve batch updates safely.
+- **⚙️ Custom Version Selection & Toggles**: Fine-tune specific mod version releases and toggle optional or recommended dependencies per mod.
+- **🔄 Parallel Download Manager**: Multi-threaded parallel downloading with streaming speed indicators, exact file sizes, and inactivity timeout guards.
+- **🔁 Auto-Retry & Recovery**: Automatic 3-attempt retry loop for interrupted downloads, plus manual one-click **Retry** buttons for failed items.
+- **🎨 Modern Design System & GPU Animations**: Glassmorphic theme tokens, light/dark mode support, hardware-accelerated GPU transitions, and fluid window scaling.
+- **🌐 Direct Standalone Executables**: Native portable binaries for **Windows (x64 .exe)**, **macOS (Universal Binary)**, and **Linux (x86_64 ELF)**—no installation or setup wizard required.
 
-### How to run
-1. Run the app, select the directory and add mod url from official [factorio mod portal](https://mods.factorio.com/) for e.g. URL for Krastorio 2 mod is: `https://mods.factorio.com/mod/Krastorio2`.
-2. Click on Download button.
-3. The application will start downloading the mods and show the status and progress in the corresponding sections.
-4. The first step of loading dependencies take some time as it download [chromium-drivers](https://github.com/yeongbin-jo/python-chromedriver-autoinstaller) (~30-35 MB) required for loading URLs and the mods for downloading.
-5. Once completed the application will show a download complete dialog.
+---
 
+## 🖥️ How to Use
 
-### Development
-1. You can build and run the app yourself. I have written the code in python and implemented poetry for dependency management and easy build.
-2. Install python > v3.12 and install poetry, refer to [poetry official website](https://python-poetry.org/docs/#installation) for installation guide.
-3. Install dependencies via the command `poetry install`.
-4. To run the application use the command `poetry run factorio-mod-downloader`. This will run the application directly without building.
-5. To build the application, I am using pyinstaller (you need a **Windows x64** system to build it). Run the command `poetry build` to build the application. A new .exe file will be generated inside `/dist/pyinstaller/win_amd64`.
+1. Download the direct standalone executable for your OS from the [Releases](https://github.com/vaibhavvikas/factorio-mod-downloader/releases/latest) page.
+2. Launch **Factorio Mod Downloader**.
+3. Set your target **Mods Folder** (automatically detected on boot).
+4. Browse mods in the **Explore** tab or paste a mod URL (e.g., `https://mods.factorio.com/mod/Krastorio2`) in the **Mod Queue**.
+5. Adjust versions or optional dependencies if needed, then click **Download All**.
+6. Monitor progress in real time via the **Download Manager** drawer!
 
+---
 
-### Note
-I have finally included optional dependencies as well. My advice is handle with care as it significantly increase the number and size of downloads.
+## 🛠️ Project Workspace Architecture
 
-Also, download speed is based on re146, Its not super fast but its fine.
+```
+.
+├── apps/
+│   ├── cli/             # Standalone Rust CLI runner (planned)
+│   └── gui/             # Tauri v2 Desktop GUI (Rust + React + Vite + TailwindCSS)
+├── crates/
+│   ├── factorio/        # Factorio Mod Portal API client & dependency graph resolver
+│   ├── parser/          # Info.json dependency parser & version constraint evaluator
+│   └── downloader/      # Multi-threaded parallel downloader engine with timeout/retries
+└── Cargo.toml           # Root Cargo workspace manifest
+```
 
-Feel free to reach out to me or start a message in the discussions tab if you need some help. 
+---
 
+## 🏗️ Building from Source
 
-### Credits:
-- re146.dev
-- [radioegor146](https://github.com/radioegor146)
+### Prerequisites
+- [Rust](https://www.rust-lang.org/tools/install) (1.75+)
+- [Node.js](https://nodejs.org/) (v24+)
+- Platform build toolchains (Xcode tools for macOS, Visual Studio C++ build tools for Windows, or `libgtk-3-dev` / `libwebkit2gtk-4.1-dev` for Linux).
+
+### Build Desktop GUI
+```bash
+# Clone the repository
+git clone https://github.com/vaibhavvikas/factorio-mod-downloader.git
+cd factorio-mod-downloader/apps/gui
+
+# Install npm dependencies
+npm install
+
+# Run in Development Mode
+npx tauri dev
+
+# Build Production Bundle
+npx tauri build
+```
+
+---
+
+## 💳 Credits & Acknowledgments
+- Factorio Mod Portal API & [Factorio.com](https://factorio.com) by Wube Software.
+- Community storage mirrors by [re146.dev](https://re146.dev) & [@radioegor146](https://github.com/radioegor146).
+
+---
+
+## ⚠️ Disclaimer
+*Factorio Mod Downloader* is an independent, community-developed open-source software and is **not developed by, affiliated with, or endorsed by Wube Software**. Factorio and all associated game logos, trademarks, and assets belong to Wube Software.
+
+---
+
+## 📄 License
+Distributed under the [MIT License](LICENSE).
 

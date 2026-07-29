@@ -1,0 +1,11 @@
+[package]
+name = "parser"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+regex = "1.13.1"
+serde = "1.0.229"

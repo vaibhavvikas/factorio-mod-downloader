@@ -1,0 +1,31 @@
+[package]
+name = "app"
+version = "0.3.1"
+description = "A Factorio mod dependency resolver and downloader desktop app"
+authors = ["Vaibhav Vikas <vaibhavvikas@users.noreply.github.com>"]
+license = "MIT"
+repository = "https://github.com/vaibhavvikas/factorio-mod-downloader"
+edition = "2024"
+rust-version = "1.97.1"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.5", features = ["macos-private-api"] }
+tauri-plugin-log = "2"
+factorio = { path = "../../../crates/factorio" }
+downloader = { path = "../../../crates/downloader" }
+parser = { path = "../../../crates/parser" }
+dirs = "6.0"
+rfd = "0.15"
+tauri-plugin-opener = "2"

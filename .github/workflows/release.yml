@@ -1,0 +1,344 @@
+name: Release Build & Publish
+
+on:
+  push:
+    branches:
+      - 'release/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v0.3.1 or 0.3.1)'
+        required: true
+      overwrite_release:
+        description: 'Overwrite existing GitHub release tag if re-run'
+        type: boolean
+        required: false
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}-${{ github.event.inputs.version || 'auto' }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate:
+    name: Validate Release Branch & Version
+    runs-on: ubuntu-latest
+    outputs:
+      target_version: ${{ steps.resolve.outputs.target_version }}
+      raw_version: ${{ steps.resolve.outputs.raw_version }}
+    steps:
+      - name: Resolve and validate release version
+        id: resolve
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [[ "$BRANCH" != release/* ]]; then
+              echo "::error::Manual releases must be triggered from a release/* branch. Current branch: $BRANCH"
+              exit 1
+            fi
+
+            VERSION="${{ github.event.inputs.version }}"
+            if [ -z "$VERSION" ]; then
+              echo "::error::Release version input is required for manual runs."
+              exit 1
+            fi
+          else
+            if [[ "$BRANCH" != release/* ]]; then
+              echo "::error::Automatic releases must run from a release/* branch. Current branch: $BRANCH"
+              exit 1
+            fi
+            VERSION="${BRANCH#release/}"
+          fi
+
+          if [[ "$VERSION" != v* ]]; then
+            VERSION="v$VERSION"
+          fi
+
+          RAW_VERSION="${VERSION#v}"
+          if ! [[ "$RAW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?(\+[A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::Invalid semver version: $VERSION"
+            exit 1
+          fi
+
+          if [ "$BRANCH" != "release/$VERSION" ] && [ "$BRANCH" != "release/$RAW_VERSION" ]; then
+            echo "::error::Branch name must match the release version. Expected: release/$VERSION or release/$RAW_VERSION, got: $BRANCH"
+            exit 1
+          fi
+
+          echo "target_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "raw_version=$RAW_VERSION" >> $GITHUB_OUTPUT
+          echo "Validated release $VERSION on branch $BRANCH"
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'apps/gui/package-lock.json'
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './ -> target'
+
+      - name: Install Linux Dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Install Frontend Dependencies
+        working-directory: apps/gui
+        run: npm ci
+
+      - name: Run Workspace Tests
+        run: cargo test --workspace
+
+  cleanup-existing-release:
+    name: Cleanup Existing Release Tag
+    needs: [validate, test]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Delete Existing Release Tag (If Overwrite Selected)
+        if: ${{ github.event.inputs.overwrite_release != 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
+        run: |
+          gh release delete "$TARGET_VERSION" --yes --cleanup-tag || true
+
+  build-executables:
+    name: Build Standalone Executables (${{ matrix.platform }})
+    needs: [validate, cleanup-existing-release]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+            os_key: 'macos'
+            args: '--target universal-apple-darwin'
+          - platform: 'ubuntu-22.04'
+            os_key: 'linux'
+            args: ''
+          - platform: 'windows-latest'
+            os_key: 'windows'
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Sync App Version Files
+        shell: bash
+        env:
+          RAW_VERSION: ${{ needs.validate.outputs.raw_version }}
+        run: |
+          echo "Propagating version $RAW_VERSION into config files..."
+          node -e "
+            const fs = require('fs');
+
+            // apps/gui/package.json
+            const pkgPath = 'apps/gui/package.json';
+            if (fs.existsSync(pkgPath)) {
+              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+              pkg.version = process.env.RAW_VERSION;
+              fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+            }
+
+            // apps/gui/src-tauri/tauri.conf.json
+            const tauriPath = 'apps/gui/src-tauri/tauri.conf.json';
+            if (fs.existsSync(tauriPath)) {
+              const tauriConf = JSON.parse(fs.readFileSync(tauriPath, 'utf8'));
+              tauriConf.version = process.env.RAW_VERSION;
+              fs.writeFileSync(tauriPath, JSON.stringify(tauriConf, null, 2) + '\n');
+            }
+
+            // apps/gui/src-tauri/Cargo.toml
+            const cargoTauriPath = 'apps/gui/src-tauri/Cargo.toml';
+            if (fs.existsSync(cargoTauriPath)) {
+              let cargoTauri = fs.readFileSync(cargoTauriPath, 'utf8');
+              cargoTauri = cargoTauri.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(cargoTauriPath, cargoTauri);
+            }
+
+            // apps/cli/Cargo.toml
+            const cargoCliPath = 'apps/cli/Cargo.toml';
+            if (fs.existsSync(cargoCliPath)) {
+              let cargoCli = fs.readFileSync(cargoCliPath, 'utf8');
+              cargoCli = cargoCli.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(cargoCliPath, cargoCli);
+            }
+          "
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'apps/gui/package-lock.json'
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './ -> target'
+
+      - name: Install Linux Dependencies (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Frontend Dependencies
+        working-directory: apps/gui
+        run: npm ci
+
+      - name: Build Standalone Desktop GUI App
+        working-directory: apps/gui
+        run: |
+          npm run build
+          npx tauri build --no-bundle ${{ matrix.args }}
+
+      - name: Build Standalone CLI Binary
+        run: cargo build --release --bin factorio-mod-downloader-cli ${{ matrix.args }}
+
+      - name: Stage Release Executables
+        shell: bash
+        run: |
+          mkdir -p stage_assets
+          TARGET_DIR="target/release"
+          if [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            TARGET_DIR="target/universal-apple-darwin/release"
+          fi
+
+          if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+            cp "${TARGET_DIR}/app.exe" stage_assets/factorio-mod-downloader-gui-windows-x64.exe
+            cp "${TARGET_DIR}/factorio-mod-downloader-cli.exe" stage_assets/factorio-mod-downloader-cli-windows-x64.exe
+          elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            cp "${TARGET_DIR}/app" stage_assets/factorio-mod-downloader-gui-macos-universal
+            cp "${TARGET_DIR}/factorio-mod-downloader-cli" stage_assets/factorio-mod-downloader-cli-macos-universal
+          else
+            cp "${TARGET_DIR}/app" stage_assets/factorio-mod-downloader-gui-linux-x64
+            cp "${TARGET_DIR}/factorio-mod-downloader-cli" stage_assets/factorio-mod-downloader-cli-linux-x64
+          fi
+
+      - name: Upload Platform Executables Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-binaries-${{ matrix.os_key }}
+          path: stage_assets/
+          retention-days: 1
+          overwrite: true
+
+  publish-github-release:
+    name: Publish Official GitHub Release
+    needs: [validate, cleanup-existing-release, build-executables]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download All Platform Binary Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets/
+          pattern: release-binaries-*
+          merge-multiple: true
+
+      - name: Compute SHA-256 Checksums for File Authenticity
+        shell: bash
+        run: |
+          cd release_assets
+          sha256sum * > SHA256SUMS.txt
+          echo "Generated SHA256SUMS.txt:"
+          cat SHA256SUMS.txt
+
+      - name: Generate Rich Release Description
+        id: release_notes
+        shell: bash
+        env:
+          TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
+        run: |
+          cat << 'EOF' > release_body.md
+          ## 🚀 Factorio Mod Downloader ${{ env.TARGET_VERSION }}
+
+          High-performance standalone desktop GUI & CLI mod downloader for **Factorio**. Resolves recursive dependency graphs, checks online updates, and downloads modpacks in parallel.
+
+          ### 📦 Standalone Executables (No Installation Required)
+
+          Download the direct executable for your OS below. Run it directly—no installer wizard or setup required.
+
+          | Platform | GUI Executable (Standalone) | CLI Executable (Terminal) |
+          | :--- | :--- | :--- |
+          | 🪟 **Windows (x64)** | `factorio-mod-downloader-gui-windows-x64.exe` | `factorio-mod-downloader-cli-windows-x64.exe` |
+          | 🍎 **macOS (Universal)** | `factorio-mod-downloader-gui-macos-universal` | `factorio-mod-downloader-cli-macos-universal` |
+          | 🐧 **Linux (x86_64)** | `factorio-mod-downloader-gui-linux-x64` | `factorio-mod-downloader-cli-linux-x64` |
+
+          ---
+
+          ### 🔐 SHA-256 Checksums (File Authenticity Verification)
+
+          Verify file integrity using `sha256sum SHA256SUMS.txt` on Linux/macOS or `Get-FileHash -Algorithm SHA256 <file>` on Windows PowerShell:
+
+          ```text
+          EOF
+
+          cat release_assets/SHA256SUMS.txt >> release_body.md
+
+          cat << 'EOF' >> release_body.md
+          ```
+
+          ---
+
+          ### ✨ Key Features
+          - ⚡ **100% Native Rust Performance**: Modular workspace backend (`factorio`, `parser`, `downloader`, `gui`, `cli`).
+          - 🔍 **Online Explore & Search**: Browse Factorio Mod Portal releases with categories and factorio version filters.
+          - 🌳 **Recursive Dependency Resolver**: Graph-based dependency resolver for complex modpacks (*Krastorio 2*, *Space Age*, etc.).
+          - 📦 **Installed Mod Manager & Updates**: Detect online mod updates and resolve batch upgrades safely.
+          - 🚀 **Direct Standalone Binary**: Run out-of-the-box with zero installation or setup scripts.
+
+          ---
+          > **Disclaimer**: *Factorio Mod Downloader* is an independent open-source community utility and is not affiliated with or endorsed by Wube Software.
+          EOF
+
+      - name: Publish Official GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate.outputs.target_version }}
+          name: 'Factorio Mod Downloader ${{ needs.validate.outputs.target_version }}'
+          body_path: release_body.md
+          files: release_assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
