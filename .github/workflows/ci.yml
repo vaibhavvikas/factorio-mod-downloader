@@ -51,6 +51,7 @@ jobs:
 
       - name: Build Desktop GUI Executable
         working-directory: apps/gui
+        shell: bash
         run: |
           npm run build
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
