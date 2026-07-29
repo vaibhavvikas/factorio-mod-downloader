@@ -8,7 +8,7 @@
 
 Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect version constraints and optional dependencies, and click **Download All**.
 
-> **Disclaimer**: *Factorio Mod Downloader* is an independent open-source community utility and is **not developed by, affiliated with, or endorsed by Wube Software**. Factorio and all associated game assets, logos, and artwork are registered trademarks of Wube Software. If you love Factorio, please support the game developers by purchasing the official game at [factorio.com](https://factorio.com).
+> **Note**: *If you love Factorio, please support Wube Software by purchasing the game at [factorio.com](https://factorio.com).*
 
 ---
 
