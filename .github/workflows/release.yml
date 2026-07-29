@@ -83,12 +83,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@v5
+      
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '24'
           node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: 'apps/gui/package-lock.json'
@@ -135,7 +134,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Sync App Version Files
         shell: bash
@@ -182,7 +181,6 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '24'
           node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: 'apps/gui/package-lock.json'
@@ -245,7 +243,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Delete Existing Release Tag (If Overwrite Selected)
         if: ${{ github.event.inputs.overwrite_release != 'false' }}
@@ -264,7 +262,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download All Platform Binary Artifacts
         uses: actions/download-artifact@v4

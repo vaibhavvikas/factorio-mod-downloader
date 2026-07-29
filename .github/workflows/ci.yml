@@ -19,12 +19,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '24'
           node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: 'apps/gui/package-lock.json'
