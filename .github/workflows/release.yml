@@ -314,9 +314,9 @@ jobs:
 
           | Platform | GUI Executable / Archive |
           | :--- | :--- |
-          | 🪟 **Windows (x64)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe` |
-          | 🍎 **macOS (Universal)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal.app.zip` |
-          | 🐧 **Linux (x86_64)** | `factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64.tar.gz` |
+          | 🪟 **Windows (x64)** | `factorio-mod-downloader-gui-${{ env.TARGET_VERSION }}-windows-x64.exe` |
+          | 🍎 **macOS (Universal)** | `factorio-mod-downloader-gui-${{ env.TARGET_VERSION }}-macos-universal.app.zip` |
+          | 🐧 **Linux (x86_64)** | `factorio-mod-downloader-gui-${{ env.TARGET_VERSION }}-linux-x64.tar.gz` |
 
           ---
 
