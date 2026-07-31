@@ -9,6 +9,7 @@ export type DependencyType = 'required' | 'recommended' | 'optional' | 'incompat
 export interface TreeNode {
     id: string;
     name: string;
+    ineq?: string;
     version: string;
     size: number;
     type: DependencyType;
@@ -43,6 +44,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
         }
         return null;
     };
+
     if (!nodes || nodes.length === 0) {
         return (
             <div className="text-center py-4 text-xs text-slate-400 dark:text-zinc-600 font-mono">
@@ -66,10 +68,12 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
     const isAllOptionalSelected = optionalNodes.length > 0 && optionalSelectedCount === optionalNodes.length;
     const isSomeOptionalSelected = optionalSelectedCount > 0 && !isAllOptionalSelected;
 
-    const formatVersionLabel = (ver?: string) => {
+    const formatVersionLabel = (ver?: string, ineq?: string) => {
         if (!ver || !ver.trim()) return null;
         const v = ver.trim();
-        return v.startsWith('v') ? v : `v${v}`;
+        const formattedVer = v.startsWith('v') ? v : `v${v}`;
+        if (!ineq || !ineq.trim()) return formattedVer;
+        return `${ineq.trim()} ${formattedVer}`;
     };
 
     return (
@@ -90,12 +94,12 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                 <div className="flex items-center gap-2.5 overflow-hidden">
                                     <Checkbox checked disabled readOnly accent="sky" aria-label={`${node.name} required`} />
                                     <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
-                                    {formatVersionLabel(node.version) && (
-                                        <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{formatVersionLabel(node.version)}</span>
+                                    {formatVersionLabel(node.version, node.ineq) && (
+                                        <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{formatVersionLabel(node.version, node.ineq)}</span>
                                     )}
                                     {node.isShared && (
                                         <span className={`flex items-center gap-1 text-[9px] bg-slate-100 dark:bg-zinc-800 ${TEXT.secondary} px-1.5 py-0.2 rounded font-mono font-medium shrink-0`}>
-                                                <Layers className="w-2.5 h-2.5 text-blue-400" />
+                                            <Layers className="w-2.5 h-2.5 text-blue-400" />
                                             shared
                                         </span>
                                     )}
@@ -142,12 +146,12 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                             onChange={() => onToggleDep(node.id)}
                                         />
                                         <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
-                                        {formatVersionLabel(node.version) && (
-                                            <span className="text-[10px] font-mono text-slate-400">{formatVersionLabel(node.version)}</span>
+                                        {formatVersionLabel(node.version, node.ineq) && (
+                                            <span className="text-[10px] font-mono text-slate-400">{formatVersionLabel(node.version, node.ineq)}</span>
                                         )}
                                         {node.isShared && (
                                             <span className={`flex items-center gap-1 text-[9px] bg-slate-100 dark:bg-zinc-800 ${TEXT.secondary} px-1.5 py-0.2 rounded font-mono font-medium shrink-0`}>
-                                            <Layers className="w-2.5 h-2.5 text-blue-400" />
+                                                <Layers className="w-2.5 h-2.5 text-blue-400" />
                                                 shared
                                             </span>
                                         )}
@@ -195,8 +199,8 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                             onChange={() => onToggleDep(node.id)}
                                         />
                                         <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
-                                        {formatVersionLabel(node.version) && (
-                                            <span className="text-[10px] font-mono text-slate-400">{formatVersionLabel(node.version)}</span>
+                                        {formatVersionLabel(node.version, node.ineq) && (
+                                            <span className="text-[10px] font-mono text-slate-400">{formatVersionLabel(node.version, node.ineq)}</span>
                                         )}
                                         {renderInstalledStatus(node.name)}
                                     </div>

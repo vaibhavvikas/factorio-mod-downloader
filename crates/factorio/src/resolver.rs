@@ -7,6 +7,7 @@ use parser::{
 
 use crate::{
     client::ApiClient,
+    installed::{compare_versions, is_release_compatible},
     models::{ModInfo, ResolvedDownloadItem},
     mods::get_mod,
 };
@@ -37,6 +38,7 @@ impl<'client> Resolver<'client> {
         &mut self,
         target_mods: Vec<Dependency>,
         include_recommended: bool,
+        target_factorio_version: Option<&str>,
     ) -> Result<Vec<ResolvedDownloadItem>, Box<dyn std::error::Error>> {
         let mut queue: VecDeque<Dependency> = VecDeque::from(target_mods);
         let mut visited: HashSet<String> = HashSet::new();
@@ -57,12 +59,23 @@ impl<'client> Resolver<'client> {
                 }
             };
 
-            let selected_release = mod_info
-                .releases
+            let mut releases_sorted = mod_info.releases.clone();
+            releases_sorted.sort_by(|a, b| compare_versions(&b.version, &a.version));
+
+            let selected_release = releases_sorted
                 .iter()
-                .rev()
-                .find(|rel| satisfies_constraint(&rel.version, &dep.ineq, &dep.version))
-                .or_else(|| mod_info.releases.last());
+                .find(|rel| {
+                    let rel_fver = rel.info_json.as_ref().and_then(|i| i.factorio_version.as_deref());
+                    is_release_compatible(rel_fver, target_factorio_version)
+                        && satisfies_constraint(&rel.version, &dep.ineq, &dep.version)
+                })
+                .or_else(|| {
+                    releases_sorted.iter().find(|rel| {
+                        let rel_fver = rel.info_json.as_ref().and_then(|i| i.factorio_version.as_deref());
+                        is_release_compatible(rel_fver, target_factorio_version)
+                    })
+                })
+                .or_else(|| releases_sorted.first());
 
             if let Some(release) = selected_release {
                 resolved_mods.push(ResolvedDownloadItem {
@@ -98,15 +111,16 @@ impl<'client> Resolver<'client> {
     }
 
     pub async fn prepare_download_batch(
-        resolver: &mut Resolver<'_>,
+        &mut self,
         main_mods: Vec<ResolvedDownloadItem>,
         direct_deps: Vec<Dependency>,
         include_recommended: bool,
+        target_factorio_version: Option<&str>,
     ) -> Result<Vec<ResolvedDownloadItem>, Box<dyn std::error::Error>> {
         let mut final_list = main_mods;
 
-        let resolved_sub_deps = resolver
-            .resolve_deps(direct_deps, include_recommended)
+        let resolved_sub_deps = self
+            .resolve_deps(direct_deps, include_recommended, target_factorio_version)
             .await?;
 
         for sub_dep in resolved_sub_deps {
@@ -140,7 +154,7 @@ mod tests {
             version: String::new(),
         }];
 
-        let result = resolver.resolve_deps(initial_deps, false).await;
+        let result = resolver.resolve_deps(initial_deps, false, None).await;
         assert!(result.is_ok());
 
         let resolved = result.unwrap();

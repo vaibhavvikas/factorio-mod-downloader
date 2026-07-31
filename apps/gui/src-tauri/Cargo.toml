@@ -1,11 +1,11 @@
 [package]
 name = "app"
-version = "0.3.2"
+version.workspace = true
 description = "A Factorio mod dependency resolver and downloader desktop app"
-authors = ["Vaibhav Vikas <vaibhavvikas@users.noreply.github.com>"]
-license = "MIT"
-repository = "https://github.com/vaibhavvikas/factorio-mod-downloader"
-edition = "2024"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
 rust-version = "1.97.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

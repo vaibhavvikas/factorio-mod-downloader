@@ -18,6 +18,27 @@ fn default_window_height() -> u32 {
     720
 }
 
+const MIN_WINDOW_WIDTH: u32 = 400;
+const MIN_WINDOW_HEIGHT: u32 = 300;
+const MAX_WINDOW_WIDTH: u32 = 7680;
+const MAX_WINDOW_HEIGHT: u32 = 4320;
+
+fn clamp_window_width(width: u32) -> u32 {
+    if width < MIN_WINDOW_WIDTH || width > MAX_WINDOW_WIDTH {
+        default_window_width()
+    } else {
+        width
+    }
+}
+
+fn clamp_window_height(height: u32) -> u32 {
+    if height < MIN_WINDOW_HEIGHT || height > MAX_WINDOW_HEIGHT {
+        default_window_height()
+    } else {
+        height
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
     pub mods_folder: Option<String>,
@@ -204,6 +225,13 @@ pub fn open_folder_in_explorer(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn open_config_folder() -> Result<(), String> {
+    let config_file = get_config_file_path()?;
+    let config_dir = config_file.parent().ok_or_else(|| "Could not determine parent config directory".to_string())?;
+    open_folder_in_explorer(config_dir.to_string_lossy().to_string())
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WindowState {
     pub width: u32,
@@ -225,8 +253,8 @@ pub fn get_window_state() -> Result<WindowState, String> {
     let content = fs::read_to_string(config_path).map_err(|e| e.to_string())?;
     let config: AppConfig = serde_json::from_str(&content).unwrap_or_default();
     Ok(WindowState {
-        width: config.window_width.max(default_window_width()),
-        height: config.window_height.max(default_window_height()),
+        width: clamp_window_width(config.window_width),
+        height: clamp_window_height(config.window_height),
         maximized: config.window_maximized,
     })
 }
@@ -241,8 +269,8 @@ pub fn save_window_state(width: u32, height: u32, maximized: bool) -> Result<(),
         AppConfig::default()
     };
 
-    config.window_width = width.max(default_window_width());
-    config.window_height = height.max(default_window_height());
+    config.window_width = clamp_window_width(width);
+    config.window_height = clamp_window_height(height);
     config.window_maximized = maximized;
     let content = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
     fs::write(config_path, content).map_err(|e| e.to_string())?;

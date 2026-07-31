@@ -6,7 +6,7 @@
 //! - Authentication headers
 //! - Common HTTP error handling
 
-pub const DEFAULT_USER_AGENT: &str = "FactorioModDownloader/1.0";
+pub const DEFAULT_USER_AGENT: &str = "Factorio/v2.1.0";
 
 #[derive(Clone, Debug)]
 pub struct ApiClient {
