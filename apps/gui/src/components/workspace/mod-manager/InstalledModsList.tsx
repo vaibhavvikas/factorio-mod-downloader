@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, ExternalLink, Sparkles, AlertTriangle, ArrowDown, Wrench, CheckCircle } from 'lucide-react';
+import { Trash2, ExternalLink, AlertTriangle, ArrowDown, Wrench, CheckCircle } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type { InstalledModItem } from '../../../context/AppContext';
 import { useAppContext } from '../../../context/AppContext';
@@ -129,7 +129,7 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                                                 {isDowngrade ? (
                                                     <ArrowDown className="w-3 h-3 text-amber-500 shrink-0" />
                                                 ) : (
-                                                    <Sparkles className="w-3 h-3 text-blue-500 shrink-0" />
+                                                    <ArrowDown className="w-3 h-3 text-blue-500 shrink-0" />
                                                 )}
                                                 <span>{isDowngrade ? 'Downgrade to' : 'Update to'} v{targetVer}</span>
                                             </button>
