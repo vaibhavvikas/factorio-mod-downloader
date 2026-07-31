@@ -62,7 +62,10 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
         return Vec::new();
     }
 
-    let mut installed_list = Vec::new();
+    // Collect all zip entries, then clean up: if multiple versions of the
+    // same mod exist, delete the older ones from disk and keep only the newest.
+    let mut by_name: std::collections::HashMap<String, Vec<InstalledModDetails>> =
+        std::collections::HashMap::new();
 
     if let Ok(entries) = fs::read_dir(mods_folder) {
         for entry in entries.flatten() {
@@ -92,8 +95,8 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
 
                 let title_final = if title.trim().is_empty() { mod_name.clone() } else { title };
 
-                installed_list.push(InstalledModDetails {
-                    name: mod_name,
+                let detail = InstalledModDetails {
+                    name: mod_name.clone(),
                     title: title_final,
                     version,
                     author,
@@ -106,62 +109,129 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
                     has_update: false,
                     latest_version: None,
                     newer_versions: Vec::new(),
-                });
+                };
+
+                by_name.entry(mod_name).or_default().push(detail);
             }
         }
+    }
+
+    let mut installed_list = Vec::new();
+    for (_name, mut versions) in by_name {
+        if versions.len() > 1 {
+            // Sort newest-first, then delete all but the newest from disk
+            versions.sort_by(|a, b| compare_versions(&b.version, &a.version));
+            for old in versions.iter().skip(1) {
+                let _ = fs::remove_file(Path::new(&old.file_path));
+            }
+        }
+        // Keep only the newest entry
+        installed_list.push(versions.remove(0));
     }
 
     installed_list
 }
 
-pub async fn check_updates_for_installed_mods(
-    installed_mods: Vec<InstalledModDetails>,
-) -> Vec<InstalledModDetails> {
-    let api_client = ApiClient::new();
-    let mut updated_list = Vec::new();
+pub async fn check_single_mod_update_with_client(
+    api_client: &ApiClient,
+    mut mod_item: InstalledModDetails,
+    target_factorio_version: Option<String>,
+) -> InstalledModDetails {
+    match get_mod(api_client, &mod_item.name).await {
+        Ok(mod_info) => {
+            mod_item.category = Some(mod_info.category.clone());
 
-    for mut mod_item in installed_mods {
-        match get_mod(&api_client, &mod_item.name).await {
-            Ok(mod_info) => {
-                mod_item.category = Some(mod_info.category.clone());
+            if let Some(thumb) = mod_info.thumbnail {
+                let full_thumb = if thumb.starts_with("http://") || thumb.starts_with("https://") {
+                    thumb
+                } else {
+                    format!("https://assets-mod.factorio.com{}", thumb)
+                };
+                mod_item.thumbnail = Some(full_thumb);
+            }
 
-                // `info.json` only describes the installed archive; thumbnails are
-                // supplied by the Mod Portal's full-mod response. Keep the UI's
-                // initials fallback until this request succeeds, then fill it in.
-                if let Some(thumb) = mod_info.thumbnail {
-                    let full_thumb = if thumb.starts_with("http://") || thumb.starts_with("https://") {
-                        thumb
-                    } else {
-                        format!("https://assets-mod.factorio.com{}", thumb)
-                    };
-                    mod_item.thumbnail = Some(full_thumb);
-                }
+            let mut compatible_versions = Vec::new();
 
-                let mut newer = Vec::new();
-
-                for rel in mod_info.releases {
-                    if is_newer_version(&rel.version, &mod_item.version) {
-                        newer.push(rel.version);
-                    }
-                }
-
-                // The API's release order is not part of the UI contract. Sort
-                // explicitly so both the default target and dropdown are newest-first.
-                newer.sort_by(|a, b| compare_versions(b, a));
-                let latest_ver = newer.first().cloned();
-
-                if !newer.is_empty() {
-                    mod_item.has_update = true;
-                    mod_item.latest_version = latest_ver;
-                    mod_item.newer_versions = newer;
+            for rel in mod_info.releases {
+                let rel_fver = rel.info_json.as_ref().and_then(|i| i.factorio_version.as_deref());
+                if is_release_compatible(rel_fver, target_factorio_version.as_deref()) {
+                    compatible_versions.push(rel.version);
                 }
             }
-            Err(_) => {}
+
+            compatible_versions.sort_by(|a, b| compare_versions(b, a));
+
+            let mut newer = Vec::new();
+            for ver in &compatible_versions {
+                if compare_versions(ver, &mod_item.version).is_gt() {
+                    newer.push(ver.clone());
+                }
+            }
+
+            let is_explicit_target = target_factorio_version.as_deref().map(|t| {
+                let clean = t.trim().to_lowercase();
+                !clean.is_empty() && clean != "all" && clean != "any"
+            }).unwrap_or(false);
+
+            if is_explicit_target && newer.is_empty() {
+                if let Some(latest_compat) = compatible_versions.first() {
+                    if latest_compat != &mod_item.version {
+                        newer.push(latest_compat.clone());
+                    }
+                }
+            }
+
+            let latest_ver = newer.first().cloned().or_else(|| compatible_versions.first().cloned());
+
+            if !newer.is_empty() {
+                mod_item.has_update = true;
+                mod_item.latest_version = latest_ver;
+                mod_item.newer_versions = newer;
+            } else {
+                mod_item.has_update = false;
+                mod_item.latest_version = latest_ver;
+                mod_item.newer_versions = compatible_versions;
+            }
         }
-        updated_list.push(mod_item);
+        Err(_) => {}
+    }
+    mod_item
+}
+
+pub async fn check_updates_for_installed_mods(
+    installed_mods: Vec<InstalledModDetails>,
+    target_factorio_version: Option<String>,
+) -> Vec<InstalledModDetails> {
+    let api_client = ApiClient::new();
+    let mut handles = Vec::new();
+
+    for mod_item in installed_mods {
+        let client_clone = api_client.clone();
+        let target_ver = target_factorio_version.clone();
+        handles.push(tokio::spawn(async move {
+            check_single_mod_update_with_client(&client_clone, mod_item, target_ver).await
+        }));
+    }
+
+    let mut updated_list = Vec::new();
+    for handle in handles {
+        if let Ok(item) = handle.await {
+            updated_list.push(item);
+        }
     }
 
     updated_list
+}
+
+pub fn is_release_compatible(rel_fver: Option<&str>, target_fver: Option<&str>) -> bool {
+    let Some(target) = target_fver else { return true; };
+    let target_clean = target.trim().to_lowercase();
+    if target_clean.is_empty() || target_clean == "all" || target_clean == "any" {
+        return true;
+    }
+    let Some(rel) = rel_fver else { return true; };
+    let rel_clean = rel.trim().to_lowercase();
+    rel_clean == target_clean || rel_clean.starts_with(&target_clean) || target_clean.starts_with(&rel_clean)
 }
 
 pub fn delete_mod_file(file_path: &Path) -> Result<(), String> {
@@ -171,11 +241,7 @@ pub fn delete_mod_file(file_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn is_newer_version(new_ver: &str, current_ver: &str) -> bool {
-    compare_versions(new_ver, current_ver).is_gt()
-}
-
-fn compare_versions(left: &str, right: &str) -> std::cmp::Ordering {
+pub fn compare_versions(left: &str, right: &str) -> std::cmp::Ordering {
     fn parse_ver(v: &str) -> Vec<u32> {
         v.split('.')
             .map(|s| s.parse::<u32>().unwrap_or(0))

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
-import { LAYER, BORDER, ACCENT, TEXT, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, ACCENT, TEXT, INTERACTIVE, PILL_SIZE } from '../../../theme/layers';
 
 
 export interface VersionDropdownProps {
@@ -24,7 +24,7 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
     compact = false,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+    const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number }>({ left: 0, width: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
 
     const toggleOpen = (event: React.MouseEvent) => {
@@ -33,23 +33,22 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
 
         if (!isOpen && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
-            const dropdownHeight = 280;
+            const estimatedHeight = Math.min(280, (versions?.length || 1) * 36 + 12);
             const spaceBelow = window.innerHeight - rect.bottom;
-            const top = spaceBelow < dropdownHeight + 12 && rect.top > dropdownHeight
-                ? rect.top - dropdownHeight - 6
-                : rect.bottom + 6;
-            // Match dropdown width to the trigger button, with a sensible floor so
-            // the menu never collapses to a comically narrow size.
+
+            let top: number | undefined;
+            let bottom: number | undefined;
+
+            if (spaceBelow < estimatedHeight + 12 && rect.top > estimatedHeight) {
+                bottom = Math.round(window.innerHeight - rect.top + 6);
+            } else {
+                top = Math.round(rect.bottom + 6);
+            }
+
             const minW = compact ? 176 : 220;
             const width = Math.max(minW, Math.round(rect.width));
-            // RIGHT-ALIGN the dropdown to the button: the chevron lives on the
-            // button's right edge, so anchoring the dropdown's right edge there
-            // feels visually connected. If the button is wider than minW the
-            // dropdown is the same width as the button; if the button is narrower
-            // the menu grows to minW and left-shifts without pushing content off
-            // the chevron anchor.
             const left = Math.round(rect.right - width);
-            setDropdownPos({ top, left, width });
+            setDropdownPos({ top, bottom, left, width });
         }
         setIsOpen(!isOpen);
     };
@@ -61,9 +60,9 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                 type="button"
                 onClick={toggleOpen}
                 disabled={disabled}
-                className={`panel-pill panel-pill-mono h-6 min-h-6 max-h-6 px-3 shrink-0 items-center gap-1.5 rounded-full font-semibold text-[10px] max-w-[300px] transition-colors cursor-pointer disabled:opacity-50 ${LAYER.pillSurface} ${BORDER.tabActive} ${INTERACTIVE.pillHover} ${ACCENT.text}`}
+                className={`panel-pill ${PILL_SIZE.compactMono} gap-1.5 shrink-0 max-w-[300px] transition-colors cursor-pointer disabled:opacity-50 ${LAYER.pillSurface} ${BORDER.tabActive} ${INTERACTIVE.pillHover} ${ACCENT.text}`}
             >
-                <span className={`text-[10px] font-bold ${TEXT.muted} shrink-0`}>{label.replace(/:+$/, '')}:</span>
+                <span className={`text-[11px] font-bold ${TEXT.muted} shrink-0`}>{label.replace(/:+$/, '')}:</span>
                 <span className={`truncate font-mono font-bold ${valueClassName} ${compact ? 'max-w-[180px]' : 'max-w-[240px]'}`}>v{selectedVersion}</span>
                 <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${TEXT.muted} ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -79,10 +78,11 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                         onMouseDown={(event) => event.stopPropagation()}
                     />
                     <div
-                        className={`fixed z-[101] ${LAYER.dropdownMenu} ${BORDER.dropdown} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
+                        className={`fixed z-[101] ${LAYER.dropdownMenu} ${BORDER.dropdown} rounded-xl shadow-xl overflow-hidden animate-fade-in p-1`}
                         style={{
-                            top: dropdownPos.top,
-                            left: dropdownPos.left,
+                            top: dropdownPos.top !== undefined ? `${dropdownPos.top}px` : undefined,
+                            bottom: dropdownPos.bottom !== undefined ? `${dropdownPos.bottom}px` : undefined,
+                            left: `${dropdownPos.left}px`,
                             width: dropdownPos.width ? `${dropdownPos.width}px` : undefined,
                             minWidth: compact ? '176px' : '220px',
                         }}
@@ -101,7 +101,7 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                                             setIsOpen(false);
                                         }}
                                         onMouseDown={(event) => event.stopPropagation()}
-                                        className={`px-3 py-2 rounded-lg flex items-center justify-start cursor-pointer transition-colors ${isSelected
+                                        className={`px-3 py-2 rounded-lg flex items-center justify-start transition-colors cursor-pointer ${isSelected
                                             ? `${ACCENT.menuItemSelected} font-bold`
                                             : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                             }`}

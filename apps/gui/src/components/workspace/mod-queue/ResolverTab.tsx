@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Download, Inbox, Loader2, Search, ChevronDown, Layers, LayoutGrid } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
@@ -13,6 +13,7 @@ import {
     QUEUE_AUTO_RECOMMENDED_KEY,
 } from './queueAutoSelect';
 import { QueueSettingsDropdown } from './QueueSettingsDropdown';
+import { formatUserFriendlyError } from '../../../utils/errorUtils';
 
 interface BackendDependency {
     id: string;
@@ -137,7 +138,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                 {/* Chevron spacing / VS Code guide lines */}
                 <div className="flex items-center justify-center w-4 h-4 shrink-0">
                     {hasChildren ? (
-                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+                        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`} />
                     ) : (
                         <div className="w-3.5 h-3.5" />
                     )}
@@ -174,20 +175,24 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
             </div>
 
             {/* Sub-dependencies Indented rendering with vertical dashed guide lines */}
-            {hasChildren && isExpanded && (
-                <div className="relative border-l border-dashed border-slate-300 dark:border-zinc-700 ml-4 pl-3.5 flex flex-col my-0.5">
-                    {sortedSubDeps.map(dep => (
-                        <DependencyTreeNode
-                            key={dep.id}
-                            name={dep.name}
-                            versionReq={dep.version}
-                            type={dep.type}
-                            targetMods={targetMods}
-                            treeCache={treeCache}
-                            visited={newVisited}
-                            depth={depth + 1}
-                        />
-                    ))}
+            {hasChildren && (
+                <div className={`accordion-collapse ${isExpanded ? 'expanded' : ''}`}>
+                    <div className="accordion-collapse-inner">
+                        <div className="relative border-l border-dashed border-slate-300 dark:border-zinc-700 ml-4 pl-3.5 flex flex-col my-0.5">
+                            {sortedSubDeps.map(dep => (
+                                <DependencyTreeNode
+                                    key={dep.id}
+                                    name={dep.name}
+                                    versionReq={dep.version}
+                                    type={dep.type}
+                                    targetMods={targetMods}
+                                    treeCache={treeCache}
+                                    visited={newVisited}
+                                    depth={depth + 1}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
@@ -207,7 +212,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     parseAndAddMods: externalParseAndAddMods,
     loading: externalLoading,
 }) => {
-    const { startDownload, addLog } = useAppContext();
+    const { startDownload, addLog, factorioVersion } = useAppContext();
     const [localTargetMods, setLocalTargetMods] = useState<TargetModItem[]>([]);
     const targetMods = externalTargetMods !== undefined ? externalTargetMods : localTargetMods;
     const setTargetMods = externalSetTargetMods || setLocalTargetMods;
@@ -226,6 +231,42 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     const [autoIncludeOptional, setAutoIncludeOptional] = useState<boolean>(() => {
         return getQueueAutoIncludeSettings().optional;
     });
+
+    const lastResolvedKeyRef = useRef<string>('');
+
+    // Automatically update selectedVersion and dependencies for queued mods when target factorioVersion changes
+    useEffect(() => {
+        if (!targetMods || targetMods.length === 0) return;
+        setTargetMods((prev: TargetModItem[]) =>
+            prev.map(mod => {
+                if (!mod.availableReleases || mod.availableReleases.length === 0) return mod;
+                const compatible = mod.availableReleases.filter(r => {
+                    if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return true;
+                    if (!r.factorio_version) return true;
+                    const cleanRel = r.factorio_version.trim();
+                    const cleanTarget = factorioVersion.trim();
+                    return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
+                });
+                const bestRelease = compatible.length > 0 ? compatible[0] : mod.availableReleases[0];
+                const bestVer = bestRelease.version;
+
+                if (bestVer === mod.selectedVersion && mod.dependencies && mod.dependencies.length > 0) return mod;
+
+                const treeDeps = bestRelease.dependencies ? convertBackendDepsToTree(bestRelease.dependencies) : mod.dependencies;
+                const initialSelectedIds = getInitialSelectedDepIds(treeDeps, {
+                    recommended: autoIncludeRecommended,
+                    optional: autoIncludeOptional,
+                });
+
+                return {
+                    ...mod,
+                    selectedVersion: bestVer,
+                    dependencies: treeDeps,
+                    selectedDepIds: initialSelectedIds,
+                };
+            })
+        );
+    }, [factorioVersion]);
 
     // Sync selectedDepIds on targetMods when autoIncludeRecommended setting changes
     const handleToggleAutoIncludeRecommended = (enabled: boolean) => {
@@ -257,6 +298,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     useEffect(() => {
         if (targetMods.length === 0) {
             setTreeCache({});
+            lastResolvedKeyRef.current = '';
         }
     }, [targetMods.length]);
 
@@ -265,11 +307,20 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         if (viewMode === 'tree') {
             resolveAndFetchTreeDeps();
         }
-    }, [viewMode, targetMods]);
+    }, [viewMode, targetMods, factorioVersion]);
 
     const resolveAndFetchTreeDeps = async () => {
         if (targetMods.length === 0 || isLoadingTree) return;
+
+        const currentQueueKey = targetMods.map(m => `${m.name}:${m.selectedVersion}:${m.selectedDepIds.join(',')}`).join('|') + `::ver=${factorioVersion}`;
+
+        // Draw graph once; only re-fetch/redraw if queue items, versions, or factorio version changed
+        if (lastResolvedKeyRef.current === currentQueueKey && Object.keys(treeCache).length > 0) {
+            return;
+        }
+
         setIsLoadingTree(true);
+        lastResolvedKeyRef.current = currentQueueKey;
         addLog('Resolving dependency tree for graph explorer...', 'info');
 
         try {
@@ -288,7 +339,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                     if (t.selectedDepIds.includes(d.id)) {
                         directDeps.push({
                             id: d.name,
-                            ineq: '=',
+                            ineq: d.ineq || '>=',
                             version: d.version,
                         });
                     }
@@ -299,7 +350,8 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             const resolvedBatch = await invoke<BackendResolvedDownloadItem[]>('resolve_download_batch', {
                 mainMods,
                 directDeps,
-                includeRecommended: true
+                includeRecommended: true,
+                factorioVersion,
             });
 
             // 3. Find which resolved items are not in targetMods and not in treeCache:
@@ -379,6 +431,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         const mapDep = (dep: BackendDependency, type: DependencyType): TreeNode => ({
             id: `dep-${dep.id}-${Math.random()}`,
             name: String(dep.id),
+            ineq: dep.ineq,
             version: String(dep.version || ''),
             size: 15.0, // fallback estimate
             type: type,
@@ -439,12 +492,22 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                 const details = await invoke<BackendModDetails>('fetch_mod_details', { modId });
 
                 const reversedReleases = details.releases.slice().reverse();
-                const latestVersion = reversedReleases[0]?.version || 'latest';
+                const compatibleReleases = reversedReleases.filter(r => {
+                    if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return true;
+                    if (!r.factorio_version) return true;
+                    const cleanRel = r.factorio_version.trim();
+                    const cleanTarget = factorioVersion.trim();
+                    return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
+                });
+                const latestVersion = compatibleReleases.length > 0 ? compatibleReleases[0].version : (reversedReleases[0]?.version || 'latest');
                 const formattedVer = latestVersion.startsWith('v') ? latestVersion : `v${latestVersion}`;
 
-                addLog(`Loaded mod info for "${details.title || details.name}" (latest ${formattedVer})`, 'success');
+                addLog(`Loaded mod info for "${details.title || details.name}" (selected ${formattedVer} for Factorio ${factorioVersion === 'all' || factorioVersion === 'any' ? 'Any Version' : factorioVersion})`, 'success');
 
-                const treeDeps = convertBackendDepsToTree(details.default_dependencies);
+                const releaseDeps = (compatibleReleases.length > 0 && compatibleReleases[0].dependencies)
+                    ? compatibleReleases[0].dependencies
+                    : (details.default_dependencies || { required: [], recommended: [], optional: [], incompatible: [] });
+                const treeDeps = convertBackendDepsToTree(releaseDeps);
                 const initialSelectedIds = getInitialSelectedDepIds(treeDeps, {
                     recommended: autoIncludeRecommended,
                     optional: autoIncludeOptional,
@@ -476,12 +539,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                     return [...prev, newCard];
                 });
             } catch (err: any) {
-                const errStr = err?.toString() || '';
-                const is404 = errStr.includes('404') || errStr.includes('Not Found');
-                const userMsg = is404
-                    ? `Failed to fetch mod "${modId}": Mod not found on Factorio Mod Portal. Please check the mod ID.`
-                    : `Failed to fetch mod "${modId}": Unable to load mod details. Please try again.`;
-                addLog(userMsg, 'error');
+                addLog(`Failed to fetch mod "${modId}": ${formatUserFriendlyError(err, modId)}`, 'error');
             }
         }
 
@@ -592,7 +650,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                     if (t.selectedDepIds.includes(d.id)) {
                         directDeps.push({
                             id: d.name,
-                            ineq: '=',
+                            ineq: d.ineq || '>=',
                             version: d.version,
                         });
                     }
@@ -604,7 +662,8 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             const resolvedBatch = await invoke<BackendResolvedDownloadItem[]>('resolve_download_batch', {
                 mainMods,
                 directDeps,
-                includeRecommended: false
+                includeRecommended: false,
+                factorioVersion,
             });
 
             addLog(`Dependency resolution complete: ${resolvedBatch.length} mod(s) prepared for download.`, 'success');
@@ -752,7 +811,6 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                         <button
                             onClick={() => document.getElementById('file-import')?.click()}
                             className={`${INTERACTIVE.secondary} px-3 py-1.5 rounded-lg text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors`}
-                            title="Import mod list from text file"
                         >
                             <FileText className="w-3.5 h-3.5 text-blue-500" />
                             <span>Import .txt</span>
@@ -782,35 +840,35 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
                 <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {targetMods.length > 0 && (
-                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 pt-3.5 pb-0 flex items-start justify-between rounded-t-2xl`}>
-                             <div className="inline-flex gap-6 text-xs font-bold select-none">
-                                 <button
-                                     onClick={() => setViewMode('cards')}
-                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'cards'
-                                         ? ACCENT.text
-                                         : `${TEXT.dim} ${TEXT.hoverEmphasis}`
-                                         }`}
-                                 >
-                                     <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
-                                     <span>Mod Cards</span>
-                                     {viewMode === 'cards' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
-                                     )}
-                                 </button>
-                                 <button
-                                     onClick={() => setViewMode('tree')}
-                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'tree'
-                                         ? ACCENT.text
-                                         : `${TEXT.dim} ${TEXT.hoverEmphasis}`
-                                         }`}
-                                 >
-                                     <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
-                                     <span>Dependency Tree</span>
-                                     {viewMode === 'tree' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
-                                     )}
-                                 </button>
-                             </div>
+                        <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 pt-3.5 pb-0 flex items-start justify-between rounded-t-2xl`}>
+                            <div className="inline-flex gap-6 text-xs font-bold select-none">
+                                <button
+                                    onClick={() => setViewMode('cards')}
+                                    className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'cards'
+                                        ? ACCENT.text
+                                        : `${TEXT.dim} ${TEXT.hoverEmphasis}`
+                                        }`}
+                                >
+                                    <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
+                                    <span>Target Mods</span>
+                                    {viewMode === 'cards' && (
+                                        <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('tree')}
+                                    className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'tree'
+                                        ? ACCENT.text
+                                        : `${TEXT.dim} ${TEXT.hoverEmphasis}`
+                                        }`}
+                                >
+                                    <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
+                                    <span>Dependency Tree</span>
+                                    {viewMode === 'tree' && (
+                                        <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
+                                    )}
+                                </button>
+                            </div>
                             <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 pb-3">
                                 {targetMods.length} Target Mods
                             </span>
@@ -837,7 +895,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                         <button
                                             onClick={handleStartDownloadAll}
                                             disabled={isBusy}
-                                            className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:from-blue-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/25 border border-blue-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
                                         >
                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
@@ -866,7 +924,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                         <button
                                             onClick={handleStartDownloadAll}
                                             disabled={isBusy}
-                                            className="pointer-events-auto py-2.5 px-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:from-blue-700 active:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/25 border border-blue-400/30 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
                                         >
                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>

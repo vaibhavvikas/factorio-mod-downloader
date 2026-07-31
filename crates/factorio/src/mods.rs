@@ -143,20 +143,26 @@ pub async fn search_mods_page(
     for block in blocks.iter().skip(1) {
         let full_block = format!("class=\"panel-inset-lighter flex-column{}", block);
 
-        let Some(card_cap) = card_re.captures(&full_block) else {
-            continue;
-        };
-        let mod_name = card_cap[1].trim().to_string();
-        let raw_title = card_cap[2].trim().to_string();
+        let mut mod_name = String::new();
+        let mut title = String::new();
+
+        for cap in card_re.captures_iter(&full_block) {
+            let name = cap[1].trim().to_string();
+            let clean = clean_tags_re.replace_all(&cap[2], "");
+            let text = unescape(clean.trim());
+            if !name.is_empty() && !text.is_empty() {
+                mod_name = name;
+                title = text;
+                break;
+            } else if mod_name.is_empty() {
+                mod_name = name;
+            }
+        }
 
         if mod_name.is_empty() || seen_names.contains(&mod_name) {
             continue;
         }
         seen_names.insert(mod_name.clone());
-
-        // Clean html tags from title e.g. <em>Krastorio</em> 2
-        let clean_title_text = clean_tags_re.replace_all(&raw_title, "");
-        let title = unescape(clean_title_text.trim());
 
         let owner = owner_re
             .captures(&full_block)

@@ -14,7 +14,7 @@ body {
 
 html.dark,
 html.dark body {
-  background-color: #18181b;
+  background-color: #0d1117;
 }
 
 #root {
@@ -353,6 +353,44 @@ html.dark body {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
   will-change: transform, opacity, background-color;
+}
+
+/* Cross-platform accordion collapse animation (Windows, macOS, Linux) */
+.accordion-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: grid-template-rows, opacity;
+}
+
+.accordion-collapse.expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.accordion-collapse-inner {
+  overflow: hidden;
+}
+
+/* Straight Slide Right dismissal keyframe animation */
+@keyframes slide-out-right-straight {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.item-dismissing {
+  animation-name: slide-out-right-straight;
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  animation-fill-mode: forwards;
+  pointer-events: none;
 }
 
 /* 4. Animated laser shimmer effect for active download progress bars */

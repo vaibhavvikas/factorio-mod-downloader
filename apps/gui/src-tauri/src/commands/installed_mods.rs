@@ -1,6 +1,8 @@
 use factorio::installed::{
-    check_updates_for_installed_mods, delete_mod_file, scan_installed_mods, InstalledModDetails,
+    check_single_mod_update_with_client, check_updates_for_installed_mods, delete_mod_file,
+    scan_installed_mods, InstalledModDetails,
 };
+use factorio::client::ApiClient;
 use std::path::PathBuf;
 
 #[tauri::command]
@@ -10,10 +12,22 @@ pub async fn get_installed_mods_info(mods_folder: String) -> Result<Vec<Installe
 }
 
 #[tauri::command]
+pub async fn check_single_mod_update(
+    api_client: tauri::State<'_, ApiClient>,
+    installed_mod: InstalledModDetails,
+    factorio_version: Option<String>,
+) -> Result<InstalledModDetails, String> {
+    Ok(
+        check_single_mod_update_with_client(&api_client, installed_mod, factorio_version).await,
+    )
+}
+
+#[tauri::command]
 pub async fn check_mod_updates(
     installed_mods: Vec<InstalledModDetails>,
+    factorio_version: Option<String>,
 ) -> Result<Vec<InstalledModDetails>, String> {
-    Ok(check_updates_for_installed_mods(installed_mods).await)
+    Ok(check_updates_for_installed_mods(installed_mods, factorio_version).await)
 }
 
 #[tauri::command]

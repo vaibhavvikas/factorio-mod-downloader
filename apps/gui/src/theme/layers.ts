@@ -1,111 +1,119 @@
 export const LAYER = {
-    appCanvas: 'bg-[#f4f6f8] dark:bg-zinc-900',
-    chromeHeavy: 'bg-white dark:bg-zinc-950',
-    viewportGlass: 'bg-slate-100/60 dark:bg-zinc-800/40 backdrop-blur-md',
-    viewportHeader: 'bg-white dark:bg-zinc-900',
-    groupPanel: 'bg-white dark:bg-zinc-900/90',
-    contentCard: 'bg-white dark:bg-zinc-800 shadow-xs',
-    cardSurface: 'bg-white dark:bg-zinc-800/70 shadow-xs',
-    toolbar: 'bg-white dark:bg-zinc-800/95 shadow-2xs',
-    floatingPanel: 'bg-white/98 dark:bg-zinc-950/95 shadow-xl',
-    heavyPanel: 'bg-white dark:bg-zinc-950',
-    innerRecessed: 'bg-slate-100 dark:bg-zinc-900/55',
-    innerInset: 'bg-slate-100/80 dark:bg-zinc-900/50',
-    pillSurface: 'bg-slate-200/80 dark:bg-zinc-900/60',
-    selectorPill: 'bg-slate-200/80 dark:bg-zinc-700',
-    staticPill: 'bg-slate-100 dark:bg-zinc-800/50',
-    summarySurface: 'bg-slate-100 dark:bg-zinc-900/50',
-    navBar: 'bg-white dark:bg-zinc-800/80 backdrop-blur-md shadow-xs',
-    navTabActive: 'bg-slate-100 dark:bg-zinc-900 text-blue-600 dark:text-blue-400 border-slate-300/80 dark:border-zinc-700 font-bold shadow-2xs',
-    navTabInactive: 'bg-transparent text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 border-transparent hover:bg-slate-100 dark:hover:bg-zinc-800/50',
-    modalPanel: 'bg-white dark:bg-zinc-900 shadow-2xl',
-    modalBody: 'bg-slate-50 dark:bg-zinc-950/60',
-    listSurface: 'bg-white dark:bg-zinc-900/70',
-    viewportFooter: 'bg-white dark:bg-zinc-800/95',
-    selectTrigger: 'bg-slate-100 dark:bg-zinc-700/60 hover:bg-slate-200/80 dark:hover:bg-zinc-700',
-    dropdownMenu: 'bg-white dark:bg-zinc-900 shadow-lg',
-    tooltipSurface: 'bg-slate-900 dark:bg-zinc-950 text-slate-100 dark:text-zinc-200',
-    tooltipArrowAbove: 'bg-slate-900 dark:bg-zinc-950 border-r border-b border-slate-800 dark:border-zinc-800/90',
-    tooltipArrowBelow: 'bg-slate-900 dark:bg-zinc-950 border-l border-t border-slate-800 dark:border-zinc-800/90',
+    appCanvas: 'bg-slate-100 dark:bg-[#0d1117]',
+    chromeHeavy: 'bg-slate-50 dark:bg-[#010409]',
+
+    viewportGlass: 'bg-slate-50/80 dark:bg-[#0d1117]/80 backdrop-blur-md',
+    navBar: 'bg-slate-50/80 dark:bg-[#161b22]/90 backdrop-blur-md shadow-xs',
+
+    viewportHeader: 'bg-slate-50 dark:bg-[#161b22]',
+    groupPanel: 'bg-slate-50 dark:bg-[#161b22]',
+    heavyPanel: 'bg-slate-50 dark:bg-[#161b22]',
+    listSurface: 'bg-slate-50 dark:bg-[#161b22]',
+    viewportFooter: 'bg-slate-50 dark:bg-[#161b22]',
+
+    contentCard: 'bg-slate-50 dark:bg-[#161b22] shadow-sm',
+    cardSurface: 'bg-slate-50 dark:bg-[#161b22] shadow-sm',
+    toolbar: 'bg-slate-50 dark:bg-[#161b22] shadow-xs',
+    floatingPanel: 'bg-slate-50 dark:bg-[#161b22] shadow-xl',
+    modalPanel: 'bg-slate-50 dark:bg-[#161b22] shadow-2xl',
+    dropdownMenu: 'bg-slate-50 dark:bg-[#161b22] shadow-lg',
+    modalBody: 'bg-slate-100 dark:bg-[#0d1117]',
+
+    innerRecessed: 'bg-slate-100 dark:bg-[#010409]',
+    innerInset: 'bg-slate-100/80 dark:bg-[#0d1117]/80',
+    pillSurface: 'bg-slate-200/80 dark:bg-[#21262d]',
+    selectorPill: 'bg-slate-200/80 dark:bg-[#21262d]',
+    staticPill: 'bg-slate-100 dark:bg-[#21262d]/60',
+    summarySurface: 'bg-slate-100 dark:bg-[#010409]/60',
+
+    navTabActive: 'bg-slate-50 dark:bg-[#161b22] text-blue-600 dark:text-[#58a6ff] border-slate-300 dark:border-[#30363d] font-bold shadow-sm',
+    navTabInactive: 'bg-transparent text-slate-600 dark:text-[#8b949e] border-transparent hover:text-slate-900 dark:hover:text-[#f0f6fc] hover:bg-slate-200/50 dark:hover:bg-[#21262d]',
+    selectTrigger: 'bg-slate-50 dark:bg-[#21262d] hover:bg-slate-100 dark:hover:bg-[#30363d]',
+
+    tooltipSurface: 'bg-white dark:bg-[#21262d] text-slate-800 dark:text-[#c9d1d9] shadow-md',
+    tooltipArrowAbove: 'bg-white dark:bg-[#21262d] border-r border-b border-slate-300 dark:border-[#30363d]',
+    tooltipArrowBelow: 'bg-white dark:bg-[#21262d] border-l border-t border-slate-300 dark:border-[#30363d]',
+
+    selectorRow: 'bg-transparent hover:bg-slate-200/60 dark:hover:bg-[#21262d]/70 transition-colors duration-150 cursor-pointer',
+    selectorRowActive: 'bg-slate-200/80 dark:bg-[#21262d]',
 } as const;
 
-const BW = 'border border-solid';  /* border-width + style only, never animates */
+const BW = 'border border-solid';
 
 export const BORDER = {
-    outer: `${BW} border-slate-200 dark:border-zinc-800/90`,
-    card: `${BW} border-slate-200/90 dark:border-zinc-700/80`,
-    cardSoft: `${BW} border-slate-200/80 dark:border-zinc-700/80`,
-    inner: `${BW} border-slate-200/70 dark:border-zinc-700/50`,
-    toolbar: `${BW} border-slate-300 dark:border-zinc-700/80`,
-    pill: `${BW} border-slate-200/80 dark:border-zinc-700/50`,
-    tabActive: `border-slate-300 dark:border-zinc-700/60`,
-    dropdown: `${BW} border-slate-200 dark:border-zinc-700/80`,
-    tooltip: `${BW} border-slate-800 dark:border-zinc-800/90`,
+    outer: `${BW} border-slate-300 dark:border-[#30363d]`,
+    card: `${BW} border-slate-200 dark:border-[#30363d]`,
+    cardSoft: `${BW} border-slate-200 dark:border-[#30363d]/80`,
+    inner: `${BW} border-slate-300 dark:border-[#30363d]`,
+    toolbar: `${BW} border-slate-200 dark:border-[#30363d]`,
+    pill: `${BW} border-slate-300 dark:border-[#30363d]`,
+    tabActive: `border-slate-300 dark:border-[#30363d]`,
+    dropdown: `${BW} border-slate-200 dark:border-[#30363d]`,
+    tooltip: `${BW} border-slate-300 dark:border-[#30363d]`,
 } as const;
 
 export const DIVIDER = {
-    outer: 'border-slate-200 dark:border-zinc-800/90',
-    inner: 'border-slate-200/70 dark:border-zinc-700/50',
-    soft: 'border-slate-200/80 dark:border-zinc-700/80',
+    outer: 'border-slate-300 dark:border-[#30363d]',
+    inner: 'border-slate-200 dark:border-[#21262d]',
+    soft: 'border-slate-200 dark:border-[#21262d]',
+    line: 'bg-slate-200 dark:bg-[#30363d]',
 } as const;
 
 export const TEXT = {
     secondary: 'text-slate-600 dark:text-zinc-300',
     muted: 'text-slate-500 dark:text-zinc-400',
-    dim: 'text-slate-500 dark:text-zinc-400',
+    dim: 'text-slate-400 dark:text-zinc-500',
     primary: 'text-slate-900 dark:text-zinc-100',
-    emphasis: 'text-slate-900 dark:text-zinc-200',
-    hoverEmphasis: 'hover:text-slate-900 dark:hover:text-zinc-200',
+    emphasis: 'text-slate-900 dark:text-white',
+    hoverEmphasis: 'hover:text-slate-900 dark:hover:text-white',
 } as const;
 
-/** Primary brand / action accent — icons, active triggers, selected menu items */
 export const ACCENT = {
-    icon: 'text-blue-500',
-    text: 'text-blue-600 dark:text-blue-400',
-    triggerActive: 'bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-950/50 dark:border-blue-700 dark:text-blue-400',
-    menuItemSelected: 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40',
+    icon: 'text-blue-600 dark:text-[#58a6ff]',
+    text: 'text-blue-700 dark:text-[#58a6ff]',
+    triggerActive: 'bg-blue-100/50 border-blue-300 text-blue-700 dark:bg-[#1f6feb]/20 dark:border-[#388bfd]/40 dark:text-[#58a6ff]',
+    menuItemSelected: 'bg-blue-100/60 dark:bg-[#1f6feb]/25 text-blue-700 dark:text-[#58a6ff] hover:bg-blue-200/60 dark:hover:bg-[#1f6feb]/35',
 } as const;
 
-/** Dependency-type colors shared by queue settings, dependency tree, and graph legend */
 export const DEPENDENCY_TYPE = {
     required: {
-        label: 'text-sky-600 dark:text-sky-400',
-        icon: 'text-sky-500 dark:text-sky-400',
-        dot: 'bg-sky-500',
+        label: 'text-blue-700 dark:text-[#58a6ff]',
+        icon: 'text-blue-600 dark:text-[#58a6ff]',
+        dot: 'bg-blue-600 dark:bg-[#58a6ff]',
     },
     recommended: {
-        label: 'text-blue-600 dark:text-blue-400',
-        icon: 'text-blue-500 dark:text-blue-400',
-        dot: 'bg-blue-500',
-        rowSelected: 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/70 dark:border-blue-800/50',
+        label: 'text-blue-600 dark:text-[#58a6ff]',
+        icon: 'text-blue-600 dark:text-[#58a6ff]',
+        dot: 'bg-blue-600 dark:bg-[#58a6ff]',
+        rowSelected: 'bg-blue-500/10 dark:bg-[#1f6feb]/20 border-blue-500/30 text-blue-700 dark:text-[#58a6ff] hover:bg-blue-500/20 dark:hover:bg-[#1f6feb]/30 hover:border-blue-500/50',
     },
     optional: {
-        label: 'text-blue-400 dark:text-blue-300',
-        icon: 'text-blue-400 dark:text-blue-300',
-        dot: 'bg-blue-400',
-        rowSelected: 'bg-blue-50/80 dark:bg-blue-950/30 border-blue-200/70 dark:border-blue-800/50',
+        label: 'text-slate-600 dark:text-[#8b949e]',
+        icon: 'text-slate-500 dark:text-[#6e7681]',
+        dot: 'bg-slate-400 dark:bg-[#6e7681]',
+        rowSelected: 'bg-slate-200/50 dark:bg-[#21262d] border-slate-300 dark:border-[#30363d] hover:bg-slate-200/80 dark:hover:bg-[#30363d] hover:border-slate-400 dark:hover:border-[#8b949e]',
     },
     incompatible: {
-        label: 'text-rose-600 dark:text-rose-400',
-        icon: 'text-rose-500 dark:text-rose-400',
-        dot: 'bg-rose-500',
+        label: 'text-rose-700 dark:text-[#f85149]',
+        icon: 'text-rose-600 dark:text-[#f85149]',
+        dot: 'bg-rose-600 dark:bg-[#f85149]',
     },
 } as const;
 
 export const HOVER_BORDER = {
-    card: 'hover:border-slate-400 dark:hover:border-zinc-700',
-    cardBright: 'hover:border-slate-400 dark:hover:border-zinc-600/80',
-    cardSoft: 'hover:border-slate-300 dark:hover:border-zinc-700/80',
-    pill: 'hover:border-slate-400 dark:hover:border-zinc-600',
+    card: 'hover:border-slate-400 dark:hover:border-[#8b949e]/50',
+    cardBright: 'hover:border-slate-400 dark:hover:border-[#58a6ff]/60',
+    cardSoft: 'hover:border-slate-300 dark:hover:border-[#30363d]',
+    pill: 'hover:border-slate-400 dark:hover:border-[#8b949e]/60',
 } as const;
 
 export const INTERACTIVE = {
-    secondary: 'bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-700/60 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-200',
-    iconHover: 'hover:bg-slate-200/70 dark:hover:bg-zinc-800/50',
-    rowHover: 'hover:bg-slate-100/90 dark:hover:bg-zinc-800/80',
-    ghostHover: 'hover:bg-slate-100 dark:hover:bg-zinc-800',
-    navTabHover: 'hover:bg-slate-200/60 dark:hover:bg-zinc-800/40',
-    pillHover: 'hover:bg-slate-200 dark:hover:bg-zinc-900',
+    secondary: 'bg-slate-200/60 hover:bg-slate-200 dark:bg-[#21262d] dark:hover:bg-[#30363d] text-slate-800 dark:text-[#c9d1d9] transition-colors',
+    iconHover: 'hover:bg-slate-200/60 dark:hover:bg-[#21262d] transition-colors',
+    rowHover: 'hover:bg-slate-200/70 dark:hover:bg-[#21262d] transition-colors',
+    ghostHover: 'hover:bg-slate-200/60 dark:hover:bg-[#21262d] transition-colors',
+    navTabHover: 'hover:bg-slate-200/60 dark:hover:bg-[#21262d] transition-colors',
+    pillHover: 'hover:bg-slate-300/60 dark:hover:bg-[#30363d] transition-colors',
 } as const;
 
 export const ANIMATION = {
@@ -113,12 +121,13 @@ export const ANIMATION = {
     normal: 'transition-all duration-200 ease-out',
     smooth: 'transition-all duration-300 cubic-bezier(0.16, 1, 0.3, 1)',
     gpu: 'transition-gpu',
-
-    // Tab pane switching transitions (cross-platform GPU hardware accelerated)
     tabPane: 'animate-tab-pane-in',
     subTabPane: 'animate-subtab-pane-in',
-
-    // Navigation item & button micro-interactions
     tabButton: 'transition-all duration-200 ease-out active:scale-[0.97]',
     pillPress: 'transition-transform duration-100 active:scale-95',
+} as const;
+
+export const PILL_SIZE = {
+    compact: 'h-5 min-h-5 max-h-5 px-2.5 rounded-full inline-flex items-center text-[11px]',
+    compactMono: 'panel-pill-mono h-5 min-h-5 max-h-5 px-2.5 rounded-full inline-flex items-center text-[11px]',
 } as const;
