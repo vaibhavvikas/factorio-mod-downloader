@@ -8,7 +8,6 @@ pub struct Dependencies {
     pub incompatible: Vec<Dependency>,
 }
 
-// TODO: Update to idomatic Option version and ineq to use Operator type
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Dependency {
     pub id: String,
