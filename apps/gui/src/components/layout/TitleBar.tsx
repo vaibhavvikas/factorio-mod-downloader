@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Monitor, Download, Heart, Folder } from 'lucide-react';
+import { Settings, Download, Heart } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAppContext } from '../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
+import { LAYER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
 
 interface TitleBarProps {
-    onOpenFolderModal?: () => void;
     configuredModsFolder?: string | null;
     hasAppUpdate?: boolean;
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({
-    onOpenFolderModal,
     configuredModsFolder,
     hasAppUpdate = false,
 }) => {
-    const { themeMode, setThemeMode, sidebarOpen, toggleSidebar, queue, profileOpen, setProfileOpen, isDownloading } = useAppContext();
+    const { activeDrawer, toggleDrawer, queue, isDownloading } = useAppContext();
     const appWindow = getCurrentWindow();
     const [isMac, setIsMac] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
@@ -55,11 +53,26 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     }, [appWindow]);
 
     const handleMinimize = () => appWindow.minimize();
-    const handleMaximize = async () => {
+    
+    const toggleMaximizeWindow = async () => {
         await appWindow.toggleMaximize();
         const maxed = await appWindow.isMaximized();
         setIsMaximized(maxed);
     };
+
+    const handleTitleBarDoubleClick = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, select, textarea, [role="button"], a, .no-maximize')) {
+            return;
+        }
+        toggleMaximizeWindow();
+    };
+
+    const handleMaximizeButtonClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        toggleMaximizeWindow();
+    };
+
     const handleClose = () => appWindow.close();
 
     const [hoverControls, setHoverControls] = useState(false);
@@ -93,7 +106,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             </button>
             {/* Zoom / Maximize Button */}
             <button
-                onClick={handleMaximize}
+                onClick={handleMaximizeButtonClick}
                 className="w-3 h-3 rounded-full bg-[#27c93f] active:bg-[#1da42a] border border-[#1da129]/40 cursor-pointer flex items-center justify-center transition-all duration-100"
             >
                 <svg viewBox="0 0 12 12" className={`w-3 h-3 stroke-[1.2] stroke-[#024d06]/90 fill-none transition-opacity duration-75 ${hoverControls ? 'opacity-100' : 'opacity-0'}`}>
@@ -115,24 +128,21 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 className={`hover:text-slate-800 dark:hover:text-zinc-200 ${INTERACTIVE.iconHover} w-11 h-10 flex items-center justify-center cursor-pointer transition-colors`}
                 title="Minimize"
             >
-                {/* VS Code Chrome Minimize Icon */}
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
                     <path d="M0 5h10v1H0z" />
                 </svg>
             </button>
             <button
-                onClick={handleMaximize}
+                onClick={handleMaximizeButtonClick}
                 className={`hover:text-slate-800 dark:hover:text-zinc-200 ${INTERACTIVE.iconHover} w-11 h-10 flex items-center justify-center cursor-pointer transition-colors`}
                 title={isMaximized ? "Restore Down" : "Maximize"}
             >
                 {isMaximized ? (
-                    /* VS Code Chrome Restore Icon */
                     <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
                         <path d="M3 1h6v6H8V2H3V1z" />
                         <path fillRule="evenodd" clipRule="evenodd" d="M1 3h6v6H1V3zm1 1v4h4V4H2z" />
                     </svg>
                 ) : (
-                    /* VS Code Chrome Maximize Icon */
                     <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
                         <path fillRule="evenodd" clipRule="evenodd" d="M1 1h8v8H1V1zm1 1v6h6V2H2z" />
                     </svg>
@@ -143,7 +153,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 className="hover:bg-[#e81123] hover:text-white w-11 h-10 flex items-center justify-center transition-colors cursor-pointer"
                 title="Close"
             >
-                {/* VS Code Chrome Close Icon */}
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 10 10">
                     <path d="M1.02 0L0 1.02 3.98 5 0 8.98 1.02 10 5 6.02 8.98 10 10 8.98 6.02 5 10 1.02 8.98 0 5 3.98 1.02 0z" />
                 </svg>
@@ -154,7 +163,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
     return (
         <div
             data-tauri-drag-region
-            onDoubleClick={handleMaximize}
+            onDoubleClick={handleTitleBarDoubleClick}
             className={`relative h-10 ${LAYER.chromeHeavy} border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
         >
             {/* Left Side: OS controls on Mac, Brand logo on Windows */}
@@ -171,37 +180,18 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                     <span className="text-slate-900 dark:text-zinc-50">Factorio Mod Downloader</span>
                 </div>
             )}
-            {/* Right Side Controls / Switcher */}
-            <div className="flex items-center gap-2.5 ml-auto z-10">
-                {/* Factorio Mods Folder Settings trigger */}
-                <button
-                    onClick={() => {
-                        toggleSidebar(false);
-                        setProfileOpen(false);
-                        onOpenFolderModal && onOpenFolderModal();
-                    }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded-md ${TEXT.secondary} hover:text-blue-600 dark:hover:text-blue-400 ${INTERACTIVE.iconHover} transition-all cursor-pointer flex items-center justify-center relative`}
-                    title={configuredModsFolder ? `Mods Folder: ${configuredModsFolder}` : 'Configure Factorio Mods Folder'}
-                >
-                    <Folder className="w-3.5 h-3.5" />
-                    {!configuredModsFolder && (
-                        <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
-                    )}
-                </button>
 
-                {/* Downloads manager icon trigger */}
+            {/* Right Side Control Buttons */}
+            <div className="flex items-center gap-1.5 ml-auto z-10 pr-1">
+                {/* 1. Downloads manager icon trigger */}
                 <button
-                    onClick={() => {
-                        setProfileOpen(false);
-                        toggleSidebar();
-                    }}
+                    onClick={() => toggleDrawer('downloads')}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${sidebarOpen
+                    aria-label="Downloads Manager"
+                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${activeDrawer === 'downloads'
                         ? (isDownloading ? 'text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/20' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/20')
-                        : (isDownloading ? 'text-slate-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400' : 'text-slate-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400')
+                        : (isDownloading ? `text-slate-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 ${INTERACTIVE.iconHover}` : `${TEXT.secondary} hover:text-emerald-600 dark:hover:text-emerald-400 ${INTERACTIVE.iconHover}`)
                         }`}
-                    title="Toggle Downloads Manager"
                 >
                     <Download className="w-4 h-4" />
                     {queue.length > 0 && (
@@ -214,25 +204,34 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                     )}
                 </button>
 
-                {/* Developer Profile & Support Trigger */}
+                {/* 2. Application Settings Panel trigger */}
                 <button
-                    onClick={() => {
-                        const next = !profileOpen;
-                        setProfileOpen(next);
-                        if (next) {
-                            toggleSidebar(false);
-                        }
-                    }}
+                    onClick={() => toggleDrawer('settings')}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${profileOpen
-                        ? 'text-rose-600 dark:text-rose-400'
-                        : `${TEXT.secondary} hover:text-rose-600 dark:hover:text-rose-400`
+                    aria-label="Application Settings"
+                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${activeDrawer === 'settings'
+                        ? 'text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/20'
+                        : `${TEXT.secondary} hover:text-blue-600 dark:hover:text-blue-400 ${INTERACTIVE.iconHover}`
                         }`}
-                    title="Developer Profile & Support"
                 >
-                    <Heart className={`w-3.5 h-3.5 transition-all ${profileOpen ? 'fill-rose-500 text-rose-600 dark:text-rose-400' : 'fill-transparent'}`} />
+                    <Settings className="w-4 h-4" />
+                    {!configuredModsFolder && (
+                        <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+                    )}
+                </button>
 
-                    {/* Pulsing Amber Update Dot Notification — only shown when app update is available */}
+                {/* 3. Developer Profile & Support Trigger */}
+                <button
+                    onClick={() => toggleDrawer('profile')}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    aria-label="Developer Profile & Support"
+                    className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${activeDrawer === 'profile'
+                        ? 'text-rose-600 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-900/20'
+                        : `${TEXT.secondary} hover:text-rose-600 dark:hover:text-rose-400 ${INTERACTIVE.iconHover}`
+                        }`}
+                >
+                    <Heart className={`w-4 h-4 transition-all ${activeDrawer === 'profile' ? 'fill-rose-500 text-rose-600 dark:text-rose-400' : 'fill-transparent'}`} />
+
                     {hasAppUpdate && (
                         <span className="absolute top-0.5 right-0.5 flex h-1.5 w-1.5 pointer-events-none">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
@@ -240,34 +239,6 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                         </span>
                     )}
                 </button>
-
-                {/* 3-way Theme Pill Switcher */}
-                <div
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className={`flex ${LAYER.pillSurface} ${BORDER.pill} p-0.5 rounded-lg ${TEXT.secondary}`}
-                >
-                    <button
-                        onClick={() => setThemeMode('light')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'light' ? `${LAYER.contentCard} text-blue-600 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
-                        title="Light Mode"
-                    >
-                        <Sun className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                        onClick={() => setThemeMode('dark')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'dark' ? `${LAYER.contentCard} text-blue-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
-                        title="Dark Mode"
-                    >
-                        <Moon className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                        onClick={() => setThemeMode('system')}
-                        className={`p-1 rounded-md transition-all cursor-pointer ${themeMode === 'system' ? `${LAYER.contentCard} text-blue-600 dark:text-blue-400 shadow-sm` : `bg-transparent ${INTERACTIVE.iconHover} hover:text-slate-800 dark:hover:text-zinc-200`}`}
-                        title="System Default"
-                    >
-                        <Monitor className="w-3.5 h-3.5" />
-                    </button>
-                </div>
 
                 {!isMac && renderWindowsControls()}
             </div>

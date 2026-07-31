@@ -74,7 +74,9 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${open ? ACCENT.triggerActive : `${INTERACTIVE.secondary} ${BORDER.inner}`
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border transition-all cursor-pointer ${open
+                        ? 'bg-slate-200 dark:bg-zinc-800 border-slate-300 dark:border-zinc-700 text-slate-800 dark:text-zinc-100 hover:bg-slate-300/70 dark:hover:bg-zinc-700'
+                        : `${INTERACTIVE.secondary} ${BORDER.inner}`
                     }`}
                 title="Queue dependency auto-select settings"
                 aria-expanded={open}
@@ -132,18 +134,15 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
                                         }
                                     />
                                     <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${row.style.dot}`} />
-                                            <span className={`text-[11px] font-bold ${row.style.label}`}>
-                                                {row.label}
-                                            </span>
-                                        </div>
+                                        <span className={`text-[11px] font-bold ${row.style.label}`}>
+                                            {row.label}
+                                        </span>
                                         <span className={`text-[10px] ${TEXT.secondary} leading-snug`}>
                                             {row.description}
                                         </span>
                                     </div>
                                     {isLocked && (
-                                        <span className={`text-[9px] font-semibold uppercase tracking-wide shrink-0 ${TEXT.muted}`}>
+                                        <span className={`text-[9px] font-semibold uppercase tracking-wide shrink-0 ${TEXT.muted} mt-0.5`}>
                                             Always on
                                         </span>
                                     )}

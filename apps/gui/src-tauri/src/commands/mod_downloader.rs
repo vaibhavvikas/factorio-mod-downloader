@@ -53,3 +53,21 @@ pub async fn retry_download_task(
     state.manager.retry_task(&taskId, target_dir).await;
     Ok(())
 }
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn cancel_download_task(
+    state: State<'_, DownloaderState>,
+    taskId: String,
+) -> Result<(), String> {
+    state.manager.cancel_task(&taskId).await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn cancel_all_download_tasks(
+    state: State<'_, DownloaderState>,
+) -> Result<(), String> {
+    state.manager.cancel_all().await;
+    Ok(())
+}

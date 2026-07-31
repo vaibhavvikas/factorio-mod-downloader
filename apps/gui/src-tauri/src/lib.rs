@@ -2,12 +2,12 @@ pub mod commands;
 
 use commands::config::{
     detect_default_mods_folder, get_factorio_version, get_mods_folder, get_theme_mode,
-    get_window_state, open_folder_in_explorer, pick_mods_folder_dialog, save_factorio_version,
+    get_window_state, open_config_folder, open_folder_in_explorer, pick_mods_folder_dialog, save_factorio_version,
     save_mods_folder, save_theme_mode, save_window_state,
 };
 use commands::mod_downloader::{
-    clear_completed_download_tasks, get_download_tasks, retry_download_task, start_download_batch,
-    DownloaderState,
+    cancel_all_download_tasks, cancel_download_task, clear_completed_download_tasks,
+    get_download_tasks, retry_download_task, start_download_batch, DownloaderState,
 };
 use commands::mod_resolver::{browse_mods, fetch_mod_details, resolve_download_batch, search_mods};
 use factorio::client::ApiClient;
@@ -28,11 +28,14 @@ pub fn run() {
             start_download_batch,
             clear_completed_download_tasks,
             retry_download_task,
+            cancel_download_task,
+            cancel_all_download_tasks,
             get_mods_folder,
             save_mods_folder,
             detect_default_mods_folder,
             pick_mods_folder_dialog,
             open_folder_in_explorer,
+            open_config_folder,
             get_factorio_version,
             save_factorio_version,
             get_theme_mode,
@@ -40,6 +43,7 @@ pub fn run() {
             get_window_state,
             save_window_state,
             commands::installed_mods::get_installed_mods_info,
+            commands::installed_mods::check_single_mod_update,
             commands::installed_mods::check_mod_updates,
             commands::installed_mods::delete_installed_mod
         ])

@@ -1,19 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { FolderOpen, FolderSearch, FolderOutput, RefreshCw, Package, Sparkles } from 'lucide-react';
+import { FolderOpen, FolderSearch, FolderOutput, RefreshCw, Package, Trash2, Wrench } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import type { InstalledModItem } from '../../../context/AppContext';
 import { LAYER, BORDER, INTERACTIVE, ANIMATION } from '../../../theme/layers';
+import { Tooltip } from '../../ui/Tooltip';
 import {
     DeleteModModal,
     DependencyUpgradeConflictModal,
+    BulkDeleteModModal,
     computeReverseDependencies,
     calculateDeleteImpact,
+    calculateBulkDeleteImpact,
     type ConflictModalData,
     type DeleteModalData,
+    type BulkDeleteModalData,
 } from './InstalledModals';
 import { InstalledModsList } from './InstalledModsList';
 import { InstalledUpdatesList, UpdatesHeaderActions } from './InstalledUpdatesList';
+
+function truncateMiddlePath(path: string, maxLength: number = 45): string {
+    if (!path || path.length <= maxLength) return path;
+    const parts = path.split(/[/\\]/);
+    if (parts.length <= 3) {
+        const half = Math.floor((maxLength - 5) / 2);
+        return `${path.slice(0, half)}...${path.slice(-half)}`;
+    }
+    const sep = path.includes('/') ? '/' : '\\';
+    const root = parts.slice(0, 2).join(sep);
+    const tail = parts.slice(-2).join(sep);
+    const middle = `${root}${sep}...${sep}${tail}`;
+    if (middle.length <= maxLength + 10) return middle;
+
+    const half = Math.floor((maxLength - 5) / 2);
+    return `${path.slice(0, half)}...${path.slice(-half)}`;
+}
 
 export const InstalledTab: React.FC = () => {
     const {
@@ -26,6 +47,7 @@ export const InstalledTab: React.FC = () => {
         setInstalledMods,
         loadingInstalled,
         isCheckingUpdates,
+        factorioVersion,
         refreshInstalledMods: loadInstalledMods
     } = useAppContext();
     const [loading, setLoading] = useState(false);
@@ -34,17 +56,19 @@ export const InstalledTab: React.FC = () => {
 
     const [conflictModalData, setConflictModalData] = useState<ConflictModalData | null>(null);
     const [deleteModalData, setDeleteModalData] = useState<DeleteModalData | null>(null);
+    const [bulkDeleteModalData, setBulkDeleteModalData] = useState<BulkDeleteModalData | null>(null);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 if (deleteModalData) setDeleteModalData(null);
                 if (conflictModalData) setConflictModalData(null);
+                if (bulkDeleteModalData) setBulkDeleteModalData(null);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [deleteModalData, conflictModalData]);
+    }, [deleteModalData, conflictModalData, bulkDeleteModalData]);
 
     const dependentsMap = computeReverseDependencies(installedMods);
 
@@ -71,6 +95,71 @@ export const InstalledTab: React.FC = () => {
             await loadInstalledMods(folderPath);
         } catch (err: any) {
             addLog(`Failed to delete mods: ${err?.toString()}`, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const isModCompatible = (mod: InstalledModItem, targetVersion: string) => {
+        if (!targetVersion || targetVersion === 'all' || targetVersion === 'any') return true;
+        if (!mod.factorioVersion) return true;
+        const cleanTarget = targetVersion.trim().toLowerCase();
+        const cleanModFver = mod.factorioVersion.trim().toLowerCase();
+        return cleanModFver === cleanTarget || cleanModFver.startsWith(cleanTarget) || cleanTarget.startsWith(cleanModFver);
+    };
+
+    const fixableMods = installedMods.filter(m => !isModCompatible(m, factorioVersion) && m.hasUpdate);
+    const incompatibleMods = installedMods.filter(m => !isModCompatible(m, factorioVersion) && !m.hasUpdate);
+
+    const handleOpenBulkDeleteModal = () => {
+        if (incompatibleMods.length === 0) return;
+        const impact = calculateBulkDeleteImpact(incompatibleMods, installedMods);
+        setBulkDeleteModalData(impact);
+    };
+
+    const handleConfirmBulkDelete = async () => {
+        if (!bulkDeleteModalData) return;
+        const modsToDelete = [...bulkDeleteModalData.primaryTargetMods, ...bulkDeleteModalData.exclusiveDeps];
+        setBulkDeleteModalData(null);
+        setLoading(true);
+        try {
+            for (const mod of modsToDelete) {
+                await invoke('delete_installed_mod', { filePath: mod.filePath });
+                addLog(`Deleted mod "${mod.title || mod.name}" from mods folder.`, 'success');
+            }
+            await loadInstalledMods(folderPath);
+        } catch (err: any) {
+            addLog(`Failed to delete incompatible mods: ${err?.toString()}`, 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateFixableBatch = async () => {
+        if (fixableMods.length === 0) return;
+        setInstalledMods(prev =>
+            prev.map(m => (!isModCompatible(m, factorioVersion) && m.hasUpdate ? { ...m, selectedForUpdate: true } : m))
+        );
+        setActiveTab('updates');
+        setTimeout(() => {
+            handleStartUpdateBatch();
+        }, 50);
+    };
+
+    const handleUpdateSingleMod = async (mod: InstalledModItem, targetVersion: string) => {
+        setLoading(true);
+        addLog(`Preparing update for "${mod.title || mod.name}" to v${targetVersion}...`, 'info');
+        try {
+            const batch = [{
+                id: mod.name,
+                title: mod.title || mod.name,
+                version: targetVersion,
+                file_name: `${mod.name}_${targetVersion}.zip`,
+                sha1: ''
+            }];
+            await executeDownloadBatch(batch);
+        } catch (err: any) {
+            addLog(`Failed to update ${mod.title || mod.name}: ${err?.toString()}`, 'error');
         } finally {
             setLoading(false);
         }
@@ -213,47 +302,55 @@ export const InstalledTab: React.FC = () => {
                     <div className="flex items-center gap-2.5 text-slate-600 dark:text-zinc-300 overflow-hidden">
                         <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
                         <span className="font-semibold text-slate-400 dark:text-zinc-500">Mods Path:</span>
-                        <span className="font-mono text-[11px] truncate text-slate-900 dark:text-zinc-100">{folderPath || 'Detecting folder...'}</span>
+                        <Tooltip content={folderPath}>
+                            <span className="font-mono text-[11px] text-slate-900 dark:text-zinc-100 truncate">
+                                {folderPath ? truncateMiddlePath(folderPath, 50) : 'Detecting folder...'}
+                            </span>
+                        </Tooltip>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                            onClick={(e) => {
-                                e.currentTarget.blur();
-                                handleBrowseFolder();
-                            }}
-                            className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
-                            title="Browse / Change Folder"
-                        >
-                            <FolderSearch className="w-3.5 h-3.5 text-blue-500" />
-                        </button>
+                        <Tooltip content="Browse / Change Folder">
+                            <button
+                                onClick={(e) => {
+                                    e.currentTarget.blur();
+                                    handleBrowseFolder();
+                                }}
+                                className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
+                            >
+                                <FolderSearch className="w-3.5 h-3.5 text-blue-500" />
+                            </button>
+                        </Tooltip>
 
-                        <button
-                            onClick={async (e) => {
-                                e.currentTarget.blur();
-                                if (!folderPath) return;
-                                try {
-                                    await invoke('open_folder_in_explorer', { path: folderPath });
-                                } catch (err) {
-                                    console.error('Failed to open folder:', err);
-                                }
-                            }}
-                            className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
-                            title="Open folder in Finder / File Explorer"
-                        >
-                            <FolderOutput className="w-3.5 h-3.5 text-blue-500" />
-                        </button>
+                        <Tooltip content="Open folder in File Explorer">
+                            <button
+                                onClick={async (e) => {
+                                    e.currentTarget.blur();
+                                    if (!folderPath) return;
+                                    try {
+                                        await invoke('open_folder_in_explorer', { path: folderPath });
+                                    } catch (err) {
+                                        console.error('Failed to open folder:', err);
+                                    }
+                                }}
+                                className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
+                            >
+                                <FolderOutput className="w-3.5 h-3.5 text-blue-500" />
+                            </button>
+                        </Tooltip>
 
-                        <button
-                            onClick={(e) => {
-                                e.currentTarget.blur();
-                                loadInstalledMods(folderPath);
-                            }}
-                            disabled={isAnyLoading}
-                            className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors disabled:opacity-50`}
-                            title="Refresh Installed Mods"
-                        >
-                            <RefreshCw className={`w-3.5 h-3.5 ${isAnyLoading ? 'animate-spin' : ''}`} />
-                        </button>
+                        <Tooltip content={isCheckingUpdates ? 'Checking for online mod updates...' : isAnyLoading ? 'Scanning local mods folder...' : 'Sync & check for mod updates'}>
+                            <button
+                                onClick={(e) => {
+                                    e.currentTarget.blur();
+                                    loadInstalledMods(folderPath);
+                                }}
+                                disabled={isAnyLoading}
+                                className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors disabled:opacity-50 select-none flex items-center justify-center`}
+                                aria-label="Sync & Check Updates"
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 text-blue-500 ${isAnyLoading ? 'animate-spin' : ''}`} />
+                            </button>
+                        </Tooltip>
                     </div>
                 </div>
             </div>
@@ -261,11 +358,11 @@ export const InstalledTab: React.FC = () => {
             <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
                 <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {installedMods.length > 0 && (
-                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-3 pt-3 pb-0 flex items-start justify-between rounded-t-2xl`}>
-                             <div className="inline-flex gap-6 text-xs font-bold select-none">
+                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 h-11 flex items-center justify-between rounded-t-2xl`}>
+                             <div className="inline-flex gap-6 h-full text-xs font-bold select-none">
                                  <button
                                      onClick={() => setActiveTab('installed')}
-                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${
+                                     className={`relative h-full flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${
                                          activeTab === 'installed'
                                              ? 'text-blue-600 dark:text-blue-400'
                                              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
@@ -277,43 +374,76 @@ export const InstalledTab: React.FC = () => {
                                          {installedMods.length}
                                      </span>
                                      {activeTab === 'installed' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
+                                         <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                      )}
                                  </button>
                                  <button
                                      onClick={() => setActiveTab('updates')}
-                                     className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${
+                                     className={`relative h-full flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${
                                          activeTab === 'updates'
                                              ? 'text-blue-600 dark:text-blue-400'
                                              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
                                      }`}
                                  >
-                                     <Sparkles className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
-                                     <span>Updates Available</span>
+                                     <Wrench className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
+                                     <span>Action Required</span>
                                      {updateCount > 0 && (
                                          <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
                                              {updateCount}
                                          </span>
                                      )}
                                      {activeTab === 'updates' && (
-                                         <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
+                                         <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                      )}
                                  </button>
                              </div>
-                            {activeTab === 'updates' && (
-                                <UpdatesHeaderActions
-                                    updateCount={updateCount}
-                                    allUpdatesSelected={allUpdatesSelected}
-                                    onSelectAll={handleSelectAll}
-                                />
-                            )}
-                        </div>
+                             <div className="flex items-center gap-2 select-none">
+                                {activeTab === 'installed' && factorioVersion !== 'all' && factorioVersion !== 'any' && (
+                                    <>
+                                        {fixableMods.length > 0 && (
+                                            <Tooltip content={`Apply fixes for ${fixableMods.length} mod(s) to support Factorio ${factorioVersion}`}>
+                                                <button
+                                                    onClick={handleUpdateFixableBatch}
+                                                    className="px-2.5 py-1 rounded-lg font-bold text-[11px] bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 dark:border-amber-400/30 hover:bg-amber-500/20 dark:hover:bg-amber-400/30 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                                                >
+                                                    <Wrench className="w-3 h-3 text-amber-500 shrink-0" />
+                                                    <span>Action Required ({fixableMods.length})</span>
+                                                </button>
+                                            </Tooltip>
+                                        )}
+
+                                        {incompatibleMods.length > 0 && (
+                                            <Tooltip content={`Remove ${incompatibleMods.length} mod(s) incompatible with Factorio ${factorioVersion}`}>
+                                                <button
+                                                    onClick={handleOpenBulkDeleteModal}
+                                                    className="px-2.5 py-1 rounded-lg font-bold text-[11px] bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 dark:border-rose-400/30 hover:bg-rose-500/20 dark:hover:bg-rose-400/30 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                                                >
+                                                    <Trash2 className="w-3 h-3 text-rose-500 shrink-0" />
+                                                    <span>Remove Incompatible ({incompatibleMods.length})</span>
+                                                </button>
+                                            </Tooltip>
+                                        )}
+                                    </>
+                                )}
+
+                                {activeTab === 'updates' && (
+                                    <UpdatesHeaderActions
+                                        updateCount={updateCount}
+                                        allUpdatesSelected={allUpdatesSelected}
+                                        onSelectAll={handleSelectAll}
+                                        isCheckingUpdates={isCheckingUpdates}
+                                        modsCheckedCount={installedMods.filter(m => m.thumbnail !== undefined || m.category !== undefined || m.hasUpdate || m.latestVersion !== undefined).length}
+                                        totalMods={installedMods.length}
+                                    />
+                                )}
+                             </div>
+                         </div>
                     )}
                     <div className="relative flex-1 min-h-0">
                         <div className="scroller-panel card h-full">
                             {installedMods.length === 0 ? (
                                 <div className="text-center py-20 text-slate-400 dark:text-zinc-600 text-xs">
-                                    {isAnyLoading ? 'Scanning installed mods & checking online updates...' : 'No installed mods found in selected folder.'}
+                                    {isAnyLoading ? 'Scanning installed mods...' : 'No installed mods found in selected folder.'}
                                 </div>
                             ) : activeTab === 'installed' ? (
                                 <div key="subtab-installed" className={`w-full ${ANIMATION.subTabPane}`}>
@@ -321,6 +451,7 @@ export const InstalledTab: React.FC = () => {
                                         mods={installedMods}
                                         dependentsMap={dependentsMap}
                                         onOpenDeleteModal={handleOpenDeleteModal}
+                                        onUpdateMod={handleUpdateSingleMod}
                                     />
                                 </div>
                             ) : (
@@ -341,6 +472,14 @@ export const InstalledTab: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {bulkDeleteModalData && (
+                <BulkDeleteModModal
+                    data={bulkDeleteModalData}
+                    onConfirm={handleConfirmBulkDelete}
+                    onClose={() => setBulkDeleteModalData(null)}
+                />
+            )}
         </div>
     );
 };

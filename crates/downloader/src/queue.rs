@@ -22,15 +22,27 @@ impl Default for DownloadQueueManager {
     }
 }
 
-fn scan_installed_mods(output_dir: &std::path::Path) -> HashMap<String, (String, PathBuf)> {
+fn scan_downloaded_files(output_dir: &std::path::Path) -> HashMap<String, (String, PathBuf)> {
     let mut installed = HashMap::new();
+
+    // Purge orphaned .tmp folder from previous ungraceful exit/crash
+    let tmp_dir = output_dir.join(".tmp");
+    if tmp_dir.exists() && tmp_dir.is_dir() {
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+
     if let Ok(entries) = std::fs::read_dir(output_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("zip") {
-                if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                    if let Some((name, ver)) = stem.rsplit_once('_') {
-                        installed.insert(name.to_string(), (ver.to_string(), path.clone()));
+            if path.is_file() {
+                let ext = path.extension().and_then(|e| e.to_str());
+                if ext == Some("tmp") {
+                    let _ = std::fs::remove_file(&path);
+                } else if ext == Some("zip") {
+                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                        if let Some((name, ver)) = stem.rsplit_once('_') {
+                            installed.insert(name.to_string(), (ver.to_string(), path.clone()));
+                        }
                     }
                 }
             }
@@ -49,7 +61,7 @@ impl DownloadQueueManager {
     }
 
     pub async fn enqueue_batch(&self, items: Vec<ResolvedDownloadItem>, output_dir: PathBuf) {
-        let existing_mods = scan_installed_mods(&output_dir);
+        let existing_mods = scan_downloaded_files(&output_dir);
 
         for item in items {
             let task_id = format!("{}_{}", item.id, item.version);
@@ -87,12 +99,13 @@ impl DownloadQueueManager {
 
             {
                 let mut guard = self.tasks.lock().await;
-                // If task already completed or downloading in active session, skip duplicate
+                // If task already completed, downloading, or failed in active session, skip duplicate
                 if let Some(existing) = guard.get(&task_id) {
                     if existing.status == DownloadStatus::Completed
                         || existing.status == DownloadStatus::AlreadyExists
                         || existing.status == DownloadStatus::Updated
                         || existing.status == DownloadStatus::Downloading
+                        || matches!(existing.status, DownloadStatus::Failed(_))
                     {
                         continue;
                     }
@@ -220,6 +233,22 @@ impl DownloadQueueManager {
             drop(guard);
 
             self.enqueue_batch(vec![item], output_dir).await;
+        }
+    }
+
+    pub async fn cancel_task(&self, task_id: &str) {
+        let mut guard = self.tasks.lock().await;
+        if let Some(task) = guard.get_mut(task_id) {
+            task.status = DownloadStatus::Failed("Cancelled by user".to_string());
+        }
+    }
+
+    pub async fn cancel_all(&self) {
+        let mut guard = self.tasks.lock().await;
+        for task in guard.values_mut() {
+            if matches!(task.status, DownloadStatus::Pending | DownloadStatus::Downloading) {
+                task.status = DownloadStatus::Failed("Cancelled by user".to_string());
+            }
         }
     }
 

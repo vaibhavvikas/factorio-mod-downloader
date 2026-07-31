@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search as SearchIcon, Download, Check, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, ChevronDown, RefreshCw, Rocket, Loader2 } from 'lucide-react';
+import { Search as SearchIcon, Download, Check, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Rocket, Loader2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { createPortal } from 'react-dom';
 import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from '../shared/modCategory';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE, ACCENT } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
+import { Tooltip } from '../../ui/Tooltip';
 
 export interface ModSearchResultItem {
     name: string;
@@ -191,7 +192,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
         if (!container || !tooltip) return;
 
         const GAP = 8;
-        const BUFFER = 8;
+        const BUFFER = 28;
 
         const scrollAncestors: Element[] = [];
         let current: Element | null = container.parentElement;
@@ -304,6 +305,8 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
     // During initial measurement use +99 as a wide-placeholder so small counts still reserve space.
     const finalOverflowCount = duringInitialRender ? 99 : overflowCount;
 
+    const hiddenTags = needsCountPill && !duringInitialRender ? item.tags.slice(fitCount).join(', ') : '';
+
     return (
         <div
             className={`relative self-start ${LAYER.contentCard} ${BORDER.card} rounded-2xl p-3 shadow-xs hover:z-10 ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 flex flex-col gap-2.5`}
@@ -328,7 +331,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                             {item.title || item.name}
                         </h4>
                         {item.requires_space_age && (
-                            <span className="panel-pill shrink-0 border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center gap-1 font-bold" title="Requires Factorio: Space Age">
+                            <span className="panel-pill shrink-0 border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center gap-1 font-bold">
                                 <Rocket className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                             </span>
                         )}
@@ -410,24 +413,29 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                         </span>
                     ))}
                     {needsCountPill && (
-                        <span key="__count_pill__" data-count-pill="true" className={TAG_COUNT_PILL_CLASS}>
-                            +{finalOverflowCount}
-                        </span>
+                        <div key="__count_pill__" data-count-pill="true" className="shrink-0">
+                            <Tooltip content={hiddenTags} disabled={duringInitialRender}>
+                                <span className={TAG_COUNT_PILL_CLASS}>
+                                    +{finalOverflowCount}
+                                </span>
+                            </Tooltip>
+                        </div>
                     )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
-                    <a
-                        href={`https://mods.factorio.com/mod/${item.name}`}
-                        onClick={async (event) => {
-                            event.preventDefault();
-                            await openUrl(`https://mods.factorio.com/mod/${item.name}`);
-                        }}
-                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
-                        aria-label={`View ${item.title || item.name} on Mod Portal`}
-                        title="View on Mod Portal"
-                    >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
+                    <Tooltip content="Open on Mod Portal">
+                        <a
+                            href={`https://mods.factorio.com/mod/${item.name}`}
+                            onClick={async (event) => {
+                                event.preventDefault();
+                                await openUrl(`https://mods.factorio.com/mod/${item.name}`);
+                            }}
+                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 block"
+                            aria-label={`View ${item.title || item.name} on Mod Portal`}
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                    </Tooltip>
                     {isAlreadyInQueue ? (
                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 dark:border-emerald-800/40 flex items-center gap-1.5 select-none">
                             <Check className="w-3.5 h-3.5" />
@@ -458,82 +466,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
     );
 };
 
-const FACTORIO_VERSIONS = [
-    { value: '2.1', label: '2.1' },
-    { value: '2.0', label: '2.0' },
-    { value: '1.1', label: '1.1' },
-    { value: '1.0', label: '1.0' },
-    { value: '0.18', label: '0.18' },
-    { value: '0.17', label: '0.17' },
-    { value: '0.16', label: '0.16' },
-    { value: '0.15', label: '0.15' },
-    { value: '0.14', label: '0.14' },
-    { value: '0.13', label: '0.13' },
-    { value: 'any', label: 'Any' },
-];
 
-const FactorioVersionDropdown: React.FC<{
-    value: string;
-    onChange: (val: string) => void;
-}> = ({ value, onChange }) => {
-    const [open, setOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    const activeItem = FACTORIO_VERSIONS.find(v => v.value === value) || FACTORIO_VERSIONS.find(v => v.value === '2.0') || FACTORIO_VERSIONS[0];
-
-    useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-        <div ref={dropdownRef} className="relative shrink-0 select-none">
-            <button
-                type="button"
-                onClick={() => setOpen(!open)}
-                className={`flex h-7 w-[165px] items-center justify-between px-2.5 py-1 rounded-lg text-xs ${LAYER.selectTrigger} ${BORDER.inner} transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-blue-500/30`}
-                title="Filter mods by target Factorio version"
-            >
-                <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={`text-[11px] font-medium ${TEXT.muted} shrink-0`}>Factorio Version:</span>
-                    <span className={`font-bold ${ACCENT.text} truncate`}>{activeItem.label}</span>
-                </div>
-                <ChevronDown className={`w-3.5 h-3.5 ${TEXT.muted} shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-            </button>
-
-            {open && (
-                <div className={`absolute right-0 top-full mt-1.5 z-50 w-48 rounded-xl ${BORDER.dropdown} ${LAYER.dropdownMenu} shadow-xl backdrop-blur-md max-h-60 scroller-dropdown loose`}>
-                    {FACTORIO_VERSIONS.map((item) => {
-                        const isSelected = value === item.value;
-                        return (
-                            <button
-                                key={item.value}
-                                type="button"
-                                onClick={() => {
-                                    onChange(item.value);
-                                    setOpen(false);
-                                }}
-                                className={`flex w-full items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer text-left ${
-                                    isSelected
-                                        ? `${ACCENT.menuItemSelected} font-bold`
-                                        : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
-                                }`}
-                            >
-                                <span>{item.label}</span>
-                                        {isSelected && <Check className={`w-3.5 h-3.5 ${ACCENT.text}`} />}
-                            </button>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
-    );
-};
 
 interface ModBrowseResponse {
     results: ModSearchResultItem[];
@@ -545,7 +478,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
     existingModNames,
     onAddModToQueue,
 }) => {
-    const { addLog, factorioVersion, setFactorioVersion } = useAppContext();
+    const { addLog, factorioVersion } = useAppContext();
     const addLogRef = useRef(addLog);
     const resultsScrollRef = useRef<HTMLDivElement>(null);
     const categoryScrollRef = useRef<HTMLDivElement>(null);
@@ -680,30 +613,21 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 setPage(1);
                             }}
                             className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
-                            title="Clear search"
+                            aria-label="Clear search"
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
                     )}
 
-                    <div className="h-4 w-px bg-slate-200 dark:bg-zinc-800 shrink-0 mx-0.5" />
 
-                    {/* Embedded Factorio Version Dropdown */}
-                    <FactorioVersionDropdown
-                        value={factorioVersion}
-                        onChange={(v) => {
-                            setFactorioVersion(v);
-                            setPage(1);
-                        }}
-                    />
 
                     {/* Reload Mods Button */}
                     <button
                         type="button"
                         onClick={() => setReloadTrigger(prev => prev + 1)}
                         disabled={loading}
+                        aria-label="Reload mod results"
                         className={`h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50`}
-                        title="Reload mod results"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-blue-500' : ''}`} />
                     </button>
@@ -762,7 +686,6 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 setPage(1);
                             }}
                             className="shrink-0 h-7.5 px-3 py-1 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer flex items-center gap-1"
-                            title="Reset all selected categories"
                         >
                             <X className="w-3.5 h-3.5" />
                             <span>Reset ({selectedCategories.length})</span>

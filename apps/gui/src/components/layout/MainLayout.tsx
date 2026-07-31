@@ -9,7 +9,12 @@ import { Mail, Sparkles, Heart, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { LAYER, BORDER, TEXT, HOVER_BORDER } from '../../theme/layers';
+
+import { SettingsSidebar } from './SettingsSidebar';
+
+const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
 
 export function isVersionNewer(onlineVersion: string, currentVersion: string): boolean {
     const clean = (v: string) => v.replace(/^v/i, '').trim();
@@ -27,7 +32,7 @@ export function isVersionNewer(onlineVersion: string, currentVersion: string): b
 }
 
 export const MainLayout: React.FC = () => {
-    const { consoleOpen, logs, sidebarOpen, toggleSidebar, profileOpen, setProfileOpen } = useAppContext();
+    const { consoleOpen, logs, activeDrawer, toggleDrawer, profileOpen } = useAppContext();
     const consoleEndRef = useRef<HTMLDivElement>(null);
     const [folderModalOpen, setFolderModalOpen] = useState(false);
     const [configuredModsFolder, setConfiguredModsFolder] = useState<string | null>(null);
@@ -88,9 +93,8 @@ export const MainLayout: React.FC = () => {
     }, []);
 
     return (
-        <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative ${isMaximized ? 'rounded-none border-none' : 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl'}`}>
+        <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative ${isMaximized ? (isMac ? 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl' : 'rounded-none border-none') : 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl'}`}>
             <TitleBar
-                onOpenFolderModal={() => setFolderModalOpen(true)}
                 configuredModsFolder={configuredModsFolder}
                 hasAppUpdate={latestRelease?.hasUpdate || false}
             />
@@ -99,33 +103,26 @@ export const MainLayout: React.FC = () => {
             <div className="flex-1 flex overflow-hidden relative min-h-0">
                 <Workspace />
 
-                {/* Click-outside backdrop for Download Manager Floating Overlay */}
-                {sidebarOpen && (
+                {/* Click-outside backdrop for Drawers (Downloads / Settings / Profile) */}
+                {activeDrawer !== null && (
                     <div
                         className="absolute inset-0 z-30 bg-transparent"
-                        onClick={() => toggleSidebar(false)}
+                        onClick={() => toggleDrawer(null)}
                     />
                 )}
 
-                {/* Floating Download Manager Overlay */}
+                {/* Floating Drawer Overlays */}
                 <NetworkSidebar />
+                <SettingsSidebar />
             </div>
             <StatusBar />
 
-            {/* Click-outside backdrop shield for Developer Profile */}
-            {profileOpen && (
-                <div
-                    className="absolute inset-0 z-30 bg-transparent"
-                    onClick={() => setProfileOpen(false)}
-                />
-            )}
-
             {/* Floating Developer Profile Card Overlay */}
-            {profileOpen && (
-                <div
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className={`absolute top-11 right-12 z-40 w-84 rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl shadow-2xl p-4 flex flex-col gap-4 animate-fade-in text-xs max-h-[85vh] overflow-y-auto`}
-                >
+            <div
+                onMouseDown={(e) => e.stopPropagation()}
+                style={{ transform: profileOpen ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
+                className={`absolute top-11 right-4 z-40 w-84 rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl p-4 flex flex-col gap-4 text-xs max-h-[85vh] overflow-y-auto transition-all duration-500 ease-in-out ${profileOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+            >
                     {/* Avatar & Header */}
                     <div className="flex items-center gap-3">
                         <div className="relative w-10 h-10 shrink-0">
@@ -160,19 +157,11 @@ export const MainLayout: React.FC = () => {
                             href="https://github.com/vaibhavvikas/factorio-mod-downloader"
                             target="_blank"
                             rel="noreferrer"
+                            onClick={async (e) => { e.preventDefault(); await openUrl("https://github.com/vaibhavvikas/factorio-mod-downloader"); }}
                             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
                         >
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="w-3.5 h-3.5 text-slate-800 dark:text-zinc-100"
-                            >
-                                <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
-                                <path d="M9 18c-4.51 2-5-2-7-2" />
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                             </svg>
                             <span>GitHub</span>
                         </a>
@@ -180,6 +169,7 @@ export const MainLayout: React.FC = () => {
                             href="https://github.com/vaibhavvikas/factorio-mod-downloader/discussions"
                             target="_blank"
                             rel="noreferrer"
+                            onClick={async (e) => { e.preventDefault(); await openUrl("https://github.com/vaibhavvikas/factorio-mod-downloader/discussions"); }}
                             className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-200/80 dark:hover:bg-zinc-800 transition-all text-slate-800 dark:text-zinc-200 font-semibold shadow-2xs`}
                         >
                             <Mail className="w-3.5 h-3.5 text-blue-500" />
@@ -224,7 +214,7 @@ export const MainLayout: React.FC = () => {
                             href="https://factorio.com/buy"
                             target="_blank"
                             rel="noreferrer"
-                            className="w-full py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-center text-[10.5px] shadow-md shadow-blue-600/20 border border-blue-400/30 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                            className="w-full py-2 rounded-xl bg-[#1f6feb] hover:bg-[#388bfd] text-white font-bold text-center text-[10.5px] shadow-sm border border-[#1f6feb]/50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                         >
                             <span>Buy Factorio at Factorio.com</span>
                             <ExternalLink className="w-3 h-3" />
@@ -234,7 +224,6 @@ export const MainLayout: React.FC = () => {
                         </p>
                     </div>
                 </div>
-            )}
 
             {/* Mods Folder Selection Modal */}
             <ModsFolderModal

@@ -1,11 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Download, Trash2, ExternalLink, Calendar } from 'lucide-react';
+import { ChevronDown, MinusCircle, ExternalLink, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { DependencyTree } from './DependencyTree';
 import type { TreeNode } from './DependencyTree';
 import { formatCategoryLabel, getCategoryBadgeStyle } from '../shared/modCategory';
 import { useAppContext } from '../../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, ACCENT, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, ACCENT, INTERACTIVE, PILL_SIZE } from '../../../theme/layers';
+import { Tooltip } from '../../ui/Tooltip';
+import { compareVersions } from '../mod-manager/InstalledModsList';
 
 export interface ModVersionRelease {
     version: string;
@@ -48,7 +51,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
-    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+    const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number }>({ left: 0, width: 0 });
 
     const formatVer = (ver?: string) => {
         if (!ver || !ver.trim()) return '';
@@ -56,7 +59,17 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
         return v.startsWith('v') ? v : `v${v}`;
     };
 
-    const currentRelease = availableReleases.find(r => r.version === selectedVersion);
+    const { factorioVersion } = useAppContext();
+    const filteredReleases = availableReleases.filter(rel => {
+        if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return true;
+        if (!rel.factorio_version) return true;
+        const cleanRel = rel.factorio_version.trim();
+        const cleanTarget = factorioVersion.trim();
+        return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
+    });
+    const displayReleases = filteredReleases.length > 0 ? filteredReleases : availableReleases;
+
+    const currentRelease = displayReleases.find(r => r.version === selectedVersion) || availableReleases.find(r => r.version === selectedVersion);
     const displayLabel = currentRelease && currentRelease.factorio_version
         ? `${formatVer(currentRelease.version)} (Factorio ${currentRelease.factorio_version})`
         : formatVer(selectedVersion);
@@ -65,28 +78,23 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
         event.stopPropagation();
         if (!isOpen && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
-            const dropdownHeight = 280; // max-h-[280px]
+            const estimatedHeight = Math.min(280, (displayReleases?.length || 1) * 36 + 12);
             const spaceBelow = window.innerHeight - rect.bottom;
-            let top: number;
-            if (spaceBelow < dropdownHeight + 12 && rect.top > dropdownHeight) {
-                // Not enough space below — flip upward
-                top = rect.top - dropdownHeight - 6;
+
+            let top: number | undefined;
+            let bottom: number | undefined;
+
+            if (spaceBelow < estimatedHeight + 12 && rect.top > estimatedHeight) {
+                bottom = Math.round(window.innerHeight - rect.top + 6);
             } else {
-                // Default — open downward
-                top = rect.bottom + 6;
+                top = Math.round(rect.bottom + 6);
             }
-            // Match dropdown width to its trigger button with a sensible floor.
+
             const width = Math.max(256, Math.round(rect.width));
             const MIN_EDGE = 12; // always keep 12px from any viewport edge
             const maxLeft = Math.max(MIN_EDGE, window.innerWidth - width - MIN_EDGE);
 
-            // Preferred placement: RIGHT-ALIGN to the button's chevron edge
-            // (same as the Installed→Updates version dropdown for consistent UX).
             const preferredLeft = Math.round(rect.right - width);
-
-            // If preferred placement would go off-screen LEFT (button near the
-            // left edge of a panel), flip to LEFT-ANCHOR alignment so the
-            // dropdown grows to the right instead of clipping on the left.
             const leftAnchorLeft = Math.round(rect.left);
 
             let left = preferredLeft;
@@ -97,7 +105,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
             left = Math.min(left, maxLeft);
             left = Math.max(MIN_EDGE, left);
 
-            setDropdownPos({ top, left, width });
+            setDropdownPos({ top, bottom, left, width });
         }
         setIsOpen(!isOpen);
     };
@@ -109,9 +117,9 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className={`panel-pill panel-pill-mono px-3 h-6.5 min-h-6.5 rounded-lg border flex items-center gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.pill} ${INTERACTIVE.pillHover} ${ACCENT.text} text-[11px] font-mono font-bold transition-all cursor-pointer shadow-2xs max-w-[320px]`}
+                className={`panel-pill ${PILL_SIZE.compactMono} border gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.pill} ${INTERACTIVE.pillHover} ${ACCENT.text} font-mono font-bold transition-all cursor-pointer shadow-2xs max-w-[320px]`}
             >
-                <span className={`text-[10px] font-bold ${TEXT.muted} shrink-0 font-sans`}>Ver:</span>
+                <span className={`text-[11px] font-bold ${TEXT.muted} shrink-0 font-sans`}>Ver:</span>
                 <span className="truncate max-w-[240px]">{displayLabel}</span>
                 <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${TEXT.muted} ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -127,17 +135,18 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                         onMouseDown={(event) => event.stopPropagation()}
                     />
                     <div
-                        className={`fixed z-[101] ${LAYER.dropdownMenu} ${BORDER.dropdown} rounded-xl shadow-xl overflow-hidden animate-fade-in`}
+                        className={`fixed z-[101] ${LAYER.dropdownMenu} ${BORDER.dropdown} rounded-xl shadow-xl overflow-hidden animate-fade-in p-1`}
                         style={{
-                            top: dropdownPos.top,
-                            left: dropdownPos.left,
+                            top: dropdownPos.top !== undefined ? `${dropdownPos.top}px` : undefined,
+                            bottom: dropdownPos.bottom !== undefined ? `${dropdownPos.bottom}px` : undefined,
+                            left: `${dropdownPos.left}px`,
                             width: dropdownPos.width ? `${dropdownPos.width}px` : undefined,
                             minWidth: '256px',
                         }}
                     >
                         <div className="scroller-dropdown scroller-inner dense max-h-[280px] text-xs font-mono flex flex-col gap-0.5">
-                            {availableReleases && availableReleases.length > 0 ? (
-                                availableReleases.map(rel => {
+                            {displayReleases && displayReleases.length > 0 ? (
+                                displayReleases.map(rel => {
                                     const isSelected = rel.version === selectedVersion;
                                     return (
                                         <div
@@ -150,7 +159,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                                                 setIsOpen(false);
                                             }}
                                             onMouseDown={(event) => event.stopPropagation()}
-                                            className={`px-3 py-2 rounded-lg flex items-center justify-between cursor-pointer transition-colors gap-3 ${isSelected
+                                            className={`px-3 py-2 rounded-lg flex items-center justify-between transition-colors gap-3 cursor-pointer ${isSelected
                                                 ? `${ACCENT.menuItemSelected} font-bold`
                                                 : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                                 }`}
@@ -197,7 +206,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 }) => {
     const [localExpanded, setLocalExpanded] = useState(false);
     const [imgError, setImgError] = useState(false);
-    const { installedMods } = useAppContext();
+    const { installedMods, factorioVersion } = useAppContext();
     const installed = installedMods.find(m => m.name === mod.name);
 
     const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
@@ -216,12 +225,22 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
         ? new Date(mod.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
         : null;
 
+    const [isRemoving, setIsRemoving] = useState(false);
+
+    const handleRemove = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsRemoving(true);
+        setTimeout(() => {
+            onRemove(mod.id);
+        }, 350);
+    };
+
     const lettersOnly = (mod.title || mod.name || '').replace(/[^a-zA-Z\s]/g, '').trim();
     const initialLetter = lettersOnly ? lettersOnly[0].toUpperCase() : 'M';
     const categoryBadgeStyle = getCategoryBadgeStyle(mod.category);
 
     return (
-        <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden`}>
+        <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-300 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
             {/* Sticky Header — pins to top of scroll container like VS Code sticky scroll */}
             <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.cardSurface} rounded-t-2xl`}>
                 <div className="flex items-start justify-between gap-3">
@@ -235,29 +254,29 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                 onError={() => setImgError(true)}
                             />
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/15 dark:bg-blue-500/25 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-base shrink-0 mt-0.5 select-none shadow-xs">
+                            <div className={`w-10 h-10 rounded-xl ${LAYER.pillSurface} ${BORDER.card} shadow-inner shrink-0 mt-0.5 flex items-center justify-center font-bold text-sm text-slate-700 dark:text-zinc-200 uppercase select-none`}>
                                 {initialLetter}
                             </div>
                         )}
 
                         <div className="flex flex-col min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                            {/* Human-Readable Mod Title (Primary Display) */}
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-50 truncate" title={mod.title || mod.name}>
                                     {mod.title || mod.name}
                                 </h3>
-                                <span className={`shrink truncate whitespace-nowrap text-[11px] font-mono ${TEXT.secondary} ${LAYER.pillSurface} px-2 py-0.5 rounded-md ${BORDER.pill}`} title={mod.name}>
-                                    {mod.name}
-                                </span>
-                                <span className={`panel-pill tracking-wide border ${categoryBadgeStyle}`}>
-                                    {formatCategoryLabel(mod.category)}
-                                </span>
+                                {/* Category Badge */}
+                                {mod.category && (
+                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 select-none ${categoryBadgeStyle}`}>
+                                        {formatCategoryLabel(mod.category)}
+                                    </span>
+                                )}
                             </div>
-                            <div className={`flex items-center gap-2.5 text-xs ${TEXT.secondary} mt-1 flex-wrap`}>
-                                <span>by <strong className="text-slate-700 dark:text-zinc-300 font-semibold">{mod.author || 'Author'}</strong></span>
-                                <span>•</span>
-                                <span className="flex items-center gap-1">
-                                    <Download className="w-3 h-3 text-slate-400" />
-                                    {(mod.downloadsCount || 0).toLocaleString()} downloads
+
+                            {/* Author & Release Information */}
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 overflow-hidden font-sans select-none">
+                                <span className="truncate">
+                                    by <strong className="text-slate-700 dark:text-zinc-300 font-semibold">{mod.author || 'Unknown'}</strong>
                                 </span>
                                 {formattedUpdateDate && (
                                     <>
@@ -268,28 +287,39 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                         </span>
                                     </>
                                 )}
-                                <span>•</span>
-                                <a
-                                    href={`https://mods.factorio.com/mod/${mod.name}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-blue-500 hover:text-blue-400 flex items-center gap-1 hover:underline cursor-pointer font-medium"
-                                >
-                                    <span>Portal</span>
-                                    <ExternalLink className="w-2.5 h-2.5" />
-                                </a>
                             </div>
                         </div>
                     </div>
 
-                    {/* Remove button — top right */}
-                    <button
-                        onClick={() => onRemove(mod.id)}
-                        className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
-                        title="Remove target mod"
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Action Buttons: Mod Portal Link + Minus Icon (Neutral Style) */}
+                    <div className="flex shrink-0 items-center gap-1">
+                        <Tooltip content="Open on Mod Portal">
+                            <a
+                                href={`https://mods.factorio.com/mod/${mod.name}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={async (event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    await openUrl(`https://mods.factorio.com/mod/${mod.name}`);
+                                }}
+                                aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
+                                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 cursor-pointer block"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                        </Tooltip>
+
+                        <Tooltip content="Remove from queue">
+                            <button
+                                onClick={handleRemove}
+                                className="rounded-lg p-1.5 border transition-colors cursor-pointer bg-transparent text-slate-400 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 border-slate-200/80 dark:border-zinc-800 hover:bg-slate-200/60 dark:hover:bg-zinc-800 shrink-0"
+                                aria-label="Remove from queue"
+                            >
+                                <MinusCircle className="h-3.5 w-3.5" />
+                            </button>
+                        </Tooltip>
+                    </div>
                 </div>
 
                 {/* Mod Summary if available */}
@@ -309,37 +339,60 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             onSelectVersion={(v) => onSelectVersion(mod.id, v)}
                         />
 
-                        {installed && (
-                            installed.version === mod.selectedVersion ? (
-                                <span className="panel-pill panel-pill-mono bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 font-semibold text-[10px] select-none">
-                                    Installed: v{installed.version}
+                        {(() => {
+                            const isCardIncompatible = factorioVersion && factorioVersion !== 'all' && factorioVersion !== 'any' && mod.availableReleases && mod.availableReleases.length > 0 && !mod.availableReleases.some(rel => {
+                                if (!rel.factorio_version) return true;
+                                const cleanRel = rel.factorio_version.trim();
+                                const cleanTarget = factorioVersion.trim();
+                                return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
+                            });
+                            if (!isCardIncompatible) return null;
+                            return (
+                                <span className={`panel-pill ${PILL_SIZE.compactMono} bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 font-semibold text-[10.5px] select-none`} title={`No release found supporting Factorio ${factorioVersion}`}>
+                                    Incompatible (Target: {factorioVersion})
                                 </span>
-                            ) : (
-                                <span className="panel-pill panel-pill-mono bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60 font-semibold text-[10px] select-none">
-                                    Installed: v{installed.version} (Update Available)
-                                </span>
-                            )
-                        )}
+                            );
+                        })()}
 
-                        {/* Separator */}
-                        {hasDependencies && (
-                            <span className="text-slate-200 dark:text-zinc-700 select-none">|</span>
-                        )}
+                        {installed && (() => {
+                            const cmp = compareVersions(mod.selectedVersion, installed.version);
+                            if (cmp === 0) {
+                                return (
+                                    <span className={`panel-pill ${PILL_SIZE.compactMono} bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 font-semibold select-none`}>
+                                        Installed: v{installed.version}
+                                    </span>
+                                );
+                            } else if (cmp > 0) {
+                                return (
+                                    <span className={`panel-pill ${PILL_SIZE.compactMono} bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 font-semibold gap-1 select-none`}>
+                                        <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                                        <span>Installed: v{installed.version} (Upgrade)</span>
+                                    </span>
+                                );
+                            } else {
+                                return (
+                                    <span className={`panel-pill ${PILL_SIZE.compactMono} bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 font-semibold gap-1 select-none`}>
+                                        <ArrowDown className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <span>Installed: v{installed.version} (Downgrade)</span>
+                                    </span>
+                                );
+                            }
+                        })()}
 
-                        {/* Dep count badges — always visible with desaturated dark mode colors */}
+                        {/* Dep count badges */}
                         {requiredCount > 0 && (
-                            <span className="panel-pill panel-pill-mono bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60 select-none">
-                                {requiredCount} required
+                            <span className={`panel-pill ${PILL_SIZE.compactMono} bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 select-none`}>
+                                {requiredCount} Required
                             </span>
                         )}
                         {recommendedNodes.length > 0 && (
-                            <span className="panel-pill panel-pill-mono bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60 select-none">
-                                {recommendedSelected}/{recommendedNodes.length} recommended
+                            <span className={`panel-pill ${PILL_SIZE.compactMono} bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 select-none`}>
+                                {recommendedSelected}/{recommendedNodes.length} Recommended
                             </span>
                         )}
                         {optionalNodes.length > 0 && (
-                            <span className="panel-pill panel-pill-mono bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border border-violet-200/60 dark:border-violet-800/60 select-none">
-                                {optionalSelected}/{optionalNodes.length} optional
+                            <span className={`panel-pill ${PILL_SIZE.compactMono} bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 select-none`}>
+                                {optionalSelected}/{optionalNodes.length} Optional
                             </span>
                         )}
                     </div>
@@ -352,7 +405,6 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             ? `${TEXT.secondary} hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`
                             : 'text-slate-300 dark:text-zinc-600 cursor-not-allowed opacity-50'
                             }`}
-                        title={hasDependencies ? "Toggle Dependencies List" : "No dependencies for this version"}
                     >
                         <span>{expanded ? 'Hide' : 'Show'}</span>
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`} />
@@ -361,17 +413,11 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
             </div>
 
             {/* Section-wise Dependency List Section — smooth animated expand/collapse */}
-            <div
-                className="grid transition-[grid-template-rows,opacity] duration-300 ease-in-out"
-                style={{
-                    gridTemplateRows: expanded ? '1fr' : '0fr',
-                    opacity: expanded ? 1 : 0,
-                }}
-            >
-                <div className="overflow-hidden">
+            <div className={`accordion-collapse ${expanded ? 'expanded' : ''}`}>
+                <div className="accordion-collapse-inner">
                     <div
-                        className={`px-4 pb-4 pt-2 ${LAYER.innerRecessed} border-t ${DIVIDER.inner} flex flex-col gap-3 transition-transform duration-300 ease-in-out`}
-                        style={{ transform: expanded ? 'translateY(0)' : 'translateY(-8px)' }}
+                        className={`px-4 pb-4 pt-2 ${LAYER.innerRecessed} border-t ${DIVIDER.inner} flex flex-col gap-3 transition-transform duration-300 ease-out`}
+                        style={{ transform: expanded ? 'translateY(0)' : 'translateY(-6px)' }}
                     >
                         <DependencyTree
                             nodes={mod.dependencies}
