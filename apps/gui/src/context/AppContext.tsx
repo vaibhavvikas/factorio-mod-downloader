@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 export interface DownloadTask {
@@ -40,17 +40,26 @@ export interface LogMessage {
 import { invoke } from '@tauri-apps/api/core';
 
 type ThemeMode = 'light' | 'dark' | 'system';
+export type ActiveDrawer = 'downloads' | 'settings' | 'profile' | null;
 
 interface AppContextType {
     themeMode: ThemeMode;
     setThemeMode: (mode: ThemeMode) => void;
     isDark: boolean;
+
+    // Single active drawer state
+    activeDrawer: ActiveDrawer;
+    setActiveDrawer: (drawer: ActiveDrawer) => void;
+    toggleDrawer: (drawer: ActiveDrawer) => void;
+
     sidebarOpen: boolean;
     toggleSidebar: (force?: boolean) => void;
     queue: DownloadTask[];
     startDownload: (items: Omit<DownloadTask, 'progress' | 'speed'>[], type: 'update' | 'download') => void;
     clearCompleted: () => void;
     retryTask: (taskId: string) => void;
+    cancelTask: (taskId: string) => void;
+    cancelAllTasks: () => void;
     isDownloading: boolean;
     totalSpeed: number;
     statusBadgeText: string;
@@ -100,7 +109,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const [themeMode, setThemeModeState] = useState<ThemeMode>(getBootThemeMode);
     const [isDark, setIsDark] = useState<boolean>(getBootIsDark);
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Single active drawer state — guarantees ONE panel open at a time
+    const [activeDrawer, setActiveDrawer] = useState<ActiveDrawer>(null);
+
+    const toggleDrawer = (drawer: ActiveDrawer) => {
+        setActiveDrawer(prev => (prev === drawer ? null : drawer));
+    };
+
+    const sidebarOpen = activeDrawer === 'downloads';
+    const toggleSidebar = (force?: boolean) => {
+        if (force === false) {
+            if (activeDrawer === 'downloads') setActiveDrawer(null);
+        } else if (force === true) {
+            setActiveDrawer('downloads');
+        } else {
+            toggleDrawer('downloads');
+        }
+    };
     const [queue, setQueue] = useState<DownloadTask[]>([]);
     const [isDownloading, setIsDownloading] = useState(false);
     const [totalSpeed, setTotalSpeed] = useState(0);
@@ -111,18 +137,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [loadingInstalled, setLoadingInstalled] = useState<boolean>(false);
     const [isCheckingUpdates, setIsCheckingUpdates] = useState<boolean>(false);
 
+    // Grace period ref: after startDownload is called, we give the backend
+    // up to 3 seconds to register the new tasks before allowing the poller
+    // to set isDownloading=false. This prevents the premature idle→refresh
+    // race that causes stale "update available" entries.
+    const downloadGraceUntilRef = useRef<number>(0);
+
     // Load the saved visual preference before users interact with the theme picker.
     useEffect(() => {
         invoke<string>('get_theme_mode')
             .then(mode => {
                 if (mode === 'light' || mode === 'dark' || mode === 'system') {
                     setThemeModeState(mode);
-                    try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) {}
+                    try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) { }
                     // Also re-sync data attrs so head script + React stay in agreement
                     document.documentElement.setAttribute('data-pref-theme', mode);
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     const setThemeMode = (mode: ThemeMode) => {
@@ -134,7 +166,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Mirror to localStorage for the paint-before-react head script on next boot.
         // (Rust-side persistence below is still the source of truth cross-session;
         //  localStorage is merely intra-process pre-paint cache.)
-        try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) {}
+        try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) { }
 
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const targetIsDark = mode === 'system' ? mediaQuery.matches : mode === 'dark';
@@ -145,7 +177,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         root.setAttribute('data-pref-theme', mode);
 
         // Persist to backend (cross-session source of truth)
-        invoke('save_theme_mode', { themeMode: mode }).catch(() => {});
+        invoke('save_theme_mode', { themeMode: mode }).catch(() => { });
 
         // If visual dark mode target is identical to current visual state
         // (e.g. switching between Dark and System when System is Dark),
@@ -184,12 +216,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             .then(ver => {
                 if (ver) setFactorioVersionState(ver);
             })
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     const setFactorioVersion = (ver: string) => {
         setFactorioVersionState(ver);
-        invoke('save_factorio_version', { version: ver }).catch(() => {});
+        invoke('save_factorio_version', { version: ver }).catch(() => { });
         addLog(`Explore filter set to Factorio ${ver === 'all' || ver === 'any' ? 'Any Version' : ver}`, 'info');
     };
 
@@ -198,7 +230,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         { id: 'init', timestamp: new Date().toLocaleTimeString(), level: 'info', message: 'System active.' }
     ]);
     const [consoleOpen, setConsoleOpen] = useState(false);
-    const [profileOpen, setProfileOpen] = useState(false);
+
+    const profileOpen = activeDrawer === 'profile';
+    const setProfileOpen = (open: boolean | ((prev: boolean) => boolean)) => {
+        if (typeof open === 'function') {
+            setActiveDrawer(prev => (open(prev === 'profile') ? 'profile' : null));
+        } else {
+            setActiveDrawer(open ? 'profile' : null);
+        }
+    };
 
     const addLog = (message: string, level: 'info' | 'warn' | 'success' | 'error' = 'info') => {
         setLogs(prev => [
@@ -214,6 +254,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const clearLogs = () => setLogs([]);
 
+    // Unified Refresh: Scans local disk zip files first, then automatically
+    // checks the Mod Portal API in parallel for online updates.
     const refreshInstalledMods = async (customPath?: string) => {
         let path = customPath || folderPath;
         if (!path) {
@@ -240,18 +282,42 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 selectedTargetVersion: item.newerVersions[0] || item.version
             }));
             setInstalledMods(listWithSelection);
+            setLoadingInstalled(false);
 
-            addLog(`Loaded ${rawList.length} installed mod(s). Checking for updates...`, 'info');
-            const checkedList = await invoke<InstalledModItem[]>('check_mod_updates', { installedMods: rawList });
-            const checkedWithSelection = checkedList.map(item => ({
-                ...item,
-                selectedForUpdate: item.hasUpdate,
-                selectedTargetVersion: item.newerVersions[0] || item.version
-            }));
-            setInstalledMods(checkedWithSelection);
-            
-            const updatesCount = checkedList.filter(item => item.hasUpdate).length;
-            addLog(`Installed mods scan complete. ${updatesCount} updates available.`, 'success');
+            if (rawList.length > 0) {
+                addLog(`Loaded ${rawList.length} installed mod(s). Checking for updates in parallel...`, 'info');
+                let updatesFoundCount = 0;
+
+                await Promise.all(
+                    rawList.map(async (modItem) => {
+                        try {
+                            const checked = await invoke<InstalledModItem>('check_single_mod_update', {
+                                installedMod: modItem,
+                                factorioVersion
+                            });
+
+                            const updatedItem: InstalledModItem = {
+                                ...checked,
+                                selectedForUpdate: checked.hasUpdate,
+                                selectedTargetVersion: checked.latestVersion || checked.newerVersions[0] || checked.version
+                            };
+
+                            if (checked.hasUpdate) {
+                                updatesFoundCount++;
+                            }
+
+                            // Stream each mod update to UI live as it resolves!
+                            setInstalledMods(prev =>
+                                prev.map(m => (m.name === updatedItem.name ? updatedItem : m))
+                            );
+                        } catch (err) {
+                            console.error(`Failed to check update for mod ${modItem.name}:`, err);
+                        }
+                    })
+                );
+
+                addLog(`Scan & update check complete. ${updatesFoundCount} update${updatesFoundCount === 1 ? '' : 's'} available for Factorio ${factorioVersion === 'all' || factorioVersion === 'any' ? 'Any Version' : factorioVersion}.`, 'success');
+            }
         } catch (err: any) {
             addLog(`Failed to scan installed mods: ${err?.toString() || 'Unknown error'}`, 'error');
         } finally {
@@ -260,7 +326,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
-    // Trigger initial scan on mount
+    // Re-check installed mods & updates whenever factorioVersion changes
+    useEffect(() => {
+        if (folderPath) {
+            refreshInstalledMods(folderPath);
+        }
+    }, [factorioVersion]);
+
+    // Trigger initial scan & update check on mount
     useEffect(() => {
         refreshInstalledMods();
     }, []);
@@ -335,8 +408,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [themeMode]);
 
-    const toggleSidebar = (force?: boolean) => setSidebarOpen(prev => force !== undefined ? force : !prev);
-
     const clearCompleted = async () => {
         try {
             await invoke('clear_completed_download_tasks');
@@ -358,9 +429,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             addLog(`Failed to retry task "${taskId}": ${err?.toString()}`, 'error');
         }
     };
+    const cancelTask = async (taskId: string) => {
+        try {
+            await invoke('cancel_download_task', { taskId });
+            setQueue(prev => prev.map(q => q.id === taskId ? { ...q, statusType: 'failed', errorMessage: 'Cancelled by user' } : q));
+            addLog(`Cancelled download for task "${taskId}"`, 'warn');
+        } catch (err: any) {
+            addLog(`Failed to cancel task "${taskId}": ${err?.toString()}`, 'error');
+        }
+    };
+
+    const cancelAllTasks = async () => {
+        try {
+            await invoke('cancel_all_download_tasks');
+            setQueue(prev => prev.map(q => (q.progress < 100 && q.statusType !== 'completed' && q.statusType !== 'alreadyExists' && q.statusType !== 'updated') ? { ...q, statusType: 'failed', errorMessage: 'Cancelled by user' } : q));
+            addLog('Cancelled all active downloads', 'warn');
+        } catch (err: any) {
+            addLog(`Failed to cancel all tasks: ${err?.toString()}`, 'error');
+        }
+    };
 
     const startDownload = (newItems: Omit<DownloadTask, 'progress' | 'speed'>[], type: 'update' | 'download') => {
-        setSidebarOpen(true);
+        setActiveDrawer('downloads');
         setStatusBadgeText(type === 'update' ? 'Patching...' : 'Downloading...');
         addLog(`Initiated download queue: ${type === 'update' ? 'Updating' : 'Downloading'} ${newItems.length} mod(s)...`, 'info');
 
@@ -372,6 +462,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         setQueue(prev => [...prev, ...initializedItems]);
         setIsDownloading(true);
+        // Set a 3-second grace window so the poller doesn't prematurely
+        // flip isDownloading=false before the backend registers the tasks.
+        downloadGraceUntilRef.current = Date.now() + 3000;
     };
 
     // Tracking completed and failed tasks for logs
@@ -415,7 +508,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         const totalMb = t.totalBytes > 0 ? (t.totalBytes / (1024 * 1024)) : 15.0;
                         const downloadedMb = (t.downloadedBytes / (1024 * 1024));
                         let statusStr = typeof t.status === 'string' ? t.status : (t.status?.status || 'pending');
-                        
+
                         let progress = 0;
                         if (statusStr === 'completed' || statusStr === 'alreadyExists' || statusStr === 'updated') {
                             progress = 100;
@@ -451,7 +544,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         return s === 'downloading' || s === 'pending';
                     });
 
-                    setIsDownloading(isAnyActive);
+                    if (!isAnyActive && Date.now() < downloadGraceUntilRef.current) {
+                        // Skip — keep isDownloading=true until grace expires
+                    } else {
+                        if (isAnyActive) {
+                            // Backend has registered the tasks; grace no longer needed
+                            downloadGraceUntilRef.current = 0;
+                        }
+                        setIsDownloading(isAnyActive);
+                    }
                     setTotalSpeed(isAnyActive ? 8.4 : 0);
                     if (isAnyActive) {
                         setStatusBadgeText('Downloading...');
@@ -472,12 +573,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             themeMode,
             setThemeMode,
             isDark,
+            activeDrawer,
+            setActiveDrawer,
+            toggleDrawer,
             sidebarOpen,
             toggleSidebar,
             queue,
             startDownload,
             clearCompleted,
             retryTask,
+            cancelTask,
+            cancelAllTasks,
             isDownloading,
             totalSpeed,
             statusBadgeText,

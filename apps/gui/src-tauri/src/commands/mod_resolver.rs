@@ -53,7 +53,19 @@ pub async fn fetch_mod_details(
 ) -> Result<ModDetailsResponse, String> {
     get_mod_details(&api_client, &mod_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| {
+            let err_str = e.to_string();
+            if err_str.contains("404") || err_str.contains("Not Found") {
+                format!("Mod \"{}\" was not found on the Factorio Mod Portal.", mod_id)
+            } else if err_str.contains("403") || err_str.contains("401") {
+                "Access denied by Factorio Mod Portal. Please check your credentials in Settings.".to_string()
+            } else if err_str.contains("500") || err_str.contains("502") || err_str.contains("503") || err_str.contains("504") {
+                "Factorio Mod Portal server is temporarily unavailable.".to_string()
+            } else {
+                let stripped = err_str.split(" for url ").next().unwrap_or(&err_str);
+                stripped.to_string()
+            }
+        })
 }
 
 /// Tauri Command 2: Resolve sub-dependencies for download queue
@@ -63,14 +75,15 @@ pub async fn resolve_download_batch(
     main_mods: Vec<ResolvedDownloadItem>,
     direct_deps: Vec<Dependency>,
     include_recommended: bool,
+    factorio_version: Option<String>,
 ) -> Result<Vec<ResolvedDownloadItem>, String> {
     let mut resolver = Resolver::new(&api_client);
 
-    Resolver::prepare_download_batch(
-        &mut resolver,
+    resolver.prepare_download_batch(
         main_mods,
         direct_deps,
         include_recommended,
+        factorio_version.as_deref(),
     )
     .await
     .map_err(|e| e.to_string())

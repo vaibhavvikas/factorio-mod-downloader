@@ -1,16 +1,16 @@
 const CATEGORY_BADGE_STYLES: Record<string, string> = {
-    content: 'text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/60',
-    overhaul: 'text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800/60',
-    tweaks: 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/60',
-    utilities: 'text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800/60',
-    'mod-packs': 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/60',
-    scenarios: 'text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800/60',
-    localizations: 'text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800/60',
-    internal: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/90 border-slate-200 dark:border-slate-700/80',
-    'no-category': 'text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/90 border-zinc-200 dark:border-zinc-700/80',
+    content: 'text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-900/30 border-sky-200 dark:border-sky-800/50',
+    overhaul: 'text-purple-700 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800/50',
+    tweaks: 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800/50',
+    utilities: 'text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 border-teal-200 dark:border-teal-800/50',
+    'mod-packs': 'text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 border-rose-200 dark:border-rose-800/50',
+    scenarios: 'text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-800/50',
+    localizations: 'text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800/50',
+    internal: 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60',
+    'no-category': 'text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-700/60',
 };
 
-const DEFAULT_CATEGORY_BADGE_STYLE = 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/60';
+const DEFAULT_CATEGORY_BADGE_STYLE = 'text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800/50';
 
 export interface CategoryPillColors {
     active: string;

@@ -79,8 +79,8 @@ export const ModsFolderModal: React.FC<ModsFolderModalProps> = ({
                 {canCloseOutside && (
                     <button
                         onClick={onClose}
+                        aria-label="Close Modal"
                         className={`absolute top-4 right-4 p-1 rounded-lg ${TEXT.muted} hover:text-slate-600 dark:hover:text-zinc-200 ${INTERACTIVE.ghostHover} transition-colors cursor-pointer`}
-                        title="Close Modal"
                     >
                         <X className="w-4 h-4" />
                     </button>
