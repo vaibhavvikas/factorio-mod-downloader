@@ -2,8 +2,8 @@ pub mod commands;
 
 use commands::config::{
     detect_default_mods_folder, get_factorio_version, get_mods_folder, get_theme_mode,
-    get_window_state, open_config_folder, open_folder_in_explorer, pick_mods_folder_dialog, save_factorio_version,
-    save_mods_folder, save_theme_mode, save_window_state,
+    get_valid_factorio_versions, get_window_state, open_config_folder, open_folder_in_explorer,
+    pick_mods_folder_dialog, save_factorio_version, save_mods_folder, save_theme_mode, save_window_state,
 };
 use commands::mod_downloader::{
     cancel_all_download_tasks, cancel_download_task, clear_completed_download_tasks,
@@ -37,6 +37,7 @@ pub fn run() {
             open_folder_in_explorer,
             open_config_folder,
             get_factorio_version,
+            get_valid_factorio_versions,
             save_factorio_version,
             get_theme_mode,
             save_theme_mode,

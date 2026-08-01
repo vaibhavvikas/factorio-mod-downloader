@@ -12,6 +12,12 @@ export interface DownloadTask {
     errorMessage?: string;
 }
 
+export interface FactorioVersionOption {
+    value: string;
+    label: string;
+    shortLabel: string;
+}
+
 export interface InstalledModItem {
     name: string;
     title: string;
@@ -71,6 +77,7 @@ interface AppContextType {
     profileOpen: boolean;
     setProfileOpen: (open: boolean) => void;
     factorioVersion: string;
+    validFactorioVersions: FactorioVersionOption[];
     setFactorioVersion: (version: string) => void;
     installedMods: InstalledModItem[];
     setInstalledMods: React.Dispatch<React.SetStateAction<InstalledModItem[]>>;
@@ -210,19 +217,50 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }, TRANSITION_MS);
     };
 
-    // Load persisted Factorio target version on boot
+    const DEFAULT_VERSION_OPTIONS: FactorioVersionOption[] = [
+        { value: '2.1', label: 'Factorio 2.1', shortLabel: '2.1' },
+        { value: '2.0', label: 'Factorio 2.0', shortLabel: '2.0' },
+        { value: '1.1', label: 'Factorio 1.1', shortLabel: '1.1' },
+        { value: '1.0', label: 'Factorio 1.0', shortLabel: '1.0' },
+        { value: '0.18', label: 'Factorio 0.18', shortLabel: '0.18' },
+        { value: '0.17', label: 'Factorio 0.17', shortLabel: '0.17' },
+        { value: '0.16', label: 'Factorio 0.16', shortLabel: '0.16' },
+        { value: '0.15', label: 'Factorio 0.15', shortLabel: '0.15' },
+        { value: '0.14', label: 'Factorio 0.14', shortLabel: '0.14' },
+        { value: '0.13', label: 'Factorio 0.13', shortLabel: '0.13' },
+        { value: 'any', label: 'Any Version', shortLabel: 'Any' },
+    ];
+
+    const [validFactorioVersions, setValidFactorioVersions] = useState<FactorioVersionOption[]>(DEFAULT_VERSION_OPTIONS);
+
+    // Load persisted Factorio target version, valid versions list & saved mods folder from backend on boot
     useEffect(() => {
-        invoke<string>('get_factorio_version')
-            .then(ver => {
-                if (ver) setFactorioVersionState(ver);
-            })
-            .catch(() => { });
+        Promise.all([
+            invoke<FactorioVersionOption[]>('get_valid_factorio_versions').catch(() => []),
+            invoke<string>('get_factorio_version').catch(() => '2.1'),
+            invoke<string | null>('get_mods_folder').catch(() => null),
+        ]).then(([versions, ver, savedFolder]) => {
+            const validList = versions && versions.length > 0 ? versions : DEFAULT_VERSION_OPTIONS;
+            setValidFactorioVersions(validList);
+
+            if (ver && validList.some(v => v.value === ver)) {
+                setFactorioVersionState(ver);
+            } else {
+                setFactorioVersionState('2.1');
+            }
+
+            if (savedFolder) {
+                setFolderPath(savedFolder);
+                refreshInstalledMods(savedFolder);
+            }
+        });
     }, []);
 
     const setFactorioVersion = (ver: string) => {
-        setFactorioVersionState(ver);
-        invoke('save_factorio_version', { version: ver }).catch(() => { });
-        addLog(`Explore filter set to Factorio ${ver === 'all' || ver === 'any' ? 'Any Version' : ver}`, 'info');
+        const validVer = validFactorioVersions.some(v => v.value === ver) ? ver : '2.1';
+        setFactorioVersionState(validVer);
+        invoke('save_factorio_version', { version: validVer }).catch(() => { });
+        addLog(`Explore filter set to Factorio ${validVer === 'all' || validVer === 'any' ? 'Any Version' : validVer}`, 'info');
     };
 
     // Developer console logger states
@@ -605,6 +643,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             profileOpen,
             setProfileOpen,
             factorioVersion,
+            validFactorioVersions,
             setFactorioVersion,
             installedMods,
             setInstalledMods,

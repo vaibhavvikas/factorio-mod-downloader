@@ -2,6 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+pub const VALID_FACTORIO_VERSIONS: &[&str] = &[
+    "2.1", "2.0", "1.1", "1.0", "0.18", "0.17", "0.16", "0.15", "0.14", "0.13", "any",
+];
+
 fn default_factorio_version() -> String {
     "2.1".to_string()
 }
@@ -89,6 +93,12 @@ pub fn get_mods_folder() -> Result<Option<String>, String> {
     
     let content = fs::read_to_string(config_path).map_err(|e| e.to_string())?;
     let config: AppConfig = serde_json::from_str(&content).unwrap_or_default();
+    if let Some(ref path) = config.mods_folder {
+        let p = std::path::Path::new(path);
+        if path.trim().is_empty() || !p.exists() || !p.is_dir() {
+            return Ok(None);
+        }
+    }
     Ok(config.mods_folder)
 }
 
@@ -107,6 +117,38 @@ pub fn save_mods_folder(path: String) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FactorioVersionOption {
+    pub value: String,
+    pub label: String,
+    #[serde(rename = "shortLabel")]
+    pub short_label: String,
+}
+
+#[tauri::command]
+pub fn get_valid_factorio_versions() -> Vec<FactorioVersionOption> {
+    VALID_FACTORIO_VERSIONS
+        .iter()
+        .map(|&ver| {
+            let label = if ver == "any" {
+                "Any Version".to_string()
+            } else {
+                format!("Factorio {}", ver)
+            };
+            let short_label = if ver == "any" {
+                "Any".to_string()
+            } else {
+                ver.to_string()
+            };
+            FactorioVersionOption {
+                value: ver.to_string(),
+                label,
+                short_label,
+            }
+        })
+        .collect()
+}
+
 #[tauri::command]
 pub fn get_factorio_version() -> Result<String, String> {
     let config_path = get_config_file_path()?;
@@ -116,6 +158,9 @@ pub fn get_factorio_version() -> Result<String, String> {
     
     let content = fs::read_to_string(config_path).map_err(|e| e.to_string())?;
     let config: AppConfig = serde_json::from_str(&content).unwrap_or_default();
+    if !VALID_FACTORIO_VERSIONS.contains(&config.factorio_version.as_str()) {
+        return Ok(default_factorio_version());
+    }
     Ok(config.factorio_version)
 }
 
@@ -129,7 +174,13 @@ pub fn save_factorio_version(version: String) -> Result<(), String> {
         AppConfig::default()
     };
     
-    config.factorio_version = version;
+    let validated_version = if VALID_FACTORIO_VERSIONS.contains(&version.as_str()) {
+        version
+    } else {
+        default_factorio_version()
+    };
+
+    config.factorio_version = validated_version;
     let content = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
     fs::write(config_path, content).map_err(|e| e.to_string())?;
     Ok(())
@@ -275,4 +326,25 @@ pub fn save_window_state(width: u32, height: u32, maximized: bool) -> Result<(),
     let content = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
     fs::write(config_path, content).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_factorio_versions() {
+        assert!(VALID_FACTORIO_VERSIONS.contains(&"2.1"));
+        assert!(VALID_FACTORIO_VERSIONS.contains(&"2.0"));
+        assert!(VALID_FACTORIO_VERSIONS.contains(&"any"));
+        assert!(!VALID_FACTORIO_VERSIONS.contains(&"all"));
+        assert!(!VALID_FACTORIO_VERSIONS.contains(&"invalid_ver"));
+    }
+
+    #[test]
+    fn test_default_config_values() {
+        let config = AppConfig::default();
+        assert_eq!(config.factorio_version, "2.1");
+        assert_eq!(config.mods_folder, None);
+    }
 }
