@@ -78,25 +78,25 @@ export const ACCENT = {
 export const DEPENDENCY_TYPE = {
     required: {
         label: 'text-blue-700 dark:text-[#58a6ff]',
-        icon: 'text-blue-600 dark:text-[#58a6ff]',
-        dot: 'bg-blue-600 dark:bg-[#58a6ff]',
+        icon: 'text-sky-500 dark:text-sky-400',
+        dot: 'bg-sky-500 dark:bg-sky-400',
     },
     recommended: {
         label: 'text-blue-600 dark:text-[#58a6ff]',
-        icon: 'text-blue-600 dark:text-[#58a6ff]',
-        dot: 'bg-blue-600 dark:bg-[#58a6ff]',
+        icon: 'text-blue-500 dark:text-blue-400',
+        dot: 'bg-blue-500 dark:bg-blue-400',
         rowSelected: 'bg-blue-500/10 dark:bg-[#1f6feb]/20 border-blue-500/30 text-blue-700 dark:text-[#58a6ff] hover:bg-blue-500/20 dark:hover:bg-[#1f6feb]/30 hover:border-blue-500/50',
     },
     optional: {
         label: 'text-slate-600 dark:text-[#8b949e]',
-        icon: 'text-slate-500 dark:text-[#6e7681]',
-        dot: 'bg-slate-400 dark:bg-[#6e7681]',
+        icon: 'text-violet-500 dark:text-violet-400',
+        dot: 'bg-violet-500 dark:bg-violet-400',
         rowSelected: 'bg-slate-200/50 dark:bg-[#21262d] border-slate-300 dark:border-[#30363d] hover:bg-slate-200/80 dark:hover:bg-[#30363d] hover:border-slate-400 dark:hover:border-[#8b949e]',
     },
     incompatible: {
         label: 'text-rose-700 dark:text-[#f85149]',
-        icon: 'text-rose-600 dark:text-[#f85149]',
-        dot: 'bg-rose-600 dark:bg-[#f85149]',
+        icon: 'text-rose-500 dark:text-rose-400',
+        dot: 'bg-rose-500 dark:bg-rose-400',
     },
 } as const;
 

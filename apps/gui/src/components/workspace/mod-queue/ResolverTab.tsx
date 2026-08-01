@@ -351,11 +351,10 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                 });
             });
 
-            // 2. Call backend resolve_download_batch to get all resolved items:
             const resolvedBatch = await invoke<BackendResolvedDownloadItem[]>('resolve_download_batch', {
                 mainMods,
                 directDeps,
-                includeRecommended: true,
+                includeRecommended: false,
                 factorioVersion,
             });
 
@@ -390,9 +389,8 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
                     const reversedReleases = details.releases.slice().reverse();
                     const latestVersion = reversedReleases[0]?.version || 'latest';
-
                     const treeDeps = convertBackendDepsToTree(details.default_dependencies);
-                    const initialSelectedIds = getInitialSelectedDepIds(treeDeps);
+                    const initialSelectedIds = getInitialSelectedDepIds(treeDeps, { recommended: false, optional: false });
 
                     newCacheUpdates[details.name] = {
                         id: 'tree-' + details.name + '-' + Math.random(),
