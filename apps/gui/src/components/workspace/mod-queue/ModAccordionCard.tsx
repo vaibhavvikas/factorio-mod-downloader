@@ -6,7 +6,7 @@ import { DependencyTree } from './DependencyTree';
 import type { TreeNode } from './DependencyTree';
 import { formatCategoryLabel, getCategoryBadgeStyle } from '../shared/modCategory';
 import { useAppContext } from '../../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, ACCENT, INTERACTIVE, PILL_SIZE } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, ACCENT, INTERACTIVE, PILL_SIZE, PILL_TONE } from '../../../theme/layers';
 import { Tooltip } from '../../ui/Tooltip';
 import { compareVersions } from '../mod-manager/InstalledModsList';
 
@@ -111,15 +111,15 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
     };
 
     return (
-        <div className="relative select-none">
+        <div className="relative inline-flex items-center shrink-0 select-none">
 
             <button
                 ref={buttonRef}
                 type="button"
                 onClick={handleToggle}
-                className={`panel-pill ${PILL_SIZE.compactMono} border gap-1.5 shrink-0 ${LAYER.pillSurface} ${BORDER.pill} ${INTERACTIVE.pillHover} ${ACCENT.text} font-mono font-bold transition-all cursor-pointer shadow-2xs max-w-[320px]`}
+                className={`panel-pill ${PILL_SIZE.compactMono} gap-1.5 shrink-0 appearance-none leading-none ${LAYER.pillSurface} ${BORDER.pill} ${INTERACTIVE.pillHover} ${ACCENT.text} font-semibold transition-all cursor-pointer max-w-[320px]`}
             >
-                <span className={`text-[11px] font-bold ${TEXT.muted} shrink-0 font-sans`}>Ver:</span>
+                <span className={`${TEXT.muted} shrink-0`}>Ver:</span>
                 <span className="truncate max-w-[240px]">{displayLabel}</span>
                 <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${TEXT.muted} ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -240,7 +240,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     const categoryBadgeStyle = getCategoryBadgeStyle(mod.category);
 
     return (
-        <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-300 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
+        <div className={`w-full ${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
             {/* Sticky Header — pins to top of scroll container like VS Code sticky scroll */}
             <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.cardSurface} rounded-t-2xl`}>
                 <div className="flex items-start justify-between gap-3">
@@ -261,13 +261,16 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 
                         <div className="flex flex-col min-w-0">
                             {/* Human-Readable Mod Title (Primary Display) */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                                 <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-50 truncate" title={mod.title || mod.name}>
                                     {mod.title || mod.name}
                                 </h3>
+                                <span className={`panel-pill ${PILL_SIZE.compactMono} shrink truncate whitespace-nowrap ${TEXT.secondary} ${BORDER.pill}`}>
+                                    {mod.name}
+                                </span>
                                 {/* Category Badge */}
                                 {mod.category && (
-                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 select-none ${categoryBadgeStyle}`}>
+                                    <span className={`panel-pill shrink-0 tracking-wide border ${categoryBadgeStyle}`}>
                                         {formatCategoryLabel(mod.category)}
                                     </span>
                                 )}
@@ -348,7 +351,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             });
                             if (!isCardIncompatible) return null;
                             return (
-                                <span className={`panel-pill ${PILL_SIZE.compactMono} bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 font-semibold text-[10.5px] select-none`} title={`No release found supporting Factorio ${factorioVersion}`}>
+                                <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.incompatibleOutline} font-semibold select-none`} title={`No release found supporting Factorio ${factorioVersion}`}>
                                     Incompatible (Target: {factorioVersion})
                                 </span>
                             );
@@ -381,17 +384,17 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 
                         {/* Dep count badges */}
                         {requiredCount > 0 && (
-                            <span className={`panel-pill ${PILL_SIZE.compactMono} bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800/50 select-none`}>
+                            <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.requiredOutline} select-none`}>
                                 {requiredCount} Required
                             </span>
                         )}
                         {recommendedNodes.length > 0 && (
-                            <span className={`panel-pill ${PILL_SIZE.compactMono} bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 select-none`}>
+                            <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.recommendedOutline} select-none`}>
                                 {recommendedSelected}/{recommendedNodes.length} Recommended
                             </span>
                         )}
                         {optionalNodes.length > 0 && (
-                            <span className={`panel-pill ${PILL_SIZE.compactMono} bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800/50 select-none`}>
+                            <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.optionalOutline} select-none`}>
                                 {optionalSelected}/{optionalNodes.length} Optional
                             </span>
                         )}

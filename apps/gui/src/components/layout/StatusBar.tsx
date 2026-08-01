@@ -95,7 +95,7 @@ export const StatusBar: React.FC = () => {
                 {appVersion && (
                     <>
                         <span className={`${TEXT.dim} opacity-40 select-none`}>|</span>
-                        <span className={`text-xs font-mono ${TEXT.dim} font-bold select-none`}>v{appVersion}</span>
+                        <span className={`text-xs font-mono ${TEXT.secondary} font-bold select-none`}>v{appVersion}</span>
                     </>
                 )}
             </div>

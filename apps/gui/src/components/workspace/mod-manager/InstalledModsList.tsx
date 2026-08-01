@@ -1,9 +1,9 @@
 import React from 'react';
-import { Trash2, ExternalLink, AlertTriangle, ArrowDown, Wrench, CheckCircle } from 'lucide-react';
+import { Trash2, ExternalLink, AlertTriangle, ArrowDown, Wrench, CheckCircle, ArrowUp } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type { InstalledModItem } from '../../../context/AppContext';
 import { useAppContext } from '../../../context/AppContext';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, PILL_SIZE, PILL_TONE } from '../../../theme/layers';
 import { Tooltip } from '../../ui/Tooltip';
 
 export function compareVersions(a: string, b: string): number {
@@ -83,28 +83,21 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                         </div>
 
                         <div className="flex flex-col min-w-0">
-                            <div className="flex min-w-0 items-center gap-2">
-                                <h3 className="min-w-0 truncate text-sm font-bold text-slate-900 dark:text-white">{mod.title || mod.name}</h3>
-                                <span className={`shrink truncate whitespace-nowrap text-[11px] font-mono ${TEXT.secondary} ${LAYER.pillSurface} px-2 py-0.5 rounded-md ${BORDER.pill}`}>
-                                    {mod.name}
-                                </span>
-                            </div>
+                            <h3 className="min-w-0 truncate text-sm font-bold text-slate-900 dark:text-white">{mod.title || mod.name}</h3>
                             <div className={`mt-1 text-xs ${TEXT.secondary}`}>
                                 <span>by <strong className="text-slate-700 dark:text-zinc-300 font-semibold">{mod.author || 'Unknown'}</strong></span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Bottom Bar: Unified Status Pill / Action (left) + Explore Card-Style Action Buttons (right) */}
                     <div className="mt-auto flex items-center justify-between gap-2 pt-1 min-w-0">
-                        {/* Unified Status Pill / Action */}
                         {(() => {
                             const isIncompatible = isModIncompatible(mod);
                             const targetVer = mod.selectedTargetVersion || mod.latestVersion || mod.newerVersions[0];
 
                             return (
                                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                    <span className={`panel-pill panel-pill-mono h-6 px-2.5 shrink-0 inline-flex items-center rounded-full font-mono font-semibold text-[11px] select-none cursor-default ${LAYER.staticPill} ${BORDER.card} text-slate-500 dark:text-zinc-400`}>
+                                    <span className={`panel-pill ${PILL_SIZE.comfortableMono} shrink-0 select-none cursor-default ${LAYER.staticPill} ${BORDER.card} text-slate-500 dark:text-zinc-400`}>
                                         <span className="font-mono font-semibold text-slate-600 dark:text-zinc-300">v{mod.version}</span>
                                     </span>
 
@@ -121,7 +114,7 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                                                         onUpdateMod(mod, targetVer);
                                                     }
                                                 }}
-                                                className={`panel-pill panel-pill-mono h-6 px-2.5 rounded-full font-mono font-semibold text-[11px] transition-colors cursor-pointer inline-flex items-center gap-1 select-none shrink-0 ${isDowngrade
+                                                className={`panel-pill ${PILL_SIZE.comfortableMono} transition-colors cursor-pointer gap-1 select-none shrink-0 ${isDowngrade
                                                     ? 'text-amber-600 dark:text-amber-400 border border-amber-500/30 dark:border-amber-400/30 hover:bg-amber-500/10 dark:hover:bg-amber-400/10'
                                                     : 'text-blue-600 dark:text-blue-400 border border-blue-500/30 dark:border-blue-400/30 hover:bg-blue-500/10 dark:hover:bg-blue-400/10'
                                                     }`}
@@ -129,14 +122,14 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                                                 {isDowngrade ? (
                                                     <ArrowDown className="w-3 h-3 text-amber-500 shrink-0" />
                                                 ) : (
-                                                    <ArrowDown className="w-3 h-3 text-blue-500 shrink-0" />
+                                                    <ArrowUp className="w-3 h-3 text-blue-500 shrink-0" />
                                                 )}
                                                 <span>{isDowngrade ? 'Downgrade to' : 'Update to'} v{targetVer}</span>
                                             </button>
                                         );
                                     })() : isIncompatible ? (
                                         <span
-                                            className="panel-pill panel-pill-mono h-6 px-2.5 shrink-0 inline-flex items-center rounded-full font-mono font-semibold text-[11px] select-none cursor-default border border-rose-500/20 dark:border-rose-500/20 bg-rose-500/[0.06] dark:bg-rose-950/20 text-rose-600 dark:text-rose-400"
+                                            className={`panel-pill ${PILL_SIZE.comfortableMono} shrink-0 font-mono font-semibold select-none cursor-default ${PILL_TONE.incompatibleOutline}`}
                                         >
                                             Requires Factorio {mod.factorioVersion || '< 2.0'}
                                         </span>

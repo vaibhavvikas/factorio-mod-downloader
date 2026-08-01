@@ -2,7 +2,7 @@ import React from 'react';
 import { Layers } from 'lucide-react';
 import { useAppContext } from '../../../context/AppContext';
 import { Checkbox } from '../../ui/Checkbox';
-import { LAYER, BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, TEXT, INTERACTIVE, PILL_TONE, PILL_SIZE } from '../../../theme/layers';
 
 export type DependencyType = 'required' | 'recommended' | 'optional' | 'incompatible';
 
@@ -147,7 +147,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                         />
                                         <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
                                         {formatVersionLabel(node.version, node.ineq) && (
-                                            <span className="text-[10px] font-mono text-slate-400">{formatVersionLabel(node.version, node.ineq)}</span>
+                                            <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{formatVersionLabel(node.version, node.ineq)}</span>
                                         )}
                                         {node.isShared && (
                                             <span className={`flex items-center gap-1 text-[9px] bg-slate-100 dark:bg-zinc-800 ${TEXT.secondary} px-1.5 py-0.2 rounded font-mono font-medium shrink-0`}>
@@ -200,7 +200,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                         />
                                         <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
                                         {formatVersionLabel(node.version, node.ineq) && (
-                                            <span className="text-[10px] font-mono text-slate-400">{formatVersionLabel(node.version, node.ineq)}</span>
+                                            <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{formatVersionLabel(node.version, node.ineq)}</span>
                                         )}
                                         {renderInstalledStatus(node.name)}
                                     </div>
@@ -213,13 +213,13 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
 
             {/* Incompatible Section */}
             {incompatibleNodes.length > 0 && (
-                <div className="flex flex-col gap-1">
-                    <div className="text-xs font-bold text-rose-500 flex items-center gap-1">
+                <div className="flex flex-col gap-1.5">
+                    <div className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
                         <span>Incompatible Mods ({incompatibleNodes.length})</span>
                     </div>
-                    <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-2 flex flex-wrap gap-2 text-xs font-mono text-rose-600 dark:text-rose-400">
+                    <div className="bg-transparent border border-rose-500/30 dark:border-rose-400/30 rounded-xl p-2.5 flex flex-wrap gap-2 text-xs font-mono">
                         {incompatibleNodes.map(n => (
-                            <span key={n.id} className="bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                            <span key={n.id} className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.incompatibleOutline} font-semibold select-none`}>
                                 {n.name}
                             </span>
                         ))}

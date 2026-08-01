@@ -50,7 +50,7 @@ interface ModSearchResultCardProps {
 const TAG_PILL_CLASS =
     `panel-pill shrink-0 max-w-28 truncate ${TEXT.secondary} ${LAYER.summarySurface} ${BORDER.pill}`;
 const TAG_COUNT_PILL_CLASS =
-    `panel-pill shrink-0 ${TEXT.secondary} ${LAYER.summarySurface} ${BORDER.pill}`;
+    `panel-pill shrink-0 whitespace-nowrap px-2 ${TEXT.secondary} ${LAYER.summarySurface} ${BORDER.pill}`;
 
 const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
     item,
@@ -97,8 +97,8 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
             if (cancelled || !container) return;
             rafId = window.requestAnimationFrame(() => {
                 if (cancelled || !container) return;
-                const available = container.clientWidth;
-                if (available === 0) return;
+                const available = Math.max(0, container.clientWidth - 4);
+                if (available <= 0) return;
                 const children = Array.from(container.children) as HTMLElement[];
                 const pillEls: HTMLElement[] = [];
                 let countPillEl: HTMLElement | null = null;
@@ -176,8 +176,8 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
             if (rafId) window.cancelAnimationFrame(rafId);
             ro.disconnect();
         };
-        // Re-measure when tags length changes; different mods re-mount via key.
-    }, [item.tags.length]);
+        // Re-measure when tags length changes or queue state changes; different mods re-mount via key.
+    }, [item.tags.length, isAlreadyInQueue]);
 
     // Reposition the summary tooltip whenever it becomes visible, and while it is
     // shown also track window scroll/resize and all scrollable ancestor containers
@@ -331,7 +331,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                             {item.title || item.name}
                         </h4>
                         {item.requires_space_age && (
-                            <span className="panel-pill shrink-0 border border-orange-500/30 bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center gap-1 font-bold">
+                            <span className="panel-pill shrink-0 border border-orange-500/50 dark:border-orange-400/50 bg-transparent text-orange-600 dark:text-orange-400 flex items-center gap-1 font-bold">
                                 <Rocket className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                             </span>
                         )}
@@ -644,7 +644,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         className={`shrink-0 h-7.5 px-3.5 py-1 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 select-none ${spaceAgeFilter
                             ? 'bg-gradient-to-r from-orange-500 via-rose-500 to-purple-600 text-white border-orange-400 shadow-xs'
                             : `${LAYER.contentCard} text-slate-700 dark:text-zinc-300 ${BORDER.card} hover:bg-slate-50 dark:hover:bg-zinc-800/60`
-                        }`}
+                            }`}
                     >
                         <Rocket className={`w-3.5 h-3.5 ${spaceAgeFilter ? 'text-white' : 'text-orange-500'}`} />
                         <span>Space Age</span>
@@ -771,16 +771,15 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 </span>
                             ) : (
                                 paginationItems.map(item => typeof item === 'number' ? (
-                                    <button 
-                                        key={item} 
-                                        type="button" 
-                                        onClick={() => setPage(item)} 
-                                        disabled={loading} 
-                                        className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 cursor-pointer disabled:cursor-not-allowed ${
-                                            page === item 
-                                                ? 'bg-blue-600 border-blue-600 text-white shadow-xs scale-105' 
-                                                : `${LAYER.contentCard} ${BORDER.card} text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800`
-                                        }`}
+                                    <button
+                                        key={item}
+                                        type="button"
+                                        onClick={() => setPage(item)}
+                                        disabled={loading}
+                                        className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 cursor-pointer disabled:cursor-not-allowed ${page === item
+                                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs scale-105'
+                                            : `${LAYER.contentCard} ${BORDER.card} text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800`
+                                            }`}
                                     >
                                         {item}
                                     </button>

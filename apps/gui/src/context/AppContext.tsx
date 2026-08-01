@@ -431,8 +431,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     const cancelTask = async (taskId: string) => {
         try {
-            await invoke('cancel_download_task', { taskId });
             setQueue(prev => prev.map(q => q.id === taskId ? { ...q, statusType: 'failed', errorMessage: 'Cancelled by user' } : q));
+            await invoke('cancel_download_task', { taskId });
             addLog(`Cancelled download for task "${taskId}"`, 'warn');
         } catch (err: any) {
             addLog(`Failed to cancel task "${taskId}": ${err?.toString()}`, 'error');
@@ -441,8 +441,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const cancelAllTasks = async () => {
         try {
-            await invoke('cancel_all_download_tasks');
             setQueue(prev => prev.map(q => (q.progress < 100 && q.statusType !== 'completed' && q.statusType !== 'alreadyExists' && q.statusType !== 'updated') ? { ...q, statusType: 'failed', errorMessage: 'Cancelled by user' } : q));
+            await invoke('cancel_all_download_tasks');
             addLog('Cancelled all active downloads', 'warn');
         } catch (err: any) {
             addLog(`Failed to cancel all tasks: ${err?.toString()}`, 'error');
@@ -454,16 +454,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setStatusBadgeText(type === 'update' ? 'Patching...' : 'Downloading...');
         addLog(`Initiated download queue: ${type === 'update' ? 'Updating' : 'Downloading'} ${newItems.length} mod(s)...`, 'info');
 
-        const initializedItems = newItems.map(item => ({
-            ...item,
-            progress: 0,
-            speed: (Math.random() * 5 + 3).toFixed(1)
-        }));
+        const initializedItems = newItems.map(item => {
+            const taskId = item.id.includes('_') ? item.id : `${item.id}_${item.version}`;
+            return {
+                ...item,
+                id: taskId,
+                progress: 0,
+                statusType: 'pending' as const,
+                speed: (Math.random() * 5 + 3).toFixed(1)
+            };
+        });
 
-        setQueue(prev => [...prev, ...initializedItems]);
+        setQueue(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const fresh = initializedItems.filter(i => !existingIds.has(i.id));
+            return [...prev, ...fresh];
+        });
         setIsDownloading(true);
-        // Set a 3-second grace window so the poller doesn't prematurely
-        // flip isDownloading=false before the backend registers the tasks.
         downloadGraceUntilRef.current = Date.now() + 3000;
     };
 
@@ -477,8 +484,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     addLog(`Download complete: "${item.name}" (v${item.version}) successfully downloaded.`, 'success');
                 } else if (item.statusType === 'failed') {
                     setLoggedTaskIds(prev => [...prev, item.id]);
+                    const isCancelled = item.errorMessage === 'Cancelled by user';
                     const is404 = item.errorMessage?.includes('404');
-                    if (is404) {
+                    if (isCancelled) {
+                        addLog(`Download cancelled: "${item.name}" (v${item.version}).`, 'warn');
+                    } else if (is404) {
                         addLog(`Mod "${item.name}" (v${item.version}) was not found on server (404). It might be recently added and not yet available on the mirror storage.`, 'warn');
                     } else {
                         addLog(`Download failed for "${item.name}" (v${item.version}): ${item.errorMessage || 'Network request failed after retries'}`, 'error');

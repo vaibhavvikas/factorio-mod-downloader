@@ -70,7 +70,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
     };
 
     return (
-        <div ref={containerRef} className="relative shrink-0 select-none">
+        <div ref={containerRef} className="relative inline-flex items-center shrink-0 select-none">
             <button
                 type="button"
                 onClick={() => setOpen(!open)}

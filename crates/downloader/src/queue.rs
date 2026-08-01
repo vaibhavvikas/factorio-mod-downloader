@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{Mutex, Semaphore};
 
 use factorio::models::ResolvedDownloadItem;
@@ -12,6 +13,7 @@ pub const DEFAULT_MAX_CONCURRENT_DOWNLOADS: usize = 5;
 #[derive(Clone)]
 pub struct DownloadQueueManager {
     tasks: Arc<Mutex<HashMap<String, DownloadTask>>>,
+    cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     semaphore: Arc<Semaphore>,
     client: reqwest::Client,
 }
@@ -55,6 +57,7 @@ impl DownloadQueueManager {
     pub fn new(max_concurrent: usize) -> Self {
         Self {
             tasks: Arc::new(Mutex::new(HashMap::new())),
+            cancel_flags: Arc::new(Mutex::new(HashMap::new())),
             semaphore: Arc::new(Semaphore::new(max_concurrent)),
             client: reqwest::Client::new(),
         }
@@ -66,11 +69,11 @@ impl DownloadQueueManager {
         for item in items {
             let task_id = format!("{}_{}", item.id, item.version);
             let mut is_update_replacement = false;
+            let mut old_installed_path: Option<PathBuf> = None;
 
             // Check if matching mod version is already installed in target folder
             if let Some((installed_ver, installed_path)) = existing_mods.get(&item.id) {
                 if installed_ver == &item.version {
-                    // Exact version already downloaded: read actual file size in bytes
                     let actual_size_bytes = std::fs::metadata(installed_path)
                         .map(|m| m.len())
                         .unwrap_or(0);
@@ -91,21 +94,20 @@ impl DownloadQueueManager {
                     );
                     continue;
                 } else {
-                    // Outdated or mismatched version: remove old zip to prevent duplicate version conflicts
-                    let _ = std::fs::remove_file(installed_path);
                     is_update_replacement = true;
+                    old_installed_path = Some(installed_path.clone());
                 }
             }
 
+            let cancel_flag = Arc::new(AtomicBool::new(false));
+
             {
                 let mut guard = self.tasks.lock().await;
-                // If task already completed, downloading, or failed in active session, skip duplicate
                 if let Some(existing) = guard.get(&task_id) {
                     if existing.status == DownloadStatus::Completed
                         || existing.status == DownloadStatus::AlreadyExists
                         || existing.status == DownloadStatus::Updated
                         || existing.status == DownloadStatus::Downloading
-                        || matches!(existing.status, DownloadStatus::Failed(_))
                     {
                         continue;
                     }
@@ -124,15 +126,34 @@ impl DownloadQueueManager {
                         status: DownloadStatus::Pending,
                     },
                 );
+
+                let mut flags = self.cancel_flags.lock().await;
+                flags.insert(task_id.clone(), cancel_flag.clone());
             }
 
             let manager = self.clone();
             let output_dir_clone = output_dir.clone();
+            let cancel_flag_clone = cancel_flag.clone();
 
             tokio::spawn(async move {
+                if cancel_flag_clone.load(Ordering::Relaxed) {
+                    let mut guard = manager.tasks.lock().await;
+                    if let Some(task) = guard.get_mut(&task_id) {
+                        task.status = DownloadStatus::Failed("Cancelled by user".to_string());
+                    }
+                    return;
+                }
+
                 let _permit = manager.semaphore.acquire().await.unwrap();
 
-                // Update status to Downloading
+                if cancel_flag_clone.load(Ordering::Relaxed) {
+                    let mut guard = manager.tasks.lock().await;
+                    if let Some(task) = guard.get_mut(&task_id) {
+                        task.status = DownloadStatus::Failed("Cancelled by user".to_string());
+                    }
+                    return;
+                }
+
                 {
                     let mut guard = manager.tasks.lock().await;
                     if let Some(task) = guard.get_mut(&task_id) {
@@ -146,6 +167,11 @@ impl DownloadQueueManager {
                 let mut download_success = false;
 
                 while attempts < max_retries {
+                    if cancel_flag_clone.load(Ordering::Relaxed) {
+                        last_error = "Cancelled by user".to_string();
+                        break;
+                    }
+
                     attempts += 1;
 
                     let task_id_clone = task_id.clone();
@@ -158,6 +184,7 @@ impl DownloadQueueManager {
                         &item.file_name,
                         &item.sha1,
                         &output_dir_clone,
+                        cancel_flag_clone.clone(),
                         move |downloaded, total| {
                             let manager_inner = manager_progress.clone();
                             let tid = task_id_clone.clone();
@@ -178,17 +205,18 @@ impl DownloadQueueManager {
                             break;
                         }
                         Err(err) => {
+                            let is_cancelled = err.contains("Cancelled by user") || cancel_flag_clone.load(Ordering::Relaxed);
                             let is_404 = err.contains("404");
                             last_error = err;
-                            // Reset downloaded bytes for retry attempt
+
                             {
                                 let mut guard = manager.tasks.lock().await;
                                 if let Some(task) = guard.get_mut(&task_id) {
                                     task.downloaded_bytes = 0;
                                 }
                             }
-                            if is_404 {
-                                // Fast-fail on HTTP 404 since mod file does not exist on mirror storage
+
+                            if is_cancelled || is_404 {
                                 break;
                             }
                             if attempts < max_retries {
@@ -201,6 +229,9 @@ impl DownloadQueueManager {
                 let mut guard = manager.tasks.lock().await;
                 if let Some(task) = guard.get_mut(&task_id) {
                     if download_success {
+                        if let Some(ref old_path) = old_installed_path {
+                            let _ = std::fs::remove_file(old_path);
+                        }
                         task.status = if is_update_replacement {
                             DownloadStatus::Updated
                         } else {
@@ -237,6 +268,12 @@ impl DownloadQueueManager {
     }
 
     pub async fn cancel_task(&self, task_id: &str) {
+        {
+            let flags = self.cancel_flags.lock().await;
+            if let Some(flag) = flags.get(task_id) {
+                flag.store(true, Ordering::Relaxed);
+            }
+        }
         let mut guard = self.tasks.lock().await;
         if let Some(task) = guard.get_mut(task_id) {
             task.status = DownloadStatus::Failed("Cancelled by user".to_string());
@@ -244,6 +281,12 @@ impl DownloadQueueManager {
     }
 
     pub async fn cancel_all(&self) {
+        {
+            let flags = self.cancel_flags.lock().await;
+            for flag in flags.values() {
+                flag.store(true, Ordering::Relaxed);
+            }
+        }
         let mut guard = self.tasks.lock().await;
         for task in guard.values_mut() {
             if matches!(task.status, DownloadStatus::Pending | DownloadStatus::Downloading) {

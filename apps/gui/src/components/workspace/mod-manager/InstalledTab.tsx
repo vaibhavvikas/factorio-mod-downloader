@@ -9,12 +9,14 @@ import {
     DeleteModModal,
     DependencyUpgradeConflictModal,
     BulkDeleteModModal,
+    BatchUpdateModal,
     computeReverseDependencies,
     calculateDeleteImpact,
     calculateBulkDeleteImpact,
     type ConflictModalData,
     type DeleteModalData,
     type BulkDeleteModalData,
+    type BatchUpdateItem,
 } from './InstalledModals';
 import { InstalledModsList } from './InstalledModsList';
 import { InstalledUpdatesList, UpdatesHeaderActions } from './InstalledUpdatesList';
@@ -57,6 +59,11 @@ export const InstalledTab: React.FC = () => {
     const [conflictModalData, setConflictModalData] = useState<ConflictModalData | null>(null);
     const [deleteModalData, setDeleteModalData] = useState<DeleteModalData | null>(null);
     const [bulkDeleteModalData, setBulkDeleteModalData] = useState<BulkDeleteModalData | null>(null);
+    const [showUpdateConfirmModal, setShowUpdateConfirmModal] = useState(false);
+    const [singleModTarget, setSingleModTarget] = useState<{
+        item: BatchUpdateItem;
+        batchItem: { id: string; title: string; version: string; file_name: string; sha1: string };
+    } | null>(null);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,11 +71,13 @@ export const InstalledTab: React.FC = () => {
                 if (deleteModalData) setDeleteModalData(null);
                 if (conflictModalData) setConflictModalData(null);
                 if (bulkDeleteModalData) setBulkDeleteModalData(null);
+                if (showUpdateConfirmModal) setShowUpdateConfirmModal(false);
+                if (singleModTarget) setSingleModTarget(null);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [deleteModalData, conflictModalData, bulkDeleteModalData]);
+    }, [deleteModalData, conflictModalData, bulkDeleteModalData, showUpdateConfirmModal, singleModTarget]);
 
     const dependentsMap = computeReverseDependencies(installedMods);
 
@@ -108,8 +117,11 @@ export const InstalledTab: React.FC = () => {
         return cleanModFver === cleanTarget || cleanModFver.startsWith(cleanTarget) || cleanTarget.startsWith(cleanModFver);
     };
 
-    const fixableMods = installedMods.filter(m => !isModCompatible(m, factorioVersion) && m.hasUpdate);
-    const incompatibleMods = installedMods.filter(m => !isModCompatible(m, factorioVersion) && !m.hasUpdate);
+    const isModInUpdateList = (m: InstalledModItem) =>
+        m.hasUpdate || (m.selectedTargetVersion ? m.selectedTargetVersion !== m.version : false);
+
+    const fixableMods = installedMods.filter(isModInUpdateList);
+    const incompatibleMods = installedMods.filter(m => !isModCompatible(m, factorioVersion) && !isModInUpdateList(m));
 
     const handleOpenBulkDeleteModal = () => {
         if (incompatibleMods.length === 0) return;
@@ -135,34 +147,41 @@ export const InstalledTab: React.FC = () => {
         }
     };
 
+    const handleOpenUpdateConfirmModal = () => {
+        const selected = installedMods.filter(m => isModInUpdateList(m) && m.selectedForUpdate !== false);
+        if (selected.length === 0) return;
+        setShowUpdateConfirmModal(true);
+    };
+
+    const handleConfirmUpdateBatch = async () => {
+        setShowUpdateConfirmModal(false);
+        await handleStartUpdateBatch();
+    };
+
     const handleUpdateFixableBatch = async () => {
         if (fixableMods.length === 0) return;
         setInstalledMods(prev =>
-            prev.map(m => (!isModCompatible(m, factorioVersion) && m.hasUpdate ? { ...m, selectedForUpdate: true } : m))
+            prev.map(m => (isModInUpdateList(m) ? { ...m, selectedForUpdate: true } : m))
         );
-        setActiveTab('updates');
-        setTimeout(() => {
-            handleStartUpdateBatch();
-        }, 50);
+        handleOpenUpdateConfirmModal();
     };
 
     const handleUpdateSingleMod = async (mod: InstalledModItem, targetVersion: string) => {
-        setLoading(true);
-        addLog(`Preparing update for "${mod.title || mod.name}" to v${targetVersion}...`, 'info');
-        try {
-            const batch = [{
+        setSingleModTarget({
+            item: {
+                name: mod.name,
+                title: mod.title || mod.name,
+                fromVersion: mod.version,
+                toVersion: targetVersion,
+            },
+            batchItem: {
                 id: mod.name,
                 title: mod.title || mod.name,
                 version: targetVersion,
                 file_name: `${mod.name}_${targetVersion}.zip`,
-                sha1: ''
-            }];
-            await executeDownloadBatch(batch);
-        } catch (err: any) {
-            addLog(`Failed to update ${mod.title || mod.name}: ${err?.toString()}`, 'error');
-        } finally {
-            setLoading(false);
-        }
+                sha1: '',
+            },
+        });
     };
 
     const handleBrowseFolder = async () => {
@@ -186,18 +205,18 @@ export const InstalledTab: React.FC = () => {
 
     const handleSelectAll = (select: boolean) => {
         setInstalledMods(prev =>
-            prev.map(m => (m.hasUpdate ? { ...m, selectedForUpdate: select } : m))
+            prev.map(m => (isModInUpdateList(m) ? { ...m, selectedForUpdate: select } : m))
         );
     };
 
     const handleSelectVersion = (modName: string, ver: string) => {
         setInstalledMods(prev =>
-            prev.map(m => (m.name === modName ? { ...m, selectedTargetVersion: ver } : m))
+            prev.map(m => (m.name === modName ? { ...m, selectedTargetVersion: ver, selectedForUpdate: true } : m))
         );
     };
 
     const handleStartUpdateBatch = async () => {
-        const selected = installedMods.filter(m => m.selectedForUpdate && m.hasUpdate);
+        const selected = installedMods.filter(m => isModInUpdateList(m) && m.selectedForUpdate !== false);
         if (selected.length === 0) return;
 
         setLoading(true);
@@ -272,8 +291,8 @@ export const InstalledTab: React.FC = () => {
         }
     };
 
-    const updateCount = installedMods.filter(m => m.hasUpdate).length;
-    const selectedUpdateCount = installedMods.filter(m => m.hasUpdate && m.selectedForUpdate).length;
+    const updateCount = installedMods.filter(isModInUpdateList).length;
+    const selectedUpdateCount = installedMods.filter(m => isModInUpdateList(m) && m.selectedForUpdate !== false).length;
     const allUpdatesSelected = updateCount > 0 && selectedUpdateCount === updateCount;
 
     return (
@@ -398,10 +417,10 @@ export const InstalledTab: React.FC = () => {
                                  </button>
                              </div>
                              <div className="flex items-center gap-2 select-none">
-                                {activeTab === 'installed' && factorioVersion !== 'all' && factorioVersion !== 'any' && (
+                                {activeTab === 'installed' && (
                                     <>
                                         {fixableMods.length > 0 && (
-                                            <Tooltip content={`Apply fixes for ${fixableMods.length} mod(s) to support Factorio ${factorioVersion}`}>
+                                            <Tooltip content={`Apply fixes for ${fixableMods.length} mod(s)`}>
                                                 <button
                                                     onClick={handleUpdateFixableBatch}
                                                     className="px-2.5 py-1 rounded-lg font-bold text-[11px] bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 dark:border-amber-400/30 hover:bg-amber-500/20 dark:hover:bg-amber-400/30 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
@@ -412,7 +431,7 @@ export const InstalledTab: React.FC = () => {
                                             </Tooltip>
                                         )}
 
-                                        {incompatibleMods.length > 0 && (
+                                        {factorioVersion !== 'all' && factorioVersion !== 'any' && incompatibleMods.length > 0 && (
                                             <Tooltip content={`Remove ${incompatibleMods.length} mod(s) incompatible with Factorio ${factorioVersion}`}>
                                                 <button
                                                     onClick={handleOpenBulkDeleteModal}
@@ -456,28 +475,88 @@ export const InstalledTab: React.FC = () => {
                                 </div>
                             ) : (
                                 <div key="subtab-updates" className={`w-full ${ANIMATION.subTabPane}`}>
-                                    <InstalledUpdatesList
-                                        mods={installedMods}
-                                        queue={queue}
-                                        isCheckingUpdates={isCheckingUpdates}
-                                        isAnyLoading={isAnyLoading}
-                                        selectedUpdateCount={selectedUpdateCount}
-                                        onToggleSelect={handleToggleSelect}
-                                        onSelectVersion={handleSelectVersion}
-                                        onStartUpdateBatch={handleStartUpdateBatch}
-                                    />
-                                </div>
-                            )}
+                                     <InstalledUpdatesList
+                                         mods={installedMods}
+                                         queue={queue}
+                                         isCheckingUpdates={isCheckingUpdates}
+                                         isAnyLoading={isAnyLoading}
+                                         selectedUpdateCount={selectedUpdateCount}
+                                         onToggleSelect={handleToggleSelect}
+                                         onSelectVersion={handleSelectVersion}
+                                         onStartUpdateBatch={handleOpenUpdateConfirmModal}
+                                     />
+                                 </div>
+                             )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            {deleteModalData && (
+                <DeleteModModal
+                    data={deleteModalData}
+                    onClose={() => setDeleteModalData(null)}
+                    onConfirm={handleConfirmDelete}
+                />
+            )}
+
+            {conflictModalData && (
+                <DependencyUpgradeConflictModal
+                    data={conflictModalData}
+                    onClose={() => setConflictModalData(null)}
+                    onProceed={async (batch) => {
+                        setConflictModalData(null);
+                        await executeDownloadBatch(batch);
+                    }}
+                />
+            )}
 
             {bulkDeleteModalData && (
                 <BulkDeleteModModal
                     data={bulkDeleteModalData}
                     onConfirm={handleConfirmBulkDelete}
                     onClose={() => setBulkDeleteModalData(null)}
+                />
+            )}
+
+            {showUpdateConfirmModal && (
+                <BatchUpdateModal
+                    updates={installedMods
+                        .filter(m => isModInUpdateList(m) && m.selectedForUpdate !== false)
+                        .map(m => ({
+                            name: m.name,
+                            title: m.title || m.name,
+                            fromVersion: m.version,
+                            toVersion: m.selectedTargetVersion || m.latestVersion || m.version,
+                        }))}
+                    onClose={() => setShowUpdateConfirmModal(false)}
+                    onConfirm={handleConfirmUpdateBatch}
+                    isResolving={loading}
+                />
+            )}
+
+            {singleModTarget && (
+                <BatchUpdateModal
+                    updates={[singleModTarget.item]}
+                    onClose={() => setSingleModTarget(null)}
+                    onConfirm={async () => {
+                        const target = singleModTarget;
+                        setSingleModTarget(null);
+                        setLoading(true);
+                        try {
+                            const resolvedBatch = await invoke<{ id: string; title: string; version: string; file_name: string; sha1: string }[]>('resolve_download_batch', {
+                                mainMods: [target.batchItem],
+                                directDeps: [],
+                                includeRecommended: false
+                            });
+                            await executeDownloadBatch(resolvedBatch);
+                        } catch (err: any) {
+                            addLog(`Failed to update ${target.item.title}: ${err?.toString()}`, 'error');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }}
+                    isResolving={loading}
                 />
             )}
         </div>

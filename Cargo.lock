@@ -66,7 +66,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "app"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "dirs",
  "downloader",
@@ -969,7 +969,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "downloader"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "factorio",
  "futures-util",
@@ -1149,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "factorio"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "parser",
  "rand 0.10.2",
@@ -1163,7 +1163,7 @@ dependencies = [
 
 [[package]]
 name = "factorio-mod-downloader-cli"
-version = "0.3.3"
+version = "0.3.4"
 
 [[package]]
 name = "fastrand"
@@ -2702,7 +2702,7 @@ dependencies = [
 
 [[package]]
 name = "parser"
-version = "0.3.3"
+version = "0.3.4"
 dependencies = [
  "regex",
  "serde",

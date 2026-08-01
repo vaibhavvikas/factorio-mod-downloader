@@ -78,25 +78,25 @@ export const ACCENT = {
 export const DEPENDENCY_TYPE = {
     required: {
         label: 'text-blue-700 dark:text-[#58a6ff]',
-        icon: 'text-blue-600 dark:text-[#58a6ff]',
-        dot: 'bg-blue-600 dark:bg-[#58a6ff]',
+        icon: 'text-sky-500 dark:text-sky-400',
+        dot: 'bg-sky-500 dark:bg-sky-400',
     },
     recommended: {
         label: 'text-blue-600 dark:text-[#58a6ff]',
-        icon: 'text-blue-600 dark:text-[#58a6ff]',
-        dot: 'bg-blue-600 dark:bg-[#58a6ff]',
+        icon: 'text-blue-500 dark:text-blue-400',
+        dot: 'bg-blue-500 dark:bg-blue-400',
         rowSelected: 'bg-blue-500/10 dark:bg-[#1f6feb]/20 border-blue-500/30 text-blue-700 dark:text-[#58a6ff] hover:bg-blue-500/20 dark:hover:bg-[#1f6feb]/30 hover:border-blue-500/50',
     },
     optional: {
         label: 'text-slate-600 dark:text-[#8b949e]',
-        icon: 'text-slate-500 dark:text-[#6e7681]',
-        dot: 'bg-slate-400 dark:bg-[#6e7681]',
+        icon: 'text-violet-500 dark:text-violet-400',
+        dot: 'bg-violet-500 dark:bg-violet-400',
         rowSelected: 'bg-slate-200/50 dark:bg-[#21262d] border-slate-300 dark:border-[#30363d] hover:bg-slate-200/80 dark:hover:bg-[#30363d] hover:border-slate-400 dark:hover:border-[#8b949e]',
     },
     incompatible: {
         label: 'text-rose-700 dark:text-[#f85149]',
-        icon: 'text-rose-600 dark:text-[#f85149]',
-        dot: 'bg-rose-600 dark:bg-[#f85149]',
+        icon: 'text-rose-500 dark:text-rose-400',
+        dot: 'bg-rose-500 dark:bg-rose-400',
     },
 } as const;
 
@@ -128,6 +128,29 @@ export const ANIMATION = {
 } as const;
 
 export const PILL_SIZE = {
-    compact: 'h-5 min-h-5 max-h-5 px-2.5 rounded-full inline-flex items-center text-[11px]',
-    compactMono: 'panel-pill-mono h-5 min-h-5 max-h-5 px-2.5 rounded-full inline-flex items-center text-[11px]',
+    compact: 'h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
+    compactMono: 'panel-pill-mono h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
+    comfortable: 'h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
+    comfortableMono: 'panel-pill-mono h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
 } as const;
+
+export const PILL_TONE = {
+    requiredOutline: 'bg-transparent text-sky-600 dark:text-sky-400 border border-sky-500/50 dark:border-sky-400/50',
+    recommendedOutline: 'bg-transparent text-blue-600 dark:text-blue-400 border border-blue-500/50 dark:border-blue-400/50',
+    optionalOutline: 'bg-transparent text-violet-600 dark:text-violet-400 border border-violet-500/50 dark:border-violet-400/50',
+    incompatibleOutline: 'bg-transparent text-rose-600 dark:text-rose-400 border border-rose-500/50 dark:border-rose-400/50',
+} as const;
+
+export const CATEGORY_BADGE_STYLES: Record<string, string> = {
+    content: 'text-sky-600 dark:text-sky-400 bg-transparent border-sky-500/50 dark:border-sky-400/50',
+    overhaul: 'text-purple-600 dark:text-purple-400 bg-transparent border-purple-500/50 dark:border-purple-400/50',
+    tweaks: 'text-amber-600 dark:text-amber-400 bg-transparent border-amber-500/50 dark:border-amber-400/50',
+    utilities: 'text-teal-600 dark:text-teal-400 bg-transparent border-teal-500/50 dark:border-teal-400/50',
+    'mod-packs': 'text-rose-600 dark:text-rose-400 bg-transparent border-rose-500/50 dark:border-rose-400/50',
+    scenarios: 'text-orange-600 dark:text-orange-400 bg-transparent border-orange-500/50 dark:border-orange-400/50',
+    localizations: 'text-cyan-600 dark:text-cyan-400 bg-transparent border-cyan-500/50 dark:border-cyan-400/50',
+    internal: 'text-slate-600 dark:text-slate-400 bg-transparent border-slate-500/50 dark:border-slate-400/50',
+    'no-category': 'text-zinc-600 dark:text-zinc-400 bg-transparent border-zinc-500/50 dark:border-zinc-400/50',
+};
+
+export const DEFAULT_CATEGORY_BADGE_STYLE = 'text-blue-600 dark:text-blue-400 bg-transparent border-blue-500/50 dark:border-blue-400/50';
