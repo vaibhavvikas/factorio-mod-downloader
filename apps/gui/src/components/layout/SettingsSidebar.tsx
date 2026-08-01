@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Settings, FolderOpen, FolderSearch, Gamepad2, Palette, Sun, Moon, Monitor, X, ChevronDown, Check, FolderCog } from 'lucide-react';
+import { Settings, FolderOpen, FolderSearch, Gamepad2, Palette, Sun, Moon, Monitor, X, ChevronDown, Check, FolderCog, Wand2 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { invoke } from '@tauri-apps/api/core';
-import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE } from '../../theme/layers';
+import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE, HOVER_BORDER } from '../../theme/layers';
 import { Tooltip } from '../ui/Tooltip';
 
 function splitPathForMiddleTruncate(path: string): { head: string; tail: string } {
@@ -28,6 +28,7 @@ export const SettingsSidebar: React.FC = () => {
         refreshInstalledMods,
         factorioVersion,
         setFactorioVersion,
+        validFactorioVersions,
         themeMode,
         setThemeMode,
         addLog
@@ -66,6 +67,20 @@ export const SettingsSidebar: React.FC = () => {
         }
     };
 
+    const handleAutoDetect = async () => {
+        try {
+            const detected = await invoke<string>('detect_default_mods_folder');
+            if (detected) {
+                setFolderPath(detected);
+                await invoke('save_mods_folder', { path: detected });
+                await refreshInstalledMods(detected);
+                addLog(`Auto-detected Factorio mods folder: ${detected}`, 'success');
+            }
+        } catch (err) {
+            console.error('Failed to auto-detect folder:', err);
+        }
+    };
+
     const handleOpenExplorer = async () => {
         if (!folderPath) return;
         try {
@@ -77,19 +92,10 @@ export const SettingsSidebar: React.FC = () => {
 
     const pathSplit = folderPath ? splitPathForMiddleTruncate(folderPath) : null;
 
-    const versionOptions = [
-        { id: '2.1', label: 'Factorio 2.1' },
-        { id: '2.0', label: 'Factorio 2.0' },
-        { id: '1.1', label: 'Factorio 1.1' },
-        { id: '1.0', label: 'Factorio 1.0' },
-        { id: '0.18', label: 'Factorio 0.18' },
-        { id: '0.17', label: 'Factorio 0.17' },
-        { id: '0.16', label: 'Factorio 0.16' },
-        { id: '0.15', label: 'Factorio 0.15' },
-        { id: '0.14', label: 'Factorio 0.14' },
-        { id: '0.13', label: 'Factorio 0.13' },
-        { id: 'all', label: 'Any Version' },
-    ];
+    const versionOptions = validFactorioVersions.map(opt => ({
+        id: opt.value,
+        label: opt.label
+    }));
 
     const themeOptions = [
         { id: 'light', label: 'Light', icon: Sun, color: 'text-amber-500' },
@@ -124,13 +130,21 @@ export const SettingsSidebar: React.FC = () => {
                             <FolderCog className="w-3.5 h-3.5 text-blue-500" />
                         </button>
                     </Tooltip>
-                    <button
-                        onClick={() => toggleDrawer(null)}
-                        aria-label="Close Settings"
-                        className={`${TEXT.muted} hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded transition-colors cursor-pointer ${INTERACTIVE.iconHover}`}
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
+                    {!folderPath ? (
+                        <Tooltip content="Please select a valid Factorio mods directory to continue">
+                            <span className="text-[10px] font-semibold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                Folder Required
+                            </span>
+                        </Tooltip>
+                    ) : (
+                        <button
+                            onClick={() => toggleDrawer(null)}
+                            aria-label="Close Settings"
+                            className={`${TEXT.muted} hover:text-slate-700 dark:hover:text-zinc-200 p-1 rounded transition-colors cursor-pointer ${INTERACTIVE.iconHover}`}
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -232,25 +246,36 @@ export const SettingsSidebar: React.FC = () => {
                             </div>
                         </Tooltip>
 
-                        {/* Action Buttons Row */}
-                        <div className="flex items-center gap-1.5">
-                            <Tooltip content="Browse or choose a different Factorio mods folder">
+                        {/* Action Buttons Row — Spanning across layout with proportional space for Auto-Detect */}
+                        <div className="grid grid-cols-[1fr_1.35fr_1fr] gap-2 w-full">
+                            <Tooltip content="Browse or choose a different Factorio mods folder" className="w-full">
                                 <button
                                     onClick={handleBrowseFolder}
-                                    className={`px-3 py-1.5 rounded-lg border ${BORDER.card} text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 font-semibold text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0`}
+                                    className={`w-full flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-300/60 dark:hover:bg-zinc-700/80 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer shadow-2xs`}
                                 >
-                                    <FolderSearch className="w-3.5 h-3.5 text-amber-500" />
-                                    <span>Browse</span>
+                                    <FolderSearch className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 shrink-0" />
+                                    <span className="truncate">Browse</span>
                                 </button>
                             </Tooltip>
 
-                            <Tooltip content="Open folder in File Explorer">
+                            <Tooltip content="Auto-detect standard Factorio mods folder for your OS" className="w-full">
+                                <button
+                                    onClick={handleAutoDetect}
+                                    className={`w-full flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-300/60 dark:hover:bg-zinc-700/80 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer shadow-2xs`}
+                                >
+                                    <Wand2 className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 shrink-0" />
+                                    <span className="truncate">Auto-Detect</span>
+                                </button>
+                            </Tooltip>
+
+                            <Tooltip content="Open folder in File Explorer" className="w-full">
                                 <button
                                     onClick={handleOpenExplorer}
                                     disabled={!folderPath}
-                                    className={`p-1.5 rounded-lg border ${BORDER.card} text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed`}
+                                    className={`w-full flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-300/60 dark:hover:bg-zinc-700/80 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs`}
                                 >
-                                    <FolderOpen className="w-4 h-4 text-amber-500" />
+                                    <FolderOpen className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 shrink-0" />
+                                    <span className="truncate">Open</span>
                                 </button>
                             </Tooltip>
                         </div>

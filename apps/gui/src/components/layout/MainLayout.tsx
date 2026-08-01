@@ -3,7 +3,6 @@ import { TitleBar } from './TitleBar';
 import { Workspace } from '../workspace/Workspace';
 import { NetworkSidebar } from './NetwrokSidebar';
 import { StatusBar } from './StatusBar';
-import { ModsFolderModal } from './ModsFolderModal';
 import { useAppContext } from '../../context/AppContext';
 import { Mail, Sparkles, Heart, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
@@ -32,10 +31,8 @@ export function isVersionNewer(onlineVersion: string, currentVersion: string): b
 }
 
 export const MainLayout: React.FC = () => {
-    const { consoleOpen, logs, activeDrawer, toggleDrawer, profileOpen } = useAppContext();
+    const { consoleOpen, logs, activeDrawer, toggleDrawer, setActiveDrawer, folderPath } = useAppContext();
     const consoleEndRef = useRef<HTMLDivElement>(null);
-    const [folderModalOpen, setFolderModalOpen] = useState(false);
-    const [configuredModsFolder, setConfiguredModsFolder] = useState<string | null>(null);
 
     const [latestRelease, setLatestRelease] = useState<{ version: string; url: string; hasUpdate: boolean } | null>(null);
     const [isMaximized, setIsMaximized] = useState(false);
@@ -64,14 +61,14 @@ export const MainLayout: React.FC = () => {
     }, [logs, consoleOpen]);
 
     useEffect(() => {
-        // First-Use Check: prompt user if mods folder is not configured!
+        // First-Use / Missing / Invalid Config Check: open settings drawer if mods folder is not configured!
         invoke<string | null>('get_mods_folder').then(saved => {
-            if (saved) {
-                setConfiguredModsFolder(saved);
-            } else {
-                setFolderModalOpen(true);
+            if (!saved) {
+                setActiveDrawer('settings');
             }
-        }).catch(console.error);
+        }).catch(() => {
+            setActiveDrawer('settings');
+        });
 
         // Compare installed app version (from tauri.conf.json) against latest GitHub release
         Promise.all([
@@ -95,7 +92,6 @@ export const MainLayout: React.FC = () => {
     return (
         <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative ${isMaximized ? (isMac ? 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl' : 'rounded-none border-none') : 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl'}`}>
             <TitleBar
-                configuredModsFolder={configuredModsFolder}
                 hasAppUpdate={latestRelease?.hasUpdate || false}
             />
 
@@ -107,7 +103,11 @@ export const MainLayout: React.FC = () => {
                 {activeDrawer !== null && (
                     <div
                         className="absolute inset-0 z-30 bg-transparent"
-                        onClick={() => toggleDrawer(null)}
+                        onClick={() => {
+                            if (folderPath) {
+                                toggleDrawer(null);
+                            }
+                        }}
                     />
                 )}
 
@@ -120,8 +120,8 @@ export const MainLayout: React.FC = () => {
             {/* Floating Developer Profile Card Overlay */}
             <div
                 onMouseDown={(e) => e.stopPropagation()}
-                style={{ transform: profileOpen ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
-                className={`absolute top-11 right-4 z-40 w-84 rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl p-4 flex flex-col gap-4 text-xs max-h-[85vh] overflow-y-auto transition-all duration-500 ease-in-out ${profileOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+                style={{ transform: activeDrawer === 'profile' ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
+                className={`absolute top-11 right-4 z-40 w-84 rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl p-4 flex flex-col gap-4 text-xs max-h-[85vh] overflow-y-auto transition-all duration-500 ease-in-out ${activeDrawer === 'profile' ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
             >
                     {/* Avatar & Header */}
                     <div className="flex items-center gap-3">
@@ -224,14 +224,6 @@ export const MainLayout: React.FC = () => {
                         </p>
                     </div>
                 </div>
-
-            {/* Mods Folder Selection Modal */}
-            <ModsFolderModal
-                isOpen={folderModalOpen}
-                canCloseOutside={!!configuredModsFolder}
-                onClose={() => setFolderModalOpen(false)}
-                onSaveSuccess={(p) => setConfiguredModsFolder(p)}
-            />
         </div>
     );
 };

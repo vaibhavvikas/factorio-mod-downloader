@@ -4,20 +4,6 @@ import { ChevronDown, Check } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { LAYER, BORDER, TEXT, ACCENT, INTERACTIVE } from '../../theme/layers';
 
-export const FACTORIO_VERSIONS = [
-    { value: '2.1', label: '2.1' },
-    { value: '2.0', label: '2.0' },
-    { value: '1.1', label: '1.1' },
-    { value: '1.0', label: '1.0' },
-    { value: '0.18', label: '0.18' },
-    { value: '0.17', label: '0.17' },
-    { value: '0.16', label: '0.16' },
-    { value: '0.15', label: '0.15' },
-    { value: '0.14', label: '0.14' },
-    { value: '0.13', label: '0.13' },
-    { value: 'any', label: 'Any' },
-];
-
 export interface FactorioVersionDropdownProps {
     value?: string;
     onChange?: (val: string) => void;
@@ -27,15 +13,20 @@ export const FactorioVersionDropdown: React.FC<FactorioVersionDropdownProps> = (
     value: customValue,
     onChange: customOnChange,
 }) => {
-    const { factorioVersion, setFactorioVersion } = useAppContext();
+    const { factorioVersion, setFactorioVersion, validFactorioVersions } = useAppContext();
     const value = customValue !== undefined ? customValue : factorioVersion;
     const onChange = customOnChange || setFactorioVersion;
+
+    const versionList = validFactorioVersions.map(opt => ({
+        value: opt.value,
+        label: opt.shortLabel
+    }));
 
     const [open, setOpen] = useState(false);
     const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
     const buttonRef = useRef<HTMLButtonElement>(null);
 
-    const activeItem = FACTORIO_VERSIONS.find(v => v.value === value) || FACTORIO_VERSIONS.find(v => v.value === '2.0') || FACTORIO_VERSIONS[0];
+    const activeItem = versionList.find(v => v.value === value) || versionList[0] || { value: '2.1', label: '2.1' };
 
     const toggleOpen = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -84,7 +75,7 @@ export const FactorioVersionDropdown: React.FC<FactorioVersionDropdownProps> = (
                             width: dropdownPos.width ? `${dropdownPos.width}px` : '192px',
                         }}
                     >
-                        {FACTORIO_VERSIONS.map((item) => {
+                        {versionList.map((item) => {
                             const isSelected = value === item.value;
                             return (
                                 <button

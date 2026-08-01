@@ -10,13 +10,20 @@ interface TitleBarProps {
 }
 
 export const TitleBar: React.FC<TitleBarProps> = ({
-    configuredModsFolder,
     hasAppUpdate = false,
 }) => {
-    const { activeDrawer, toggleDrawer, queue, isDownloading } = useAppContext();
+    const { activeDrawer, toggleDrawer, queue, isDownloading, folderPath } = useAppContext();
     const appWindow = getCurrentWindow();
     const [isMac, setIsMac] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
+
+    const handleDrawerClick = (drawer: 'downloads' | 'settings' | 'profile') => {
+        if (!folderPath) {
+            // Must keep settings drawer open until valid folder is selected
+            return;
+        }
+        toggleDrawer(drawer);
+    };
 
     useEffect(() => {
         setIsMac(navigator.userAgent.includes('Mac'));
@@ -185,7 +192,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             <div className="flex items-center gap-1.5 ml-auto z-10 pr-1">
                 {/* 1. Downloads manager icon trigger */}
                 <button
-                    onClick={() => toggleDrawer('downloads')}
+                    onClick={() => handleDrawerClick('downloads')}
                     onMouseDown={(e) => e.stopPropagation()}
                     aria-label="Downloads Manager"
                     className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${activeDrawer === 'downloads'
@@ -206,7 +213,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
                 {/* 2. Application Settings Panel trigger */}
                 <button
-                    onClick={() => toggleDrawer('settings')}
+                    onClick={() => handleDrawerClick('settings')}
                     onMouseDown={(e) => e.stopPropagation()}
                     aria-label="Application Settings"
                     className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${activeDrawer === 'settings'
@@ -215,14 +222,14 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                         }`}
                 >
                     <Settings className="w-4 h-4" />
-                    {!configuredModsFolder && (
+                    {!folderPath && (
                         <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
                     )}
                 </button>
 
                 {/* 3. Developer Profile & Support Trigger */}
                 <button
-                    onClick={() => toggleDrawer('profile')}
+                    onClick={() => handleDrawerClick('profile')}
                     onMouseDown={(e) => e.stopPropagation()}
                     aria-label="Developer Profile & Support"
                     className={`p-1.5 rounded-md transition-all cursor-pointer relative flex items-center justify-center ${activeDrawer === 'profile'
