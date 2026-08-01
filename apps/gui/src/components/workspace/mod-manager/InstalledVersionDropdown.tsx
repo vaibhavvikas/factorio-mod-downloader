@@ -54,13 +54,13 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
     };
 
     return (
-        <div className="relative select-none">
+        <div className="relative inline-flex items-center shrink-0 select-none">
             <button
                 ref={buttonRef}
                 type="button"
                 onClick={toggleOpen}
                 disabled={disabled}
-                className={`panel-pill ${PILL_SIZE.compactMono} gap-1.5 shrink-0 max-w-[300px] transition-colors cursor-pointer disabled:opacity-50 ${LAYER.pillSurface} ${BORDER.tabActive} ${INTERACTIVE.pillHover} ${ACCENT.text}`}
+                className={`panel-pill ${PILL_SIZE.compactMono} gap-1.5 shrink-0 appearance-none leading-none max-w-[300px] transition-colors cursor-pointer disabled:opacity-50 ${LAYER.pillSurface} ${BORDER.tabActive} ${INTERACTIVE.pillHover} ${ACCENT.text}`}
             >
                 <span className={`text-[11px] font-bold ${TEXT.muted} shrink-0`}>{label.replace(/:+$/, '')}:</span>
                 <span className={`truncate font-mono font-bold ${valueClassName} ${compact ? 'max-w-[180px]' : 'max-w-[240px]'}`}>v{selectedVersion}</span>

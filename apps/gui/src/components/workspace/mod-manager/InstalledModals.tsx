@@ -1,7 +1,7 @@
 import React from 'react';
-import { Trash2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Trash2, AlertTriangle, ShieldCheck, Wrench, ArrowUp, ArrowDown, ArrowRight, Loader2 } from 'lucide-react';
 import type { InstalledModItem } from '../../../context/AppContext';
-import { LAYER, BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
+import { LAYER, BORDER, TEXT, INTERACTIVE, PILL_SIZE } from '../../../theme/layers';
 
 export interface ConflictModalData {
     targetUpdates: { name: string; title: string; version: string }[];
@@ -544,6 +544,164 @@ export const BulkDeleteModModal: React.FC<BulkDeleteModModalProps> = ({ data, on
                         className="px-4 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white shadow-md cursor-pointer transition-all"
                     >
                         Confirm & Delete ({totalFilesToDelete} File{totalFilesToDelete === 1 ? '' : 's'})
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export interface BatchUpdateItem {
+    name: string;
+    title: string;
+    fromVersion: string;
+    toVersion: string;
+}
+
+export interface BatchUpdateModalProps {
+    updates: BatchUpdateItem[];
+    onClose: () => void;
+    onConfirm: () => void;
+    isResolving?: boolean;
+}
+
+function compareVersionsLocal(a: string, b: string): number {
+    const parse = (v: string) => (v || '').replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
+    const pa = parse(a);
+    const pb = parse(b);
+    const maxLen = Math.max(pa.length, pb.length);
+    for (let i = 0; i < maxLen; i++) {
+        const na = pa[i] || 0;
+        const nb = pb[i] || 0;
+        if (na > nb) return 1;
+        if (na < nb) return -1;
+    }
+    return 0;
+}
+
+export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
+    updates,
+    onClose,
+    onConfirm,
+    isResolving = false,
+}) => {
+    const upgrades = updates.filter(u => compareVersionsLocal(u.toVersion, u.fromVersion) >= 0);
+    const downgrades = updates.filter(u => compareVersionsLocal(u.toVersion, u.fromVersion) < 0);
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none animate-fade-in"
+            onClick={onClose}
+            onMouseDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+        >
+            <div
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text overflow-hidden`}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onDoubleClick={(e) => e.stopPropagation()}
+            >
+                <div className="flex items-center gap-3 text-blue-500">
+                    <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 shrink-0">
+                        <Wrench className="w-5 h-5 text-blue-500" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-100">
+                            Confirm Mod Updates & Version Changes
+                        </h3>
+                        <p className={`text-[11px] ${TEXT.secondary}`}>
+                            Review the {updates.length} selected mod version change{updates.length === 1 ? '' : 's'} before starting download.
+                        </p>
+                    </div>
+                </div>
+
+                <div className={`${BORDER.inner} rounded-xl ${LAYER.modalBody} p-3 md:p-3.5 max-h-[48vh] md:max-h-[58vh] scroller-panel modal flex flex-col gap-3 overflow-y-auto overflow-x-hidden`}>
+                    {upgrades.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
+                                <ArrowUp className="w-3 h-3 text-blue-500" />
+                                Mod Upgrades ({upgrades.length})
+                            </span>
+                            {upgrades.map(item => (
+                                <div
+                                    key={item.name}
+                                    className={`flex items-center justify-between text-xs ${LAYER.contentCard} px-3.5 py-2 rounded-xl ${BORDER.card} shadow-2xs gap-3`}
+                                >
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-bold text-slate-900 dark:text-zinc-100 truncate">
+                                            {item.title || item.name}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                                        <span className={`panel-pill ${PILL_SIZE.comfortableMono} ${LAYER.staticPill} ${BORDER.card} text-slate-500 dark:text-zinc-400`}>
+                                            v{item.fromVersion}
+                                        </span>
+                                        <ArrowUp className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                        <span className={`panel-pill ${PILL_SIZE.comfortableMono} bg-blue-500/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-bold gap-1`}>
+                                            <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            v{item.toVersion}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {downgrades.length > 0 && (
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
+                                <ArrowDown className="w-3 h-3 text-amber-500" />
+                                Mod Downgrades ({downgrades.length})
+                            </span>
+                            {downgrades.map(item => (
+                                <div
+                                    key={item.name}
+                                    className={`flex items-center justify-between text-xs ${LAYER.contentCard} px-3.5 py-2 rounded-xl ${BORDER.card} shadow-2xs gap-3`}
+                                >
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-bold text-slate-900 dark:text-zinc-100 truncate">
+                                            {item.title || item.name}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0 font-mono text-[11px]">
+                                        <span className={`panel-pill ${PILL_SIZE.comfortableMono} ${LAYER.staticPill} ${BORDER.card} text-slate-500 dark:text-zinc-400`}>
+                                            v{item.fromVersion}
+                                        </span>
+                                        <ArrowRight className="w-3 h-3 text-amber-500 shrink-0" />
+                                        <span className={`panel-pill ${PILL_SIZE.comfortableMono} bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-bold`}>
+                                            v{item.toVersion}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-1">
+                    <button
+                        onClick={onClose}
+                        disabled={isResolving}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold ${TEXT.secondary} ${INTERACTIVE.ghostHover} transition-colors cursor-pointer disabled:opacity-50`}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isResolving}
+                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white shadow-md cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                        {isResolving ? (
+                            <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Resolving Dependencies...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Wrench className="w-3.5 h-3.5" />
+                                <span>Confirm & Apply ({updates.length})</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

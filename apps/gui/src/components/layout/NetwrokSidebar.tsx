@@ -123,23 +123,33 @@ export const NetworkSidebar: React.FC = () => {
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    {isPending ? (
-                                                        <span className="text-[10px] font-bold font-mono text-amber-600 dark:text-amber-400">Queued</span>
-                                                    ) : (
-                                                        <>
-                                                            <span className="text-[10px] font-bold font-mono text-blue-600 dark:text-blue-400">
-                                                                {Math.floor(item.progress)}%
-                                                            </span>
-                                                            <button
-                                                                onClick={() => cancelTask(item.id)}
-                                                                className="p-1 rounded hover:bg-slate-200/60 dark:hover:bg-zinc-800 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
-                                                                title="Cancel download"
-                                                                aria-label={`Cancel download for ${item.name}`}
-                                                            >
-                                                                <X className="w-3 h-3" />
-                                                            </button>
-                                                        </>
-                                                    )}
+                                                     {isPending ? (
+                                                         <>
+                                                             <span className="text-[10px] font-bold font-mono text-amber-600 dark:text-amber-400">Queued</span>
+                                                             <button
+                                                                 onClick={() => cancelTask(item.id)}
+                                                                 className="p-1 rounded hover:bg-slate-200/60 dark:hover:bg-zinc-800 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                                                                 title="Cancel queued download"
+                                                                 aria-label={`Cancel queued download for ${item.name}`}
+                                                             >
+                                                                 <X className="w-3 h-3" />
+                                                             </button>
+                                                         </>
+                                                     ) : (
+                                                         <>
+                                                             <span className="text-[10px] font-bold font-mono text-blue-600 dark:text-blue-400">
+                                                                 {Math.floor(item.progress)}%
+                                                             </span>
+                                                             <button
+                                                                 onClick={() => cancelTask(item.id)}
+                                                                 className="p-1 rounded hover:bg-slate-200/60 dark:hover:bg-zinc-800 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                                                                 title="Cancel download"
+                                                                 aria-label={`Cancel download for ${item.name}`}
+                                                             >
+                                                                 <X className="w-3 h-3" />
+                                                             </button>
+                                                         </>
+                                                     )}
                                                 </div>
                                             </div>
                                             {!isPending && (

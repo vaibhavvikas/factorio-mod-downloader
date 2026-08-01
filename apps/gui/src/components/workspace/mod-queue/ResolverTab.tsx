@@ -219,7 +219,12 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     const [localLoading, setLocalLoading] = useState(false);
     const loading = externalLoading !== undefined ? externalLoading : localLoading;
     const setLoading = setLocalLoading;
-    const [expandedModId, setExpandedModId] = useState<string | null>(null);
+    const [expandedModIds, setExpandedModIds] = useState<string[]>([]);
+    const handleToggleExpandCard = (id: string) => {
+        setExpandedModIds(prev =>
+            prev.includes(id) ? prev.filter(modId => modId !== id) : [...prev, id]
+        );
+    };
     const [inputText, setInputText] = useState('');
     const [isResolvingBatch, setIsResolvingBatch] = useState(false);
     const [viewMode, setViewMode] = useState<'cards' | 'tree'>('cards');
@@ -904,33 +909,55 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                 </div>
                             ) : (
                                 <div key="view-cards" className={`w-full ${ANIMATION.subTabPane}`}>
-                                    <div className="w-full flex flex-col gap-3">
-                                        {[...targetMods]
-                                            .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
-                                            .map((mod: TargetModItem) => (
-                                                <ModAccordionCard
-                                                    key={mod.id}
-                                                    mod={mod}
-                                                    isExpanded={expandedModId === mod.id}
-                                                    onToggleExpand={() => setExpandedModId(expandedModId === mod.id ? null : mod.id)}
-                                                    onToggleDep={handleToggleDep}
-                                                    onToggleSection={handleToggleSection}
-                                                    onSelectVersion={handleSelectVersion}
-                                                    onRemove={handleRemoveMod}
-                                                />
-                                            ))}
-                                    </div>
-                                    <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
-                                        <button
-                                            onClick={handleStartDownloadAll}
-                                            disabled={isBusy}
-                                            className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
-                                        >
-                                            {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                            <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
-                                        </button>
-                                    </div>
-                                </div>
+                                     {(() => {
+                                         const sortedMods = [...targetMods].sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name));
+                                         const col1Mods = sortedMods.filter((_, idx) => idx % 2 === 0);
+                                         const col2Mods = sortedMods.filter((_, idx) => idx % 2 === 1);
+
+                                         return (
+                                             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+                                                 <div className="flex flex-col gap-3 min-w-0">
+                                                     {col1Mods.map((mod: TargetModItem) => (
+                                                         <ModAccordionCard
+                                                             key={mod.id}
+                                                             mod={mod}
+                                                             isExpanded={expandedModIds.includes(mod.id)}
+                                                             onToggleExpand={() => handleToggleExpandCard(mod.id)}
+                                                             onToggleDep={handleToggleDep}
+                                                             onToggleSection={handleToggleSection}
+                                                             onSelectVersion={handleSelectVersion}
+                                                             onRemove={handleRemoveMod}
+                                                         />
+                                                     ))}
+                                                 </div>
+                                                 <div className="flex flex-col gap-3 min-w-0">
+                                                     {col2Mods.map((mod: TargetModItem) => (
+                                                         <ModAccordionCard
+                                                             key={mod.id}
+                                                             mod={mod}
+                                                             isExpanded={expandedModIds.includes(mod.id)}
+                                                             onToggleExpand={() => handleToggleExpandCard(mod.id)}
+                                                             onToggleDep={handleToggleDep}
+                                                             onToggleSection={handleToggleSection}
+                                                             onSelectVersion={handleSelectVersion}
+                                                             onRemove={handleRemoveMod}
+                                                         />
+                                                     ))}
+                                                 </div>
+                                             </div>
+                                         );
+                                     })()}
+                                     <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
+                                         <button
+                                             onClick={handleStartDownloadAll}
+                                             disabled={isBusy}
+                                             className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                         >
+                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
+                                         </button>
+                                     </div>
+                                 </div>
                             )}
                         </div>
                     </div>

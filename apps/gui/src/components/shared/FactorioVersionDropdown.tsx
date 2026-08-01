@@ -50,12 +50,12 @@ export const FactorioVersionDropdown: React.FC<FactorioVersionDropdownProps> = (
     };
 
     return (
-        <div className="relative shrink-0 select-none">
+        <div className="relative inline-flex items-center shrink-0 select-none">
             <button
                 ref={buttonRef}
                 type="button"
                 onClick={toggleOpen}
-                className={`flex h-9 items-center justify-between gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${LAYER.selectTrigger} ${BORDER.inner} hover:border-blue-500/50 transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-blue-500/30 shadow-2xs`}
+                className={`flex h-9 items-center justify-between gap-2 px-3 py-1.5 rounded-xl text-xs font-bold appearance-none leading-none ${LAYER.selectTrigger} ${BORDER.inner} hover:border-blue-500/50 transition-all cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-blue-500/30 shadow-2xs`}
                 title="Filter mods by target Factorio version"
             >
                 <div className="flex items-center gap-1.5 min-w-0">

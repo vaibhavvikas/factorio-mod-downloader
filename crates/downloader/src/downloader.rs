@@ -25,6 +25,7 @@ pub async fn download_mod_file<F>(
     file_name: &str,
     expected_sha1: &str,
     output_dir: &Path,
+    cancel_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
     on_progress: F,
 ) -> Result<PathBuf, String>
 where
@@ -82,6 +83,10 @@ where
             format!("Inactivity timeout (15s) while receiving data for {}", mod_id)
         })?
     {
+        if cancel_flag.load(std::sync::atomic::Ordering::Relaxed) {
+            let _ = std::fs::remove_file(&temp_filepath);
+            return Err("Cancelled by user".to_string());
+        }
         match chunk_result {
             Ok(chunk) => {
                 downloaded += chunk.len() as u64;
