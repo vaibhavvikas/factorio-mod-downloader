@@ -111,7 +111,12 @@ pub fn save_mods_folder(path: String) -> Result<(), String> {
     } else {
         AppConfig::default()
     };
-    config.mods_folder = Some(path);
+    #[cfg(target_os = "windows")]
+    let normalized_path = path.replace('/', "\\");
+    #[cfg(not(target_os = "windows"))]
+    let normalized_path = path;
+
+    config.mods_folder = Some(normalized_path);
     let content = serde_json::to_string_pretty(&config).map_err(|e| e.to_string())?;
     fs::write(config_path, content).map_err(|e| e.to_string())?;
     Ok(())
@@ -219,15 +224,15 @@ pub fn detect_default_mods_folder() -> Result<String, String> {
     let home = dirs::home_dir().ok_or_else(|| "Could not determine home directory".to_string())?;
     
     #[cfg(target_os = "macos")]
-    let default_path = home.join("Library/Application Support/factorio/mods");
+    let default_path = home.join("Library").join("Application Support").join("factorio").join("mods");
 
     #[cfg(target_os = "windows")]
     let default_path = dirs::data_dir()
-        .map(|d| d.join("Factorio/mods"))
-        .unwrap_or_else(|| home.join("AppData/Roaming/Factorio/mods"));
+        .map(|d| d.join("Factorio").join("mods"))
+        .unwrap_or_else(|| home.join("AppData").join("Roaming").join("Factorio").join("mods"));
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    let default_path = home.join(".factorio/mods");
+    let default_path = home.join(".factorio").join("mods");
 
     Ok(default_path.to_string_lossy().to_string())
 }
@@ -259,8 +264,9 @@ pub fn open_folder_in_explorer(path: String) -> Result<(), String> {
 
     #[cfg(target_os = "windows")]
     {
+        let win_path = path.replace('/', "\\");
         std::process::Command::new("explorer")
-            .arg(&path)
+            .arg(&win_path)
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -346,5 +352,13 @@ mod tests {
         let config = AppConfig::default();
         assert_eq!(config.factorio_version, "2.1");
         assert_eq!(config.mods_folder, None);
+    }
+
+    #[test]
+    fn test_detect_default_mods_folder() {
+        let detected = detect_default_mods_folder().unwrap();
+        assert!(!detected.is_empty());
+        #[cfg(target_os = "windows")]
+        assert!(!detected.contains('/'), "Windows path should not contain forward slashes");
     }
 }
