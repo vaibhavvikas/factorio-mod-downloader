@@ -351,7 +351,9 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
         try {
             // 1. Prepare inputs for resolver:
-            const mainMods = targetMods.map(t => ({
+            const compatibleTargetMods = targetMods.filter(m => !isModIncompatible(m));
+
+            const mainMods = compatibleTargetMods.map(t => ({
                 id: t.name,
                 title: t.title || t.name,
                 version: t.selectedVersion,
@@ -360,7 +362,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             }));
 
             const directDeps: BackendDependency[] = [];
-            targetMods.forEach(t => {
+            compatibleTargetMods.forEach(t => {
                 t.dependencies.forEach(d => {
                     if (t.selectedDepIds.includes(d.id)) {
                         directDeps.push({
@@ -816,7 +818,7 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                         <Layers className="w-3.5 h-3.5 text-blue-500" />
                         <span>Dependency Graph Explorer</span>
                         <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>
-                            {targetMods.filter(m => !isModIncompatible(m)).length + Object.keys(treeCache).filter(k => !isModIncompatible(treeCache[k])).length} resolved
+                            {targetMods.length + Object.keys(treeCache).length} resolved
                         </span>
                     </div>
 
@@ -957,16 +959,18 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                                     <div className="w-full">
                                         {renderDependencyTreePanel()}
                                     </div>
-                                    <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
-                                        <button
-                                            onClick={handleStartDownloadAll}
-                                            disabled={isBusy}
-                                            className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
-                                        >
-                                            {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                            <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
-                                        </button>
-                                    </div>
+                                    {targetMods.filter(m => !isModIncompatible(m)).length > 0 && (
+                                        <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
+                                            <button
+                                                onClick={handleStartDownloadAll}
+                                                disabled={isBusy}
+                                                className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            >
+                                                {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                                <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div key="view-cards" className={`w-full ${ANIMATION.subTabPane}`}>
@@ -1007,18 +1011,20 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                                                  </div>
                                              </div>
                                          );
-                                     })()}
-                                     <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
-                                         <button
-                                             onClick={handleStartDownloadAll}
-                                             disabled={isBusy}
-                                             className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
-                                         >
-                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-<span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
-                                         </button>
-                                     </div>
-                                 </div>
+                                      })()}
+                                      {targetMods.filter(m => !isModIncompatible(m)).length > 0 && (
+                                          <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
+                                              <button
+                                                  onClick={handleStartDownloadAll}
+                                                  disabled={isBusy}
+                                                  className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                              >
+                                                  {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                                  <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
+                                              </button>
+                                          </div>
+                                      )}
+                                  </div>
                             )}
                         </div>
                     </div>

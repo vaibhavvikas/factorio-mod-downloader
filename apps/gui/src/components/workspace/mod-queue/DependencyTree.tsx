@@ -23,6 +23,7 @@ interface DependencyTreeProps {
     selectedDepIds: string[];
     onToggleDep: (depId: string) => void;
     onToggleSection: (type: 'recommended' | 'optional', selectAll: boolean) => void;
+    disabled?: boolean;
 }
 
 export const DependencyTree: React.FC<DependencyTreeProps> = ({
@@ -30,6 +31,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
     selectedDepIds,
     onToggleDep,
     onToggleSection,
+    disabled = false,
 }) => {
     const { installedMods } = useAppContext();
 
@@ -58,6 +60,8 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
     const optionalNodes = nodes.filter(n => n.type === 'optional').sort((a, b) => a.name.localeCompare(b.name));
     const incompatibleNodes = nodes.filter(n => n.type === 'incompatible').sort((a, b) => a.name.localeCompare(b.name));
 
+    const disabledClass = disabled ? 'opacity-50 pointer-events-none' : '';
+
     // Section 2: Recommended Calculation
     const recommendedSelectedCount = recommendedNodes.filter(n => selectedDepIds.includes(n.id)).length;
     const isAllRecommendedSelected = recommendedNodes.length > 0 && recommendedSelectedCount === recommendedNodes.length;
@@ -80,10 +84,10 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
         <div className="flex flex-col gap-3">
             {/* Section 1: Required Dependencies */}
             {requiredNodes.length > 0 && (
-                <div className="flex flex-col gap-1.5">
+                <div className={`flex flex-col gap-1.5 ${disabledClass}`}>
                     <div className="flex items-center justify-between px-1 text-xs font-bold text-sky-600 dark:text-sky-400 select-none">
                         <div className="flex items-center gap-2">
-                            <Checkbox checked disabled readOnly accent="sky" aria-label="Required dependencies always included" />
+                            <Checkbox checked={disabled ? false : true} disabled={disabled} readOnly accent="sky" aria-label="Required dependencies always included" />
                             <span>Required Dependencies ({requiredNodes.length})</span>
                         </div>
                         <span className="text-[11px] font-medium text-slate-500 dark:text-zinc-400">Always Included</span>
@@ -92,7 +96,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                         {requiredNodes.map(node => (
                             <div key={node.id} className={`flex items-center justify-between p-2.5 text-xs select-none cursor-default ${LAYER.innerInset}`}>
                                 <div className="flex items-center gap-2.5 overflow-hidden">
-                                    <Checkbox checked disabled readOnly accent="sky" aria-label={`${node.name} required`} />
+                                    <Checkbox checked={disabled ? false : true} disabled={disabled} readOnly accent="sky" aria-label={`${node.name} required`} />
                                     <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
                                     {formatVersionLabel(node.version, node.ineq) && (
                                         <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{formatVersionLabel(node.version, node.ineq)}</span>
@@ -113,18 +117,18 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
 
             {/* Section 2: Recommended Dependencies */}
             {recommendedNodes.length > 0 && (
-                <div className="flex flex-col gap-1.5">
+                <div className={`flex flex-col gap-1.5 ${disabledClass}`}>
                     <div
-                        onClick={() => onToggleSection('recommended', !isAllRecommendedSelected)}
-                        className="flex items-center justify-between px-1 text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer select-none"
+                        className="flex items-center justify-between px-1 text-xs font-bold text-blue-600 dark:text-blue-400 select-none"
                     >
                         <div className="flex items-center gap-2">
                             <Checkbox
-                                checked={isAllRecommendedSelected}
-                                indeterminate={isSomeRecommendedSelected}
+                                checked={disabled ? false : isAllRecommendedSelected}
+                                indeterminate={disabled ? false : isSomeRecommendedSelected}
                                 accent="blue"
                                 aria-label="Toggle all recommended dependencies"
-                                onChange={() => onToggleSection('recommended', !isAllRecommendedSelected)}
+                                disabled={disabled}
+                                onChange={() => !disabled && onToggleSection('recommended', !isAllRecommendedSelected)}
                             />
                             <span>Recommended Dependencies ({recommendedSelectedCount}/{recommendedNodes.length})</span>
                         </div>
@@ -135,15 +139,15 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                             return (
                                 <div
                                     key={node.id}
-                                    onClick={() => onToggleDep(node.id)}
-                                    className={`flex items-center justify-between p-2.5 text-xs ${INTERACTIVE.rowHover} cursor-pointer transition-colors ${!isSelected ? 'opacity-50' : ''}`}
+                                    className={`flex items-center justify-between p-2.5 text-xs ${disabled ? '' : INTERACTIVE.rowHover} cursor-pointer transition-colors`}
                                 >
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <Checkbox
-                                            checked={isSelected}
+                                            checked={disabled ? false : isSelected}
                                             accent="blue"
                                             aria-label={`Toggle ${node.name}`}
-                                            onChange={() => onToggleDep(node.id)}
+                                            disabled={disabled}
+                                            onChange={() => !disabled && onToggleDep(node.id)}
                                         />
                                         <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
                                         {formatVersionLabel(node.version, node.ineq) && (
@@ -166,18 +170,18 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
 
             {/* Section 3: Optional Dependencies */}
             {optionalNodes.length > 0 && (
-                <div className="flex flex-col gap-1.5">
+                <div className={`flex flex-col gap-1.5 ${disabledClass}`}>
                     <div
-                        onClick={() => onToggleSection('optional', !isAllOptionalSelected)}
-                        className="flex items-center justify-between px-1 text-xs font-bold text-blue-600 dark:text-blue-400 cursor-pointer select-none"
+                        className="flex items-center justify-between px-1 text-xs font-bold text-violet-600 dark:text-violet-400 select-none"
                     >
                         <div className="flex items-center gap-2">
                             <Checkbox
-                                checked={isAllOptionalSelected}
-                                indeterminate={isSomeOptionalSelected}
-                                accent="blue"
+                                checked={disabled ? false : isAllOptionalSelected}
+                                indeterminate={disabled ? false : isSomeOptionalSelected}
+                                accent="violet"
                                 aria-label="Toggle all optional dependencies"
-                                onChange={() => onToggleSection('optional', !isAllOptionalSelected)}
+                                disabled={disabled}
+                                onChange={() => !disabled && onToggleSection('optional', !isAllOptionalSelected)}
                             />
                             <span>Optional Dependencies ({optionalSelectedCount}/{optionalNodes.length})</span>
                         </div>
@@ -188,19 +192,25 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                             return (
                                 <div
                                     key={node.id}
-                                    onClick={() => onToggleDep(node.id)}
-                                    className={`flex items-center justify-between p-2.5 text-xs ${INTERACTIVE.rowHover} cursor-pointer transition-colors ${!isSelected ? 'opacity-60' : ''}`}
+                                    className={`flex items-center justify-between p-2.5 text-xs ${disabled ? '' : INTERACTIVE.rowHover} cursor-pointer transition-colors`}
                                 >
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <Checkbox
-                                            checked={isSelected}
-                                            accent="blue"
+                                            checked={disabled ? false : isSelected}
+                                            accent="violet"
                                             aria-label={`Toggle ${node.name}`}
-                                            onChange={() => onToggleDep(node.id)}
+                                            disabled={disabled}
+                                            onChange={() => !disabled && onToggleDep(node.id)}
                                         />
                                         <span className="font-semibold text-slate-800 dark:text-zinc-200 truncate">{node.name}</span>
                                         {formatVersionLabel(node.version, node.ineq) && (
                                             <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500">{formatVersionLabel(node.version, node.ineq)}</span>
+                                        )}
+                                        {node.isShared && (
+                                            <span className={`flex items-center gap-1 text-[9px] bg-slate-100 dark:bg-zinc-800 ${TEXT.secondary} px-1.5 py-0.2 rounded font-mono font-medium shrink-0`}>
+                                                <Layers className="w-2.5 h-2.5 text-blue-400" />
+                                                shared
+                                            </span>
                                         )}
                                         {renderInstalledStatus(node.name)}
                                     </div>

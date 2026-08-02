@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{Mutex, Semaphore};
 
+use factorio::installed::compare_versions;
 use factorio::models::ResolvedDownloadItem;
 use crate::downloader::download_mod_file;
 use crate::models::{DownloadStatus, DownloadTask};
@@ -69,6 +70,7 @@ impl DownloadQueueManager {
         for item in items {
             let task_id = format!("{}_{}", item.id, item.version);
             let mut is_update_replacement = false;
+            let mut is_downgrade = false;
             let mut old_installed_path: Option<PathBuf> = None;
 
             // Check if matching mod version is already installed in target folder
@@ -95,6 +97,7 @@ impl DownloadQueueManager {
                     continue;
                 } else {
                     is_update_replacement = true;
+                    is_downgrade = compare_versions(installed_ver, &item.version).is_gt();
                     old_installed_path = Some(installed_path.clone());
                 }
             }
@@ -233,7 +236,11 @@ impl DownloadQueueManager {
                             let _ = std::fs::remove_file(old_path);
                         }
                         task.status = if is_update_replacement {
-                            DownloadStatus::Updated
+                            if is_downgrade {
+                                DownloadStatus::Downgraded
+                            } else {
+                                DownloadStatus::Updated
+                            }
                         } else {
                             DownloadStatus::Completed
                         };

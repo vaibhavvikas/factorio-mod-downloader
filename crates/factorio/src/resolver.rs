@@ -165,4 +165,56 @@ mod tests {
 
         assert!(!resolved.is_empty());
     }
+
+    #[tokio::test]
+    async fn test_prepare_download_batch_bobmodules() {
+        if is_ci() {
+            eprintln!("skipping network test in CI: test_prepare_download_batch_bobmodules");
+            return;
+        }
+
+        let api_client = ApiClient::new();
+        let mut resolver = Resolver::new(&api_client);
+
+        let main_mods = vec![ResolvedDownloadItem {
+            id: "bobmodules".to_string(),
+            title: "Bob's Modules".to_string(),
+            version: "0.13.0".to_string(),
+            file_name: "bobmodules_0.13.0.zip".to_string(),
+            sha1: String::new(),
+        }];
+
+        let direct_deps = vec![
+            Dependency { id: "base".to_string(), ineq: ">=".to_string(), version: "0.13.0".to_string() },
+            Dependency { id: "boblibrary".to_string(), ineq: ">=".to_string(), version: "0.13.0".to_string() },
+            Dependency { id: "bobconfig".to_string(), ineq: ">=".to_string(), version: "0.13.0".to_string() },
+            Dependency { id: "bobplates".to_string(), ineq: ">=".to_string(), version: "0.13.0".to_string() },
+            Dependency { id: "bobelectronics".to_string(), ineq: ">=".to_string(), version: "0.13.0".to_string() },
+            Dependency { id: "DyTech-Modules".to_string(), ineq: ">=".to_string(), version: "1.0.0".to_string() },
+        ];
+
+        let result = resolver.prepare_download_batch(
+            main_mods,
+            direct_deps,
+            false,
+            Some("0.13"),
+        ).await;
+
+        assert!(result.is_ok(), "prepare_download_batch should succeed: {:?}", result.err());
+
+        let resolved = result.unwrap();
+        println!("Resolved {} items for bobmodules batch:", resolved.len());
+        for item in &resolved {
+            println!(" - {} (v{}) -> {}", item.id, item.version, item.file_name);
+        }
+
+        let resolved_ids: Vec<String> = resolved.iter().map(|i| i.id.clone()).collect();
+
+        assert!(resolved_ids.contains(&"bobmodules".to_string()), "bobmodules should be in batch");
+        assert!(resolved_ids.contains(&"boblibrary".to_string()), "boblibrary should be resolved");
+        assert!(resolved_ids.contains(&"bobconfig".to_string()), "bobconfig should be resolved");
+        assert!(resolved_ids.contains(&"bobplates".to_string()), "bobplates should be resolved");
+        assert!(resolved_ids.contains(&"bobelectronics".to_string()), "bobelectronics should be resolved");
+        assert_eq!(resolved.len(), 5, "expected 5 resolved items (bobmodules + 4 deps), got {}", resolved.len());
+    }
 }

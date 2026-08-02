@@ -360,13 +360,14 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             onSelectVersion={(v) => onSelectVersion(mod.id, v)}
                         />
 
-                        {isCardIncompatible && (
-                                <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.incompatibleOutline} font-semibold select-none`} title={`No release found supporting Factorio ${factorioVersion}`}>
-                                    Incompatible (Target: {factorioVersion})
-                                </span>
-                            )}
-
                         {installed && (() => {
+                            if (isCardIncompatible) {
+                                return (
+                                    <span className={`panel-pill ${PILL_SIZE.compactMono} bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 font-semibold select-none`}>
+                                        Installed: v{installed.version} (Incompatible)
+                                    </span>
+                                );
+                            }
                             const cmp = compareVersions(mod.selectedVersion, installed.version);
                             if (cmp === 0) {
                                 return (
@@ -392,17 +393,17 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                         })()}
 
                         {/* Dep count badges */}
-                        {requiredCount > 0 && (
+                        {!isCardIncompatible && requiredCount > 0 && (
                             <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.requiredOutline} select-none`}>
                                 {requiredCount} Required
                             </span>
                         )}
-                        {recommendedNodes.length > 0 && (
+                        {!isCardIncompatible && recommendedNodes.length > 0 && (
                             <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.recommendedOutline} select-none`}>
                                 {recommendedSelected}/{recommendedNodes.length} Recommended
                             </span>
                         )}
-                        {optionalNodes.length > 0 && (
+                        {!isCardIncompatible && optionalNodes.length > 0 && (
                             <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.optionalOutline} select-none`}>
                                 {optionalSelected}/{optionalNodes.length} Optional
                             </span>
@@ -436,6 +437,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             selectedDepIds={mod.selectedDepIds}
                             onToggleDep={(depId) => onToggleDep(mod.id, depId)}
                             onToggleSection={(type, selectAll) => onToggleSection(mod.id, type, selectAll)}
+                            disabled={isCardIncompatible}
                         />
                     </div>
                 </div>

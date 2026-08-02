@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 
 pub const VALID_FACTORIO_VERSIONS: &[&str] = &[
-    "2.1", "2.0", "1.1", "1.0", "0.18", "0.17", "0.16", "0.15", "0.14", "0.13", "any",
+    "2.1", "2.0", "1.1", "1.0", "any",
 ];
 
 fn default_factorio_version() -> String {
