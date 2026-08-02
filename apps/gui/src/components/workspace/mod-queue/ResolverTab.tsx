@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Download, Inbox, Loader2, Search, ChevronDown, Layers, LayoutGrid } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
+import type { InstalledModItem } from '../../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
@@ -59,10 +60,11 @@ interface DependencyTreeNodeProps {
     ineq?: string;
     versionReq: string;
     type?: DependencyType | 'root';
-    targetMods: TargetModItem[];
-    treeCache: Record<string, TargetModItem>;
+    targetMods?: TargetModItem[];
+    treeCache?: Record<string, TargetModItem>;
     visited: Set<string>;
     depth: number;
+    isIncompatible?: boolean;
 }
 
 const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
@@ -74,11 +76,12 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     treeCache,
     visited,
     depth,
+    isIncompatible = false,
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
     // Find if we have details (a card) for this dependency in our targetMods queue or treeCache
-    const modDetails = targetMods.find(m => m.name === name) || treeCache[name];
+    const modDetails = targetMods?.find(m => m.name === name) || treeCache?.[name];
 
     // Determine title
     const displayTitle = modDetails ? (modDetails.title || modDetails.name) : name;
@@ -112,8 +115,8 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
         if (rankA !== rankB) {
             return rankA - rankB;
         }
-        const titleA = (targetMods.find(m => m.name === a.name) || treeCache[a.name])?.title || a.name;
-        const titleB = (targetMods.find(m => m.name === b.name) || treeCache[b.name])?.title || b.name;
+        const titleA = (targetMods?.find(m => m.name === a.name) || treeCache?.[a.name])?.title || a.name;
+        const titleB = (targetMods?.find(m => m.name === b.name) || treeCache?.[b.name])?.title || b.name;
         return titleA.localeCompare(titleB);
     });
 
@@ -142,12 +145,12 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                 className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 group cursor-pointer select-none transition-colors"
                 onClick={(e) => {
                     e.stopPropagation();
-                    if (hasChildren) setIsExpanded(!isExpanded);
+                    if (hasChildren && !isIncompatible) setIsExpanded(!isExpanded);
                 }}
             >
                 {/* Chevron spacing / VS Code guide lines */}
                 <div className="flex items-center justify-center w-4 h-4 shrink-0">
-                    {hasChildren ? (
+                    {hasChildren && !isIncompatible ? (
                         <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`} />
                     ) : (
                         <div className="w-3.5 h-3.5" />
@@ -182,10 +185,17 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                         cycle detected
                     </span>
                 )}
+
+                {/* Incompatible tag */}
+                {isIncompatible && (
+                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono">
+                        incompatible
+                    </span>
+                )}
             </div>
 
             {/* Sub-dependencies Indented rendering with vertical dashed guide lines */}
-            {hasChildren && (
+            {hasChildren && !isIncompatible && (
                 <div className={`accordion-collapse ${isExpanded ? 'expanded' : ''}`}>
                     <div className="accordion-collapse-inner">
                         <div className="relative border-l border-dashed border-slate-300 dark:border-zinc-700 ml-4 pl-3.5 flex flex-col my-0.5">
@@ -223,7 +233,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     parseAndAddMods: externalParseAndAddMods,
     loading: externalLoading,
 }) => {
-    const { startDownload, addLog, factorioVersion } = useAppContext();
+    const { startDownload, addLog, factorioVersion, folderPath, setInstalledMods } = useAppContext();
     const [localTargetMods, setLocalTargetMods] = useState<TargetModItem[]>([]);
     const targetMods = externalTargetMods !== undefined ? externalTargetMods : localTargetMods;
     const setTargetMods = externalSetTargetMods || setLocalTargetMods;
@@ -641,15 +651,56 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         e.target.value = '';
     };
 
+const isModIncompatible = (mod: TargetModItem): boolean => {
+        if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return false;
+        if (!mod.availableReleases || mod.availableReleases.length === 0) return false;
+        return !mod.availableReleases.some(rel => {
+            if (!rel.factorio_version) return true;
+            const cleanRel = rel.factorio_version.trim();
+            const cleanTarget = factorioVersion.trim();
+            return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
+        });
+    };
+
     const handleStartDownloadAll = async () => {
         if (targetMods.length === 0 || isBusy) return;
 
+        // Re-scan installed mods folder to get current file state
+        // (handles cases where user manually deleted/added mod files outside the app)
+        const currentFolderPath = folderPath;
+        if (currentFolderPath) {
+            try {
+                const freshInstalledMods = await invoke<InstalledModItem[]>('get_installed_mods_info', { modsFolder: currentFolderPath });
+                const listWithSelection = freshInstalledMods.map(item => ({
+                    ...item,
+                    selectedForUpdate: item.hasUpdate,
+                    selectedTargetVersion: item.newerVersions[0] || item.version
+                }));
+                setInstalledMods(listWithSelection);
+            } catch {
+                // Ignore scan errors — proceed with download regardless
+            }
+        }
+
+        const incompatibleMods = targetMods.filter(isModIncompatible);
+        if (incompatibleMods.length > 0) {
+            const incompatibleNames = incompatibleMods.map(m => m.title || m.name).join(', ');
+            addLog(`Skipping ${incompatibleMods.length} incompatible mod(s): ${incompatibleNames}`, 'warn');
+        }
+
+        const compatibleMods = targetMods.filter(m => !isModIncompatible(m));
+        if (compatibleMods.length === 0) {
+            addLog('No compatible mods to download — all selected mods are incompatible with the target Factorio version.', 'error');
+            setIsResolvingBatch(false);
+            return;
+        }
+
         setIsResolvingBatch(true);
-        addLog(`Resolving dependencies and compatibility tree for ${targetMods.length} target mod(s)...`, 'info');
+        addLog(`Resolving dependencies and compatibility tree for ${compatibleMods.length} target mod(s)...`, 'info');
 
         try {
-            // Build main mods list from selected cards
-            const mainMods: BackendResolvedDownloadItem[] = targetMods.map(t => ({
+            // Build main mods list from compatible cards only
+            const mainMods: BackendResolvedDownloadItem[] = compatibleMods.map(t => ({
                 id: t.name,
                 title: t.title || t.name,
                 version: t.selectedVersion,
@@ -659,7 +710,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
             // Collect direct dependencies enabled by user toggles
             const directDeps: BackendDependency[] = [];
-            targetMods.forEach(t => {
+            compatibleMods.forEach(t => {
                 t.dependencies.forEach(d => {
                     if (t.selectedDepIds.includes(d.id)) {
                         directDeps.push({
@@ -765,7 +816,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                         <Layers className="w-3.5 h-3.5 text-blue-500" />
                         <span>Dependency Graph Explorer</span>
                         <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>
-                            {targetMods.length + Object.keys(treeCache).length} resolved
+                            {targetMods.filter(m => !isModIncompatible(m)).length + Object.keys(treeCache).filter(k => !isModIncompatible(treeCache[k])).length} resolved
                         </span>
                     </div>
 
@@ -789,6 +840,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                             treeCache={treeCache}
                             visited={new Set()}
                             depth={0}
+                            isIncompatible={isModIncompatible(m)}
                         />
                     ))}
                 </div>
@@ -884,7 +936,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                 </button>
                             </div>
                             <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 pb-3">
-                                {targetMods.length} Target Mods
+                                {targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods
                             </span>
                         </div>
                     )}
@@ -912,7 +964,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                             className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
                                         >
                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                            <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
+                                            <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -963,7 +1015,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                              className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
                                          >
                                              {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
+<span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
                                          </button>
                                      </div>
                                  </div>

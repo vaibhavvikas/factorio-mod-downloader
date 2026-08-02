@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, MinusCircle, ExternalLink, Calendar, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronDown, MinusCircle, ExternalLink, Calendar, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { DependencyTree } from './DependencyTree';
 import type { TreeNode } from './DependencyTree';
-import { formatCategoryLabel, getCategoryBadgeStyle } from '../shared/modCategory';
+import { formatCategoryLabel, getCategoryPillTone } from '../shared/modCategory';
 import { useAppContext } from '../../../context/AppContext';
 import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, ACCENT, INTERACTIVE, PILL_SIZE, PILL_TONE } from '../../../theme/layers';
 import { Tooltip } from '../../ui/Tooltip';
@@ -209,6 +209,13 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     const { installedMods, factorioVersion } = useAppContext();
     const installed = installedMods.find(m => m.name === mod.name);
 
+    const isCardIncompatible = factorioVersion && factorioVersion !== 'all' && factorioVersion !== 'any' && mod.availableReleases && mod.availableReleases.length > 0 && !mod.availableReleases.some(rel => {
+        if (!rel.factorio_version) return true;
+        const cleanRel = rel.factorio_version.trim();
+        const cleanTarget = factorioVersion.trim();
+        return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
+    });
+
     const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
     const toggleExpanded = onToggleExpand || (() => setLocalExpanded(!localExpanded));
 
@@ -237,10 +244,10 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 
     const lettersOnly = (mod.title || mod.name || '').replace(/[^a-zA-Z\s]/g, '').trim();
     const initialLetter = lettersOnly ? lettersOnly[0].toUpperCase() : 'M';
-    const categoryBadgeStyle = getCategoryBadgeStyle(mod.category);
+    const categoryPillTone = getCategoryPillTone(mod.category);
 
     return (
-        <div className={`w-full ${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
+        <div className={`w-full ${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${isCardIncompatible ? 'hover:border-rose-400 dark:hover:border-rose-500/60' : HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
             {/* Sticky Header — pins to top of scroll container like VS Code sticky scroll */}
             <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.cardSurface} rounded-t-2xl`}>
                 <div className="flex items-start justify-between gap-3">
@@ -260,19 +267,16 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                         )}
 
                         <div className="flex flex-col min-w-0">
-                            {/* Human-Readable Mod Title (Primary Display) */}
+                            {/* Mod Title (Primary Display) */}
                             <div className="flex items-center gap-2 min-w-0">
-                                <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-50 truncate" title={mod.title || mod.name}>
+                                <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-50 truncate">
                                     {mod.title || mod.name}
                                 </h3>
-                                <span className={`panel-pill ${PILL_SIZE.compactMono} shrink truncate whitespace-nowrap ${TEXT.secondary} ${BORDER.pill}`}>
-                                    {mod.name}
-                                </span>
                                 {/* Category Badge */}
                                 {mod.category && (
-                                    <span className={`panel-pill shrink-0 tracking-wide border ${categoryBadgeStyle}`}>
-                                        {formatCategoryLabel(mod.category)}
-                                    </span>
+                                    <span className={`panel-pill ${PILL_SIZE.compactMono} shrink-0 tracking-wide border ${categoryPillTone}`}>
+                                    {formatCategoryLabel(mod.category)}
+                                </span>
                                 )}
                             </div>
 
@@ -290,6 +294,10 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                         </span>
                                     </>
                                 )}
+                                <span>•</span>
+                                <span className="truncate min-w-0 text-slate-700 dark:text-zinc-300 font-semibold">
+                                    {mod.name}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -325,6 +333,16 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                     </div>
                 </div>
 
+                {/* Incompatibility Warning Panel */}
+                {isCardIncompatible && (
+                    <div className={`flex items-start gap-2.5 ${LAYER.summarySurface} p-2.5 rounded-xl ${BORDER.inner}`}>
+                        <AlertTriangle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <span className="text-xs text-rose-600 dark:text-rose-400 leading-relaxed">
+                            The selected mod version is incompatible with Factorio {factorioVersion}. No supported release is available.
+                        </span>
+                    </div>
+                )}
+
                 {/* Mod Summary if available */}
                 {mod.summary && (
                     <p className={`text-xs text-slate-600 dark:text-zinc-400 leading-relaxed ${LAYER.summarySurface} p-2.5 rounded-xl ${BORDER.inner}`}>
@@ -342,20 +360,11 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                             onSelectVersion={(v) => onSelectVersion(mod.id, v)}
                         />
 
-                        {(() => {
-                            const isCardIncompatible = factorioVersion && factorioVersion !== 'all' && factorioVersion !== 'any' && mod.availableReleases && mod.availableReleases.length > 0 && !mod.availableReleases.some(rel => {
-                                if (!rel.factorio_version) return true;
-                                const cleanRel = rel.factorio_version.trim();
-                                const cleanTarget = factorioVersion.trim();
-                                return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
-                            });
-                            if (!isCardIncompatible) return null;
-                            return (
+                        {isCardIncompatible && (
                                 <span className={`panel-pill ${PILL_SIZE.compactMono} ${PILL_TONE.incompatibleOutline} font-semibold select-none`} title={`No release found supporting Factorio ${factorioVersion}`}>
                                     Incompatible (Target: {factorioVersion})
                                 </span>
-                            );
-                        })()}
+                            )}
 
                         {installed && (() => {
                             const cmp = compareVersions(mod.selectedVersion, installed.version);

@@ -1,11 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* 1. Lock the root window frame to prevent the entire app from bouncing */
 html,
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: #f1f5f9;
   overscroll-behavior: none !important;
   overscroll-behavior-x: none !important;
@@ -18,7 +23,7 @@ html.dark body {
 }
 
 #root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   height: 100vh;
   width: 100vw;
   margin: 0;
@@ -345,7 +350,7 @@ html.dark body {
 }
 
 .panel-pill-mono {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: 'Geist Mono', ui-monospace, monospace;
 }
 
 /* 3. High-performance GPU transitions for smooth 120fps rendering */

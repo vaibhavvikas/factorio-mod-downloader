@@ -139,6 +139,15 @@ export const PILL_TONE = {
     recommendedOutline: 'bg-transparent text-blue-600 dark:text-blue-400 border border-blue-500/50 dark:border-blue-400/50',
     optionalOutline: 'bg-transparent text-violet-600 dark:text-violet-400 border border-violet-500/50 dark:border-violet-400/50',
     incompatibleOutline: 'bg-transparent text-rose-600 dark:text-rose-400 border border-rose-500/50 dark:border-rose-400/50',
+    content: 'bg-transparent text-sky-600 dark:text-sky-400 border border-sky-500/50 dark:border-sky-400/50',
+    overhaul: 'bg-transparent text-purple-600 dark:text-purple-400 border border-purple-500/50 dark:border-purple-400/50',
+    tweaks: 'bg-transparent text-amber-600 dark:text-amber-400 border border-amber-500/50 dark:border-amber-400/50',
+    utilities: 'bg-transparent text-teal-600 dark:text-teal-400 border border-teal-500/50 dark:border-teal-400/50',
+    'mod-packs': 'bg-transparent text-rose-600 dark:text-rose-400 border border-rose-500/50 dark:border-rose-400/50',
+    scenarios: 'bg-transparent text-orange-600 dark:text-orange-400 border border-orange-500/50 dark:border-orange-400/50',
+    localizations: 'bg-transparent text-cyan-600 dark:text-cyan-400 border border-cyan-500/50 dark:border-cyan-400/50',
+    internal: 'bg-transparent text-slate-600 dark:text-slate-400 border border-slate-500/50 dark:border-slate-400/50',
+    'no-category': 'bg-transparent text-zinc-600 dark:text-zinc-400 border border-zinc-500/50 dark:border-zinc-400/50',
 } as const;
 
 export const CATEGORY_BADGE_STYLES: Record<string, string> = {
