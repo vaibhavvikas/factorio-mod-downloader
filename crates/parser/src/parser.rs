@@ -29,6 +29,8 @@ pub fn parse_dependencies(dependencies: &Option<Vec<String>>) -> Dependencies {
             id: id.to_string(),
             ineq: if ineq == "==" {
                 "=".to_string()
+            } else if ineq == "=>" {
+                ">=".to_string()
             } else {
                 ineq.to_string()
             },
@@ -72,5 +74,50 @@ pub fn satisfies_constraint(version: &str, ineq: &str, target_version: &str) -> 
         "<" => ver_tuple < target_tuple,
         "=" | "==" => ver_tuple == target_tuple,
         _ => true,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_dependencies_all_operators() {
+        let deps = vec![
+            "flib >= 0.12.0".to_string(),
+            "? Krastorio2 >= 2.0.0".to_string(),
+            "+ stdlib <= 1.5.0".to_string(),
+            "! bad_mod = 1.0.0".to_string(),
+            "other_mod > 0.5.0".to_string(),
+            "? another_mod < 3.0.0".to_string(),
+            "eq_mod == 2.1.0".to_string(),
+        ];
+
+        let parsed = parse_dependencies(&Some(deps));
+
+        assert_eq!(parsed.required.len(), 3);
+        assert_eq!(parsed.required[0].ineq, ">=");
+        assert_eq!(parsed.required[1].ineq, ">");
+        assert_eq!(parsed.required[2].ineq, "=");
+
+        assert_eq!(parsed.optional.len(), 2);
+        assert_eq!(parsed.optional[0].ineq, ">=");
+        assert_eq!(parsed.optional[1].ineq, "<");
+
+        assert_eq!(parsed.recommended.len(), 1);
+        assert_eq!(parsed.recommended[0].ineq, "<=");
+
+        assert_eq!(parsed.incompatible.len(), 1);
+        assert_eq!(parsed.incompatible[0].ineq, "=");
+    }
+
+    #[test]
+    fn test_satisfies_constraint() {
+        assert!(satisfies_constraint("2.0.0", ">=", "1.5.0"));
+        assert!(satisfies_constraint("2.0.0", "=", "2.0.0"));
+        assert!(satisfies_constraint("1.0.0", "<=", "2.0.0"));
+        assert!(satisfies_constraint("2.5.0", ">", "2.0.0"));
+        assert!(satisfies_constraint("1.9.0", "<", "2.0.0"));
+        assert!(!satisfies_constraint("1.0.0", ">=", "2.0.0"));
     }
 }

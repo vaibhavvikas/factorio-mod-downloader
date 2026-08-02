@@ -56,6 +56,7 @@ interface BackendResolvedDownloadItem {
 
 interface DependencyTreeNodeProps {
     name: string;
+    ineq?: string;
     versionReq: string;
     type?: DependencyType | 'root';
     targetMods: TargetModItem[];
@@ -66,6 +67,7 @@ interface DependencyTreeNodeProps {
 
 const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     name,
+    ineq,
     versionReq,
     type = 'root',
     targetMods,
@@ -125,6 +127,14 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
         incompatible: 'text-rose-500 dark:text-rose-400',
     }[type];
 
+    const formatVersionLabel = (ver?: string, ineqStr?: string) => {
+        if (!ver || !ver.trim()) return null;
+        const v = ver.trim();
+        const formattedVer = v.startsWith('v') ? v : `v${v}`;
+        if (!ineqStr || !ineqStr.trim()) return formattedVer;
+        return `${ineqStr.trim()} ${formattedVer}`;
+    };
+
     return (
         <div className="flex flex-col">
             {/* Tree Node Row */}
@@ -162,7 +172,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                 {/* Version Requirement Badge */}
                 {versionReq && (
                     <span className={`text-[10px] font-mono ${iconColorClass}`}>
-                        {versionReq}
+                        {type === 'root' ? (versionReq.startsWith('v') ? versionReq : `v${versionReq}`) : (formatVersionLabel(versionReq, ineq) || versionReq)}
                     </span>
                 )}
 
@@ -183,6 +193,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                                 <DependencyTreeNode
                                     key={dep.id}
                                     name={dep.name}
+                                    ineq={dep.ineq}
                                     versionReq={dep.version}
                                     type={dep.type}
                                     targetMods={targetMods}
