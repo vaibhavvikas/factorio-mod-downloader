@@ -76,7 +76,7 @@ pub fn run() {
                 }
 
                 let window_for_events = event_window.clone();
-                let _ = event_window.on_window_event(move |event| {
+                event_window.on_window_event(move |event| {
                     if let tauri::WindowEvent::Resized(_) = event
                         && let Ok(scale_factor) = window_for_events.scale_factor()
                         && let Ok(physical_size) = window_for_events.inner_size()
