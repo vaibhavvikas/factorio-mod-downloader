@@ -24,6 +24,8 @@ export interface InstalledModItem {
     version: string;
     author?: string;
     factorioVersion?: string;
+    minFactorioVersion?: string;
+    maxFactorioVersion?: string;
     category?: string;
     fileName: string;
     filePath: string;

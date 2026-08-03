@@ -77,15 +77,15 @@ export const ACCENT = {
 
 export const DEPENDENCY_TYPE = {
     required: {
-        label: 'text-blue-700 dark:text-[#58a6ff]',
+        label: 'text-sky-700 dark:text-[#7dd3fc]',
         icon: 'text-sky-500 dark:text-sky-400',
         dot: 'bg-sky-500 dark:bg-sky-400',
     },
     recommended: {
-        label: 'text-blue-600 dark:text-[#58a6ff]',
-        icon: 'text-blue-500 dark:text-blue-400',
-        dot: 'bg-blue-500 dark:bg-blue-400',
-        rowSelected: 'bg-blue-500/10 dark:bg-[#1f6feb]/20 border-blue-500/30 text-blue-700 dark:text-[#58a6ff] hover:bg-blue-500/20 dark:hover:bg-[#1f6feb]/30 hover:border-blue-500/50',
+        label: 'text-cyan-700 dark:text-[#22d3ee]',
+        icon: 'text-cyan-500 dark:text-cyan-400',
+        dot: 'bg-cyan-500 dark:bg-cyan-400',
+        rowSelected: 'bg-cyan-500/10 dark:bg-[#22d3ee]/20 border-cyan-500/30 text-cyan-700 dark:text-[#22d3ee] hover:bg-cyan-500/20 dark:hover:bg-[#22d3ee]/30 hover:border-cyan-500/50',
     },
     optional: {
         label: 'text-slate-600 dark:text-[#8b949e]',

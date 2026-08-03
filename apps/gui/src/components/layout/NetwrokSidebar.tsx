@@ -116,11 +116,6 @@ export const NetworkSidebar: React.FC = () => {
                                                         )}
                                                     </span>
                                                     <span className="truncate min-w-0">{item.name}</span>
-                                                    {isPending && (
-                                                        <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
-                                                            Waiting
-                                                        </span>
-                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
                                                      {isPending ? (
@@ -154,7 +149,7 @@ export const NetworkSidebar: React.FC = () => {
                                             </div>
                                             {!isPending && (
                                                 <div className={`w-full ${LAYER.innerRecessed} h-1.5 rounded-full overflow-hidden shadow-inner`}>
-                                                    <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-shimmer h-full transition-all duration-200" style={{ width: `${item.progress}%` }} />
+                                                    <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-shimmer h-full" style={{ width: `${item.progress}%`, transition: 'width 200ms ease-out' }} />
                                                 </div>
                                             )}
                                             <div className={`flex justify-between text-[9px] font-mono ${TEXT.muted} select-none`}>
@@ -229,14 +224,14 @@ export const NetworkSidebar: React.FC = () => {
                                     const badgeColor = isExists
                                         ? 'text-slate-500 dark:text-zinc-400 font-medium'
                                         : isDowngraded
-                                            ? 'text-amber-600 dark:text-amber-400 font-bold'
+                                            ? 'text-indigo-600 dark:text-indigo-400 font-bold'
                                             : isUpdated
                                                 ? 'text-blue-600 dark:text-blue-400 font-bold'
                                                 : 'text-emerald-500 dark:text-emerald-400 font-semibold';
                                     const dotColor = isExists
                                         ? 'bg-slate-400'
                                         : isDowngraded
-                                            ? 'bg-amber-500 shadow-amber-500/50'
+                                            ? 'bg-indigo-500 shadow-indigo-500/50'
                                             : isUpdated
                                                 ? 'bg-blue-500 shadow-blue-500/50'
                                                 : 'bg-emerald-500 shadow-emerald-500/50';
@@ -245,7 +240,7 @@ export const NetworkSidebar: React.FC = () => {
                                         <div
                                             key={item.id}
                                             style={animationDelay ? { animationDelay } : undefined}
-                                            className={`p-3.5 ${LAYER.innerInset} ${BORDER.cardSoft} rounded-xl flex flex-col gap-2.5 shadow-sm transition-all duration-300 ${isClearingCompleted ? 'item-dismissing' : 'animate-fade-in'} ${isDowngraded ? 'border-amber-500/30 dark:border-amber-500/20' : isUpdated ? 'border-blue-500/30 dark:border-blue-500/20' : !isExists ? 'border-emerald-500/30 dark:border-emerald-500/20' : ''}`}
+                                            className={`p-3.5 ${LAYER.innerInset} ${BORDER.cardSoft} rounded-xl flex flex-col gap-2.5 shadow-sm transition-all duration-300 ${isClearingCompleted ? 'item-dismissing' : 'animate-fade-in'} ${isDowngraded ? 'border-indigo-500/30 dark:border-indigo-500/20' : isUpdated ? 'border-blue-500/30 dark:border-blue-500/20' : !isExists ? 'border-emerald-500/30 dark:border-emerald-500/20' : ''}`}
                                         >
                                             <div className="flex justify-between items-center gap-2">
                                                 <div className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-2 overflow-hidden">
@@ -253,11 +248,11 @@ export const NetworkSidebar: React.FC = () => {
                                                     <span className="truncate font-semibold">{item.name}</span>
                                                 </div>
                                                 {!isExists && (
-                                                    <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 animate-fade-in ${isDowngraded ? 'text-amber-500' : 'text-emerald-500'}`} />
+                                                    <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 animate-fade-in ${isDowngraded ? 'text-indigo-500' : 'text-emerald-500'}`} />
                                                 )}
                                             </div>
                                             <div className={`w-full ${LAYER.innerRecessed} h-1 rounded-full overflow-hidden shadow-inner`}>
-                                                <div className={`h-full transition-all duration-200 ${isExists ? 'bg-slate-400' : isDowngraded ? 'bg-amber-500' : isUpdated ? 'bg-blue-500' : 'bg-emerald-500'}`} style={{ width: '100%' }} />
+                                                <div className={`h-full transition-all duration-200 ${isExists ? 'bg-slate-400' : isDowngraded ? 'bg-indigo-500' : isUpdated ? 'bg-blue-500' : 'bg-emerald-500'}`} style={{ width: '100%' }} />
                                             </div>
                                             <div className={`flex justify-between text-[9px] font-mono ${TEXT.muted} select-none`}>
                                                 <span>v{item.version} • {item.size.toFixed(1)} MB</span>

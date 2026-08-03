@@ -209,12 +209,12 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     const { installedMods, factorioVersion } = useAppContext();
     const installed = installedMods.find(m => m.name === mod.name);
 
-    const isCardIncompatible = factorioVersion && factorioVersion !== 'all' && factorioVersion !== 'any' && mod.availableReleases && mod.availableReleases.length > 0 && !mod.availableReleases.some(rel => {
+    const isCardIncompatible = !!(factorioVersion && factorioVersion !== 'all' && factorioVersion !== 'any' && mod.availableReleases && mod.availableReleases.length > 0 && !mod.availableReleases.some(rel => {
         if (!rel.factorio_version) return true;
         const cleanRel = rel.factorio_version.trim();
         const cleanTarget = factorioVersion.trim();
         return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
-    });
+    }));
 
     const expanded = isExpanded !== undefined ? isExpanded : localExpanded;
     const toggleExpanded = onToggleExpand || (() => setLocalExpanded(!localExpanded));
@@ -274,7 +274,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                 </h3>
                                 {/* Category Badge */}
                                 {mod.category && (
-                                    <span className={`panel-pill ${PILL_SIZE.compactMono} shrink-0 tracking-wide border ${categoryPillTone}`}>
+                                    <span className={`panel-pill ${PILL_SIZE.compact} shrink-0 tracking-wide border ${categoryPillTone}`}>
                                     {formatCategoryLabel(mod.category)}
                                 </span>
                                 )}

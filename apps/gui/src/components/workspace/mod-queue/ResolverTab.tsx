@@ -125,7 +125,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     const iconColorClass = {
         root: 'text-slate-400 dark:text-zinc-500',
         required: 'text-sky-500 dark:text-sky-400',
-        recommended: 'text-blue-500 dark:text-blue-400',
+        recommended: 'text-teal-500 dark:text-teal-400',
         optional: 'text-violet-500 dark:text-violet-400',
         incompatible: 'text-rose-500 dark:text-rose-400',
     }[type];

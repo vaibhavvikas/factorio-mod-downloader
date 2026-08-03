@@ -4,15 +4,14 @@ use downloader::models::DownloadTask;
 use downloader::queue::DownloadQueueManager;
 use factorio::models::ResolvedDownloadItem;
 
+#[derive(Default)]
 pub struct DownloaderState {
     pub manager: DownloadQueueManager,
 }
 
 impl DownloaderState {
     pub fn new() -> Self {
-        Self {
-            manager: DownloadQueueManager::default(),
-        }
+        Self::default()
     }
 }
 

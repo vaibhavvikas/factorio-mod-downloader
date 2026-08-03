@@ -6,7 +6,7 @@ use tokio::sync::{Mutex, Semaphore};
 
 use factorio::installed::compare_versions;
 use factorio::models::ResolvedDownloadItem;
-use crate::downloader::download_mod_file;
+use crate::downloader::{download_mod_file, DownloadRequest};
 use crate::models::{DownloadStatus, DownloadTask};
 
 pub const DEFAULT_MAX_CONCURRENT_DOWNLOADS: usize = 5;
@@ -41,12 +41,11 @@ fn scan_downloaded_files(output_dir: &std::path::Path) -> HashMap<String, (Strin
                 let ext = path.extension().and_then(|e| e.to_str());
                 if ext == Some("tmp") {
                     let _ = std::fs::remove_file(&path);
-                } else if ext == Some("zip") {
-                    if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                        if let Some((name, ver)) = stem.rsplit_once('_') {
-                            installed.insert(name.to_string(), (ver.to_string(), path.clone()));
-                        }
-                    }
+                } else if ext == Some("zip")
+                    && let Some(stem) = path.file_stem().and_then(|s| s.to_str())
+                    && let Some((name, ver)) = stem.rsplit_once('_')
+                {
+                    installed.insert(name.to_string(), (ver.to_string(), path.clone()));
                 }
             }
         }
@@ -106,14 +105,13 @@ impl DownloadQueueManager {
 
             {
                 let mut guard = self.tasks.lock().await;
-                if let Some(existing) = guard.get(&task_id) {
-                    if existing.status == DownloadStatus::Completed
+                if let Some(existing) = guard.get(&task_id)
+                    && (existing.status == DownloadStatus::Completed
                         || existing.status == DownloadStatus::AlreadyExists
                         || existing.status == DownloadStatus::Updated
-                        || existing.status == DownloadStatus::Downloading
-                    {
-                        continue;
-                    }
+                        || existing.status == DownloadStatus::Downloading)
+                {
+                    continue;
                 }
 
                 guard.insert(
@@ -180,12 +178,16 @@ impl DownloadQueueManager {
                     let task_id_clone = task_id.clone();
                     let manager_progress = manager.clone();
 
+                    let request = DownloadRequest {
+                        mod_id: item.id.clone(),
+                        version: item.version.clone(),
+                        file_name: item.file_name.clone(),
+                        expected_sha1: item.sha1.clone(),
+                    };
+
                     let result = download_mod_file(
                         &manager.client,
-                        &item.id,
-                        &item.version,
-                        &item.file_name,
-                        &item.sha1,
+                        &request,
                         &output_dir_clone,
                         cancel_flag_clone.clone(),
                         move |downloaded, total| {

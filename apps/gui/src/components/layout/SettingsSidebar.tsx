@@ -149,16 +149,13 @@ export const SettingsSidebar: React.FC = () => {
             </div>
 
             {/* Body Content */}
-            <div className={`scroller-panel card flex-1 flex flex-col p-4 overflow-y-auto ${LAYER.innerRecessed}`}>
+            <div className={`scroller-panel card flex-1 flex flex-col gap-3 p-4 overflow-y-auto ${LAYER.innerRecessed}`}>
                 {/* Section 1: Factorio Game Version */}
-                <div className="pb-3 flex items-center gap-2.5 select-none">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider shrink-0">
-                        <Gamepad2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                        <span>Game Version</span>
+                <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-xl p-4 flex flex-col gap-3 shadow-sm`}>
+                    <div className="flex items-center gap-2.5 select-none">
+                        <Gamepad2 className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider">Game Version</div>
                     </div>
-                    <div className={`h-px ${DIVIDER.line} flex-1`} />
-                </div>
-                <div className="flex flex-col gap-2.5 pb-7">
                     <p className={`text-[10.5px] leading-snug ${TEXT.secondary}`}>
                         Select target Factorio version for mod search and dependency resolution.
                     </p>
@@ -172,11 +169,11 @@ export const SettingsSidebar: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsVersionDropdownOpen(!isVersionDropdownOpen)}
-                                        className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl bg-transparent ${BORDER.pill} ${HOVER_BORDER.cardBright} hover:bg-slate-200/60 dark:hover:bg-[#21262d] ${INTERACTIVE.pillHover} focus:border-blue-500 focus:outline-none transition-all cursor-pointer select-none group/trigger shadow-2xs`}
+                                        className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl ${LAYER.innerRecessed} ${BORDER.inner} font-mono text-xs text-slate-800 dark:text-zinc-200 cursor-pointer select-none group/trigger transition-all focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 shadow-2xs`}
                                     >
                                         <div className="flex items-center gap-2.5 min-w-0">
                                             <Gamepad2 className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover/trigger:text-blue-500 dark:group-hover/trigger:text-[#58a6ff] shrink-0 transition-colors" />
-                                            <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 font-mono truncate">
+                                            <span className="font-bold truncate">
                                                 {selectedOpt.label}
                                             </span>
                                         </div>
@@ -217,14 +214,11 @@ export const SettingsSidebar: React.FC = () => {
                 </div>
 
                 {/* Section 2: Mods Folder Location */}
-                <div className="pt-3 pb-3 flex items-center gap-2.5 select-none">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider shrink-0">
-                        <FolderOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                        <span>Mods Folder</span>
+                <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-xl p-4 flex flex-col gap-3 shadow-sm`}>
+                    <div className="flex items-center gap-2.5 select-none">
+                        <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider">Mods Folder</div>
                     </div>
-                    <div className={`h-px ${DIVIDER.line} flex-1`} />
-                </div>
-                <div className="flex flex-col gap-2.5 pb-7">
                     <p className={`text-[10.5px] leading-snug ${TEXT.secondary}`}>
                         Directory where installed Factorio `.zip` mod files are loaded.
                     </p>
@@ -283,14 +277,11 @@ export const SettingsSidebar: React.FC = () => {
                 </div>
 
                 {/* Section 3: App Theme Preference */}
-                <div className="pt-3 pb-3 flex items-center gap-2.5 select-none">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider shrink-0">
-                        <Palette className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                        <span>Theme</span>
+                <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-xl p-4 flex flex-col gap-3 shadow-sm`}>
+                    <div className="flex items-center gap-2.5 select-none">
+                        <Palette className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider">Theme</div>
                     </div>
-                    <div className={`h-px ${DIVIDER.line} flex-1`} />
-                </div>
-                <div className="flex flex-col gap-2.5 pb-4">
                     <p className={`text-[10.5px] leading-snug ${TEXT.secondary}`}>
                         Choose visual theme preference.
                     </p>

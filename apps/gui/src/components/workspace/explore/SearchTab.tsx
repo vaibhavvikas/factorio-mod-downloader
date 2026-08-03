@@ -501,7 +501,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 <button
                                     key={cat.id}
                                     onClick={() => handleToggleCategory(cat.id)}
-                                    className={`shrink-0 h-7.5 px-3 py-1 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${pillStyle}`}
+                                    className={`shrink-0 h-7.5 ${isSelected && cat.id !== 'all' ? 'pl-2.5 pr-1.5' : 'px-3'} py-1 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${pillStyle}`}
                                 >
                                     <span>{cat.label}</span>
                                     {isSelected && cat.id !== 'all' && (

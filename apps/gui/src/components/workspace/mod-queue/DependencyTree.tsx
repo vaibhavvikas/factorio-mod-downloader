@@ -119,13 +119,13 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
             {recommendedNodes.length > 0 && (
                 <div className={`flex flex-col gap-1.5 ${disabledClass}`}>
                     <div
-                        className="flex items-center justify-between px-1 text-xs font-bold text-blue-600 dark:text-blue-400 select-none"
+                        className="flex items-center justify-between px-1 text-xs font-bold text-teal-600 dark:text-teal-400 select-none"
                     >
                         <div className="flex items-center gap-2">
                             <Checkbox
                                 checked={disabled ? false : isAllRecommendedSelected}
                                 indeterminate={disabled ? false : isSomeRecommendedSelected}
-                                accent="blue"
+                                accent="teal"
                                 aria-label="Toggle all recommended dependencies"
                                 disabled={disabled}
                                 onChange={() => !disabled && onToggleSection('recommended', !isAllRecommendedSelected)}
@@ -144,7 +144,7 @@ export const DependencyTree: React.FC<DependencyTreeProps> = ({
                                     <div className="flex items-center gap-2.5 overflow-hidden">
                                         <Checkbox
                                             checked={disabled ? false : isSelected}
-                                            accent="blue"
+                                            accent="teal"
                                             aria-label={`Toggle ${node.name}`}
                                             disabled={disabled}
                                             onChange={() => !disabled && onToggleDep(node.id)}

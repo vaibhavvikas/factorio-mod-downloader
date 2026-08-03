@@ -58,9 +58,9 @@ pub fn satisfies_constraint(version: &str, ineq: &str, target_version: &str) -> 
     let parse_ver = |v: &str| -> (u64, u64, u64) {
         let parts: Vec<u64> = v.split('.').filter_map(|p| p.parse().ok()).collect();
         (
-            *parts.get(0).unwrap_or(&0),
-            *parts.get(1).unwrap_or(&0),
-            *parts.get(2).unwrap_or(&0),
+            parts.first().copied().unwrap_or(0),
+            parts.get(1).copied().unwrap_or(0),
+            parts.get(2).copied().unwrap_or(0),
         )
     };
 

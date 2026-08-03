@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 
 pub const VALID_FACTORIO_VERSIONS: &[&str] = &[
-    "2.1", "2.0", "1.1", "1.0", "any",
+    "2.1", "2.0", "1.1", "any",
 ];
 
 fn default_factorio_version() -> String {
@@ -28,7 +28,7 @@ const MAX_WINDOW_WIDTH: u32 = 7680;
 const MAX_WINDOW_HEIGHT: u32 = 4320;
 
 fn clamp_window_width(width: u32) -> u32 {
-    if width < MIN_WINDOW_WIDTH || width > MAX_WINDOW_WIDTH {
+    if !(MIN_WINDOW_WIDTH..=MAX_WINDOW_WIDTH).contains(&width) {
         default_window_width()
     } else {
         width
@@ -36,7 +36,7 @@ fn clamp_window_width(width: u32) -> u32 {
 }
 
 fn clamp_window_height(height: u32) -> u32 {
-    if height < MIN_WINDOW_HEIGHT || height > MAX_WINDOW_HEIGHT {
+    if !(MIN_WINDOW_HEIGHT..=MAX_WINDOW_HEIGHT).contains(&height) {
         default_window_height()
     } else {
         height
