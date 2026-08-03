@@ -14,6 +14,8 @@ pub struct InstalledModDetails {
     pub version: String,
     pub author: Option<String>,
     pub factorio_version: Option<String>,
+    pub min_factorio_version: Option<String>,
+    pub max_factorio_version: Option<String>,
     pub category: Option<String>,
     pub file_name: String,
     pub file_path: String,
@@ -83,12 +85,6 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
                         info.category,
                         info.dependencies,
                     )
-                } else if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                    if let Some((n, v)) = stem.rsplit_once('_') {
-                        (n.to_string(), v.to_string(), n.to_string(), None, None, None, Vec::new())
-                    } else {
-                        (stem.to_string(), "1.0.0".to_string(), stem.to_string(), None, None, None, Vec::new())
-                    }
                 } else {
                     continue;
                 };
@@ -101,6 +97,8 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
                     version,
                     author,
                     factorio_version: factorio_ver,
+                    min_factorio_version: None,
+                    max_factorio_version: None,
                     category,
                     file_name,
                     file_path: path.to_string_lossy().to_string(),
@@ -137,63 +135,71 @@ pub async fn check_single_mod_update_with_client(
     mut mod_item: InstalledModDetails,
     target_factorio_version: Option<String>,
 ) -> InstalledModDetails {
-    match get_mod(api_client, &mod_item.name).await {
-        Ok(mod_info) => {
-            mod_item.category = Some(mod_info.category.clone());
+    if let Ok(mod_info) = get_mod(api_client, &mod_item.name).await {
+        mod_item.category = Some(mod_info.category.clone());
 
-            if let Some(thumb) = mod_info.thumbnail {
-                let full_thumb = if thumb.starts_with("http://") || thumb.starts_with("https://") {
-                    thumb
-                } else {
-                    format!("https://assets-mod.factorio.com{}", thumb)
-                };
-                mod_item.thumbnail = Some(full_thumb);
-            }
-
-            let mut compatible_versions = Vec::new();
-
-            for rel in mod_info.releases {
-                let rel_fver = rel.info_json.as_ref().and_then(|i| i.factorio_version.as_deref());
-                if is_release_compatible(rel_fver, target_factorio_version.as_deref()) {
-                    compatible_versions.push(rel.version);
-                }
-            }
-
-            compatible_versions.sort_by(|a, b| compare_versions(b, a));
-
-            let mut newer = Vec::new();
-            for ver in &compatible_versions {
-                if compare_versions(ver, &mod_item.version).is_gt() {
-                    newer.push(ver.clone());
-                }
-            }
-
-            let is_explicit_target = target_factorio_version.as_deref().map(|t| {
-                let clean = t.trim().to_lowercase();
-                !clean.is_empty() && clean != "all" && clean != "any"
-            }).unwrap_or(false);
-
-            if is_explicit_target && newer.is_empty() {
-                if let Some(latest_compat) = compatible_versions.first() {
-                    if latest_compat != &mod_item.version {
-                        newer.push(latest_compat.clone());
-                    }
-                }
-            }
-
-            let latest_ver = newer.first().cloned().or_else(|| compatible_versions.first().cloned());
-
-            if !newer.is_empty() {
-                mod_item.has_update = true;
-                mod_item.latest_version = latest_ver;
-                mod_item.newer_versions = newer;
+        if let Some(thumb) = mod_info.thumbnail {
+            let full_thumb = if thumb.starts_with("http://") || thumb.starts_with("https://") {
+                thumb
             } else {
-                mod_item.has_update = false;
-                mod_item.latest_version = latest_ver;
-                mod_item.newer_versions = compatible_versions;
+                format!("https://assets-mod.factorio.com{}", thumb)
+            };
+            mod_item.thumbnail = Some(full_thumb);
+        }
+
+        let mut all_fver_strings: Vec<String> = mod_info
+            .releases
+            .iter()
+            .filter_map(|rel| rel.info_json.as_ref()?.factorio_version.as_deref().map(|s| s.to_string()))
+            .collect();
+
+        if !all_fver_strings.is_empty() {
+            all_fver_strings.sort_by(|a, b| compare_versions(a, b));
+            mod_item.min_factorio_version = Some(all_fver_strings.first().cloned().unwrap_or_default());
+            mod_item.max_factorio_version = Some(all_fver_strings.last().cloned().unwrap_or_default());
+        }
+
+        let mut compatible_versions = Vec::new();
+
+        for rel in mod_info.releases {
+            let rel_fver = rel.info_json.as_ref().and_then(|i| i.factorio_version.as_deref());
+            if is_release_compatible(rel_fver, target_factorio_version.as_deref()) {
+                compatible_versions.push(rel.version);
             }
         }
-        Err(_) => {}
+
+        compatible_versions.sort_by(|a, b| compare_versions(b, a));
+
+        let mut newer = Vec::new();
+        for ver in &compatible_versions {
+            if compare_versions(ver, &mod_item.version).is_gt() {
+                newer.push(ver.clone());
+            }
+        }
+
+        let is_explicit_target = target_factorio_version.as_deref().map(|t| {
+            let clean = t.trim().to_lowercase();
+            !clean.is_empty() && clean != "all" && clean != "any"
+        }).unwrap_or(false);
+
+        if is_explicit_target && newer.is_empty()
+            && let Some(latest_compat) = compatible_versions.first()
+            && latest_compat != &mod_item.version
+        {
+            newer.push(latest_compat.clone());
+        }
+
+        let latest_ver = newer.first().cloned().or_else(|| compatible_versions.first().cloned());
+
+        if !newer.is_empty() {
+            mod_item.has_update = true;
+            mod_item.latest_version = latest_ver;
+            mod_item.newer_versions = newer;
+        } else {
+            mod_item.has_update = false;
+            mod_item.latest_version = latest_ver;
+            mod_item.newer_versions = compatible_versions;
+        }
     }
     mod_item
 }

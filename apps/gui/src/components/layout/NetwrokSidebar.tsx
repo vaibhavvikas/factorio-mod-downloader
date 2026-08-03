@@ -19,7 +19,7 @@ export const NetworkSidebar: React.FC = () => {
     };
 
     const activeItems = queue
-        .filter((i: DownloadTask) => i.statusType !== 'failed' && i.progress < 100 && i.statusType !== 'completed' && i.statusType !== 'alreadyExists' && i.statusType !== 'updated')
+        .filter((i: DownloadTask) => i.statusType !== 'failed' && i.progress < 100 && i.statusType !== 'completed' && i.statusType !== 'alreadyExists' && i.statusType !== 'updated' && i.statusType !== 'downgraded')
         .sort((a: DownloadTask, b: DownloadTask) => a.name.localeCompare(b.name));
 
     const failedItems = queue
@@ -27,7 +27,7 @@ export const NetworkSidebar: React.FC = () => {
         .sort((a: DownloadTask, b: DownloadTask) => a.name.localeCompare(b.name));
 
     const completedItems = queue
-        .filter((i: DownloadTask) => i.progress >= 100 || i.statusType === 'completed' || i.statusType === 'alreadyExists' || i.statusType === 'updated')
+        .filter((i: DownloadTask) => i.progress >= 100 || i.statusType === 'completed' || i.statusType === 'alreadyExists' || i.statusType === 'updated' || i.statusType === 'downgraded')
         .sort((a: DownloadTask, b: DownloadTask) => a.name.localeCompare(b.name));
 
     return (
@@ -116,11 +116,6 @@ export const NetworkSidebar: React.FC = () => {
                                                         )}
                                                     </span>
                                                     <span className="truncate min-w-0">{item.name}</span>
-                                                    {isPending && (
-                                                        <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
-                                                            Waiting
-                                                        </span>
-                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
                                                      {isPending ? (
@@ -154,7 +149,7 @@ export const NetworkSidebar: React.FC = () => {
                                             </div>
                                             {!isPending && (
                                                 <div className={`w-full ${LAYER.innerRecessed} h-1.5 rounded-full overflow-hidden shadow-inner`}>
-                                                    <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-shimmer h-full transition-all duration-200" style={{ width: `${item.progress}%` }} />
+                                                    <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-shimmer h-full" style={{ width: `${item.progress}%`, transition: 'width 200ms ease-out' }} />
                                                 </div>
                                             )}
                                             <div className={`flex justify-between text-[9px] font-mono ${TEXT.muted} select-none`}>
@@ -219,28 +214,33 @@ export const NetworkSidebar: React.FC = () => {
                                 {completedItems.map((item, index) => {
                                     const isExists = item.statusType === 'alreadyExists';
                                     const isUpdated = item.statusType === 'updated';
+                                    const isDowngraded = item.statusType === 'downgraded';
 
                                     const reverseIndex = completedItems.length - 1 - index;
                                     const staggerIndex = Math.min(reverseIndex, 12);
                                     const animationDelay = isClearingCompleted ? `${staggerIndex * 45}ms` : undefined;
 
-                                    const badgeLabel = isExists ? 'Already Exists' : isUpdated ? 'Updated' : 'Downloaded';
+                                    const badgeLabel = isExists ? 'Already Exists' : isDowngraded ? 'Downgraded' : isUpdated ? 'Updated' : 'Downloaded';
                                     const badgeColor = isExists
                                         ? 'text-slate-500 dark:text-zinc-400 font-medium'
-                                        : isUpdated
-                                            ? 'text-blue-600 dark:text-blue-400 font-bold'
-                                            : 'text-emerald-500 dark:text-emerald-400 font-semibold';
+                                        : isDowngraded
+                                            ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                                            : isUpdated
+                                                ? 'text-blue-600 dark:text-blue-400 font-bold'
+                                                : 'text-emerald-500 dark:text-emerald-400 font-semibold';
                                     const dotColor = isExists
                                         ? 'bg-slate-400'
-                                        : isUpdated
-                                            ? 'bg-blue-500 shadow-blue-500/50'
-                                            : 'bg-emerald-500 shadow-emerald-500/50';
+                                        : isDowngraded
+                                            ? 'bg-indigo-500 shadow-indigo-500/50'
+                                            : isUpdated
+                                                ? 'bg-blue-500 shadow-blue-500/50'
+                                                : 'bg-emerald-500 shadow-emerald-500/50';
 
                                     return (
                                         <div
                                             key={item.id}
                                             style={animationDelay ? { animationDelay } : undefined}
-                                            className={`p-3.5 ${LAYER.innerInset} ${BORDER.cardSoft} rounded-xl flex flex-col gap-2.5 shadow-sm transition-all duration-300 ${isClearingCompleted ? 'item-dismissing' : 'animate-fade-in'} ${isUpdated ? 'border-blue-500/30 dark:border-blue-500/20' : !isExists ? 'border-emerald-500/30 dark:border-emerald-500/20' : ''}`}
+                                            className={`p-3.5 ${LAYER.innerInset} ${BORDER.cardSoft} rounded-xl flex flex-col gap-2.5 shadow-sm transition-all duration-300 ${isClearingCompleted ? 'item-dismissing' : 'animate-fade-in'} ${isDowngraded ? 'border-indigo-500/30 dark:border-indigo-500/20' : isUpdated ? 'border-blue-500/30 dark:border-blue-500/20' : !isExists ? 'border-emerald-500/30 dark:border-emerald-500/20' : ''}`}
                                         >
                                             <div className="flex justify-between items-center gap-2">
                                                 <div className="text-xs font-bold text-slate-700 dark:text-zinc-300 flex items-center gap-2 overflow-hidden">
@@ -248,11 +248,11 @@ export const NetworkSidebar: React.FC = () => {
                                                     <span className="truncate font-semibold">{item.name}</span>
                                                 </div>
                                                 {!isExists && (
-                                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 animate-fade-in" />
+                                                    <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 animate-fade-in ${isDowngraded ? 'text-indigo-500' : 'text-emerald-500'}`} />
                                                 )}
                                             </div>
                                             <div className={`w-full ${LAYER.innerRecessed} h-1 rounded-full overflow-hidden shadow-inner`}>
-                                                <div className={`h-full transition-all duration-200 ${isExists ? 'bg-slate-400' : isUpdated ? 'bg-blue-500' : 'bg-emerald-500'}`} style={{ width: '100%' }} />
+                                                <div className={`h-full transition-all duration-200 ${isExists ? 'bg-slate-400' : isDowngraded ? 'bg-indigo-500' : isUpdated ? 'bg-blue-500' : 'bg-emerald-500'}`} style={{ width: '100%' }} />
                                             </div>
                                             <div className={`flex justify-between text-[9px] font-mono ${TEXT.muted} select-none`}>
                                                 <span>v{item.version} • {item.size.toFixed(1)} MB</span>

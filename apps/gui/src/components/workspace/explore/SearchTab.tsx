@@ -3,10 +3,9 @@ import { Search as SearchIcon, Download, Check, Sparkles, X, ChevronLeft, Chevro
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { createPortal } from 'react-dom';
 import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from '../shared/modCategory';
 import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
-import { Tooltip } from '../../ui/Tooltip';
+import { Tooltip, SummaryTooltip } from '../../ui/Tooltip';
 
 export interface ModSearchResultItem {
     name: string;
@@ -69,23 +68,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
     // measurement this becomes a concrete number of tags to visibly render.
     const [visibleTagCount, setVisibleTagCount] = useState<number | null>(null);
 
-    // Summary tooltip: anchored to the summary container with smart vertical flip
-    // (above by default, below when clipped). Position is computed once on enter
-    // and refreshed on scroll/resize so the tooltip stays pinned to its anchor while
-    // the user scrolls the results viewport.
-    const summaryRef = useRef<HTMLDivElement | null>(null);
-    const summaryTextRef = useRef<HTMLParagraphElement | null>(null);
-    const summaryTooltipRef = useRef<HTMLDivElement | null>(null);
-    const [showSummaryTooltip, setShowSummaryTooltip] = useState(false);
-    const [summaryTooltipPlacement, setSummaryTooltipPlacement] = useState<'above' | 'below'>('below');
-    const [tooltipPos, setTooltipPos] = useState<{ left: number; top: number; arrowLeft: number; ready: boolean }>({
-        left: 0,
-        top: 0,
-        arrowLeft: 0,
-        ready: false,
-    });
-
-    // Measurement runs on mount + whenever tags/item changes, and on any responsive card width change.
+    // Decide how many tag pills / +N pill to render.
     useEffect(() => {
         const container = tagsRowRef.current;
         if (!container) return;
@@ -179,120 +162,6 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
         // Re-measure when tags length changes or queue state changes; different mods re-mount via key.
     }, [item.tags.length, isAlreadyInQueue]);
 
-    // Reposition the summary tooltip whenever it becomes visible, and while it is
-    // shown also track window scroll/resize and all scrollable ancestor containers
-    // so it stays anchored to its host while scrolling or hides when scrolled out of view.
-    useEffect(() => {
-        if (!showSummaryTooltip) {
-            setTooltipPos(p => ({ ...p, ready: false }));
-            return;
-        }
-        const container = summaryRef.current;
-        const tooltip = summaryTooltipRef.current;
-        if (!container || !tooltip) return;
-
-        const GAP = 8;
-        const BUFFER = 28;
-
-        const scrollAncestors: Element[] = [];
-        let current: Element | null = container.parentElement;
-        while (current && current !== document.body) {
-            const style = window.getComputedStyle(current);
-            const overflowY = style.overflowY;
-            if (overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') {
-                scrollAncestors.push(current);
-            }
-            current = current.parentElement;
-        }
-
-        const reposition = () => {
-            const hostRect = container.getBoundingClientRect();
-            const vw = window.innerWidth;
-            const vh = window.innerHeight;
-
-            // Hide tooltip if host card container is scrolled out of view in any ancestor
-            for (const scrollEl of scrollAncestors) {
-                const sRect = scrollEl.getBoundingClientRect();
-                if (hostRect.bottom < sRect.top || hostRect.top > sRect.bottom) {
-                    setTooltipPos(p => ({ ...p, ready: false }));
-                    return;
-                }
-            }
-
-            if (hostRect.bottom < 0 || hostRect.top > vh || hostRect.right < 0 || hostRect.left > vw) {
-                setTooltipPos(p => ({ ...p, ready: false }));
-                return;
-            }
-
-            const tooltipW = tooltip.offsetWidth || 260;
-            const tooltipH = tooltip.offsetHeight || 44;
-
-            const hostCenter = hostRect.left + hostRect.width / 2;
-            let left = hostCenter - tooltipW / 2;
-            left = Math.max(BUFFER, Math.min(vw - tooltipW - BUFFER, left));
-
-            const rawArrowLeft = hostCenter - left;
-            const arrowLeft = Math.max(14, Math.min(tooltipW - 14, rawArrowLeft));
-
-            const spaceAbove = hostRect.top;
-            const spaceBelow = vh - hostRect.bottom;
-            let top: number;
-            let placement: 'above' | 'below';
-            const fitsBelow = spaceBelow >= tooltipH + GAP + BUFFER;
-            const fitsAbove = spaceAbove >= tooltipH + GAP + BUFFER;
-
-            if (fitsBelow) {
-                top = hostRect.bottom + GAP;
-                placement = 'below';
-            } else if (fitsAbove) {
-                top = hostRect.top - tooltipH - GAP;
-                placement = 'above';
-            } else if (spaceBelow >= spaceAbove) {
-                top = hostRect.bottom + GAP;
-                placement = 'below';
-            } else {
-                top = hostRect.top - tooltipH - GAP;
-                placement = 'above';
-            }
-
-            top = Math.max(BUFFER, Math.min(vh - tooltipH - BUFFER, top));
-
-            setTooltipPos({ left, top, arrowLeft, ready: true });
-            setSummaryTooltipPlacement(placement);
-        };
-
-        reposition();
-        const raf = window.requestAnimationFrame(reposition);
-
-        const listenerOpts: AddEventListenerOptions = { passive: true };
-        const onScroll = () => reposition();
-        const onResize = () => reposition();
-
-        window.addEventListener('scroll', onScroll, listenerOpts);
-        window.addEventListener('resize', onResize, listenerOpts);
-        scrollAncestors.forEach(el => el.addEventListener('scroll', onScroll, listenerOpts));
-
-        const resizeObserver = new ResizeObserver(() => reposition());
-        resizeObserver.observe(tooltip);
-        resizeObserver.observe(container);
-
-        return () => {
-            window.cancelAnimationFrame(raf);
-            window.removeEventListener('scroll', onScroll);
-            window.removeEventListener('resize', onResize);
-            scrollAncestors.forEach(el => el.removeEventListener('scroll', onScroll));
-            resizeObserver.disconnect();
-        };
-    }, [showSummaryTooltip]);
-
-    // Handle mouse enter on summary container — show tooltip if text is truncated or if hovered
-    const handleMouseEnterSummary = () => {
-        const textEl = summaryTextRef.current;
-        if (textEl && (textEl.scrollHeight > textEl.clientHeight + 1 || item.summary.length > 80)) {
-            setShowSummaryTooltip(true);
-        }
-    };
-
     // Decide how many tag pills / +N pill to render.
     // While visibleTagCount === null (first paint before measurement), render ALL tags + a
     // temporary +N pill so measurement has real widths, but keep the row opacity-0 to avoid FOUC.
@@ -361,46 +230,11 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                 </div>
             </div>
 
-            <div
-                ref={summaryRef}
-                className={`group relative min-h-12 flex items-center ${LAYER.innerInset} p-2 rounded-xl ${BORDER.inner}`}
-                onMouseEnter={handleMouseEnterSummary}
-                onMouseLeave={() => setShowSummaryTooltip(false)}
-            >
-                <p ref={summaryTextRef} className="text-xs text-slate-600 dark:text-zinc-400 line-clamp-2-custom m-0 p-0">
+            <SummaryTooltip content={item.summary || 'No summary available.'}>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 line-clamp-2-custom m-0 p-0">
                     {item.summary || 'No summary available.'}
                 </p>
-                {item.summary && showSummaryTooltip && createPortal(
-                    <div
-                        ref={summaryTooltipRef}
-                        className={`pointer-events-none fixed z-[80] min-w-[180px] w-fit max-w-[420px] whitespace-pre-wrap rounded-lg ${BORDER.tooltip} ${LAYER.tooltipSurface} px-3 py-2 text-[11px] leading-relaxed shadow-xl`}
-                        style={{
-                            left: `${tooltipPos.left}px`,
-                            top: `${tooltipPos.top}px`,
-                            opacity: tooltipPos.ready ? 1 : 0,
-                            transition: 'opacity 120ms ease-out',
-                        }}
-                        data-summary-tooltip
-                    >
-                        {summaryTooltipPlacement === 'above' && (
-                            <div
-                                className={`absolute -bottom-1.5 -translate-x-1/2 w-3 h-3 rotate-45 ${LAYER.tooltipArrowAbove}`}
-                                style={{ left: `${tooltipPos.arrowLeft}px` }}
-                                aria-hidden
-                            />
-                        )}
-                        {summaryTooltipPlacement === 'below' && (
-                            <div
-                                className={`absolute -top-1.5 -translate-x-1/2 w-3 h-3 rotate-45 ${LAYER.tooltipArrowBelow}`}
-                                style={{ left: `${tooltipPos.arrowLeft}px` }}
-                                aria-hidden
-                            />
-                        )}
-                        {item.summary}
-                    </div>,
-                    document.body
-                )}
-            </div>
+            </SummaryTooltip>
 
             <div className="flex min-w-0 items-center justify-between gap-3">
                 <div
@@ -667,7 +501,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 <button
                                     key={cat.id}
                                     onClick={() => handleToggleCategory(cat.id)}
-                                    className={`shrink-0 h-7.5 px-3 py-1 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${pillStyle}`}
+                                    className={`shrink-0 h-7.5 ${isSelected && cat.id !== 'all' ? 'pl-2.5 pr-1.5' : 'px-3'} py-1 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${pillStyle}`}
                                 >
                                     <span>{cat.label}</span>
                                     {isSelected && cat.id !== 'all' && (

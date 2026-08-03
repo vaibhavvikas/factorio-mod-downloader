@@ -63,33 +63,29 @@ pub fn run() {
             let event_window = window_clone.clone();
 
             tauri::async_runtime::spawn(async move {
-                match get_window_state() {
-                    Ok(state) => {
-                        let width = state.width.max(1280);
-                        let height = state.height.max(720);
-                        let _ = window_clone.set_size(tauri::Size::Logical(tauri::LogicalSize::new(
-                            width as f64,
-                            height as f64,
-                        )));
-                        if state.maximized {
-                            let _ = window_clone.maximize();
-                        }
+                if let Ok(state) = get_window_state() {
+                    let width = state.width.max(1280);
+                    let height = state.height.max(720);
+                    let _ = window_clone.set_size(tauri::Size::Logical(tauri::LogicalSize::new(
+                        width as f64,
+                        height as f64,
+                    )));
+                    if state.maximized {
+                        let _ = window_clone.maximize();
                     }
-                    Err(_) => {}
                 }
 
                 let window_for_events = event_window.clone();
-                let _ = event_window.on_window_event(move |event| {
-                    if let tauri::WindowEvent::Resized(_) = event {
-                        if let Ok(scale_factor) = window_for_events.scale_factor() {
-                            if let Ok(physical_size) = window_for_events.inner_size() {
-                                let logical_size = physical_size.to_logical::<f64>(scale_factor);
-                                let maximized = window_for_events.is_maximized().unwrap_or(false);
-                                let width = (logical_size.width as u32).max(1280);
-                                let height = (logical_size.height as u32).max(720);
-                                let _ = save_window_state(width, height, maximized);
-                            }
-                        }
+                event_window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::Resized(_) = event
+                        && let Ok(scale_factor) = window_for_events.scale_factor()
+                        && let Ok(physical_size) = window_for_events.inner_size()
+                    {
+                        let logical_size = physical_size.to_logical::<f64>(scale_factor);
+                        let maximized = window_for_events.is_maximized().unwrap_or(false);
+                        let width = (logical_size.width as u32).max(1280);
+                        let height = (logical_size.height as u32).max(720);
+                        let _ = save_window_state(width, height, maximized);
                     }
                 });
             });

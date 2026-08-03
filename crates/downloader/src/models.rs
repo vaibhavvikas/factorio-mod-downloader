@@ -8,6 +8,7 @@ pub enum DownloadStatus {
     Completed,
     AlreadyExists,
     Updated,
+    Downgraded,
     Failed(String),
 }
 

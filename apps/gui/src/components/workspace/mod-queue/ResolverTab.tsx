@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Download, Inbox, Loader2, Search, ChevronDown, Layers, LayoutGrid } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
+import type { InstalledModItem } from '../../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
@@ -56,27 +57,31 @@ interface BackendResolvedDownloadItem {
 
 interface DependencyTreeNodeProps {
     name: string;
+    ineq?: string;
     versionReq: string;
     type?: DependencyType | 'root';
-    targetMods: TargetModItem[];
-    treeCache: Record<string, TargetModItem>;
+    targetMods?: TargetModItem[];
+    treeCache?: Record<string, TargetModItem>;
     visited: Set<string>;
     depth: number;
+    isIncompatible?: boolean;
 }
 
 const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     name,
+    ineq,
     versionReq,
     type = 'root',
     targetMods,
     treeCache,
     visited,
     depth,
+    isIncompatible = false,
 }) => {
     const [isExpanded, setIsExpanded] = useState(true);
 
     // Find if we have details (a card) for this dependency in our targetMods queue or treeCache
-    const modDetails = targetMods.find(m => m.name === name) || treeCache[name];
+    const modDetails = targetMods?.find(m => m.name === name) || treeCache?.[name];
 
     // Determine title
     const displayTitle = modDetails ? (modDetails.title || modDetails.name) : name;
@@ -110,8 +115,8 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
         if (rankA !== rankB) {
             return rankA - rankB;
         }
-        const titleA = (targetMods.find(m => m.name === a.name) || treeCache[a.name])?.title || a.name;
-        const titleB = (targetMods.find(m => m.name === b.name) || treeCache[b.name])?.title || b.name;
+        const titleA = (targetMods?.find(m => m.name === a.name) || treeCache?.[a.name])?.title || a.name;
+        const titleB = (targetMods?.find(m => m.name === b.name) || treeCache?.[b.name])?.title || b.name;
         return titleA.localeCompare(titleB);
     });
 
@@ -120,10 +125,18 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
     const iconColorClass = {
         root: 'text-slate-400 dark:text-zinc-500',
         required: 'text-sky-500 dark:text-sky-400',
-        recommended: 'text-blue-500 dark:text-blue-400',
+        recommended: 'text-teal-500 dark:text-teal-400',
         optional: 'text-violet-500 dark:text-violet-400',
         incompatible: 'text-rose-500 dark:text-rose-400',
     }[type];
+
+    const formatVersionLabel = (ver?: string, ineqStr?: string) => {
+        if (!ver || !ver.trim()) return null;
+        const v = ver.trim();
+        const formattedVer = v.startsWith('v') ? v : `v${v}`;
+        if (!ineqStr || !ineqStr.trim()) return formattedVer;
+        return `${ineqStr.trim()} ${formattedVer}`;
+    };
 
     return (
         <div className="flex flex-col">
@@ -132,12 +145,12 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                 className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 group cursor-pointer select-none transition-colors"
                 onClick={(e) => {
                     e.stopPropagation();
-                    if (hasChildren) setIsExpanded(!isExpanded);
+                    if (hasChildren && !isIncompatible) setIsExpanded(!isExpanded);
                 }}
             >
                 {/* Chevron spacing / VS Code guide lines */}
                 <div className="flex items-center justify-center w-4 h-4 shrink-0">
-                    {hasChildren ? (
+                    {hasChildren && !isIncompatible ? (
                         <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-300 ${isExpanded ? '' : '-rotate-90'}`} />
                     ) : (
                         <div className="w-3.5 h-3.5" />
@@ -162,7 +175,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                 {/* Version Requirement Badge */}
                 {versionReq && (
                     <span className={`text-[10px] font-mono ${iconColorClass}`}>
-                        {versionReq}
+                        {type === 'root' ? (versionReq.startsWith('v') ? versionReq : `v${versionReq}`) : (formatVersionLabel(versionReq, ineq) || versionReq)}
                     </span>
                 )}
 
@@ -172,10 +185,17 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                         cycle detected
                     </span>
                 )}
+
+                {/* Incompatible tag */}
+                {isIncompatible && (
+                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono">
+                        incompatible
+                    </span>
+                )}
             </div>
 
             {/* Sub-dependencies Indented rendering with vertical dashed guide lines */}
-            {hasChildren && (
+            {hasChildren && !isIncompatible && (
                 <div className={`accordion-collapse ${isExpanded ? 'expanded' : ''}`}>
                     <div className="accordion-collapse-inner">
                         <div className="relative border-l border-dashed border-slate-300 dark:border-zinc-700 ml-4 pl-3.5 flex flex-col my-0.5">
@@ -183,6 +203,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
                                 <DependencyTreeNode
                                     key={dep.id}
                                     name={dep.name}
+                                    ineq={dep.ineq}
                                     versionReq={dep.version}
                                     type={dep.type}
                                     targetMods={targetMods}
@@ -212,7 +233,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     parseAndAddMods: externalParseAndAddMods,
     loading: externalLoading,
 }) => {
-    const { startDownload, addLog, factorioVersion } = useAppContext();
+    const { startDownload, addLog, factorioVersion, folderPath, setInstalledMods } = useAppContext();
     const [localTargetMods, setLocalTargetMods] = useState<TargetModItem[]>([]);
     const targetMods = externalTargetMods !== undefined ? externalTargetMods : localTargetMods;
     const setTargetMods = externalSetTargetMods || setLocalTargetMods;
@@ -330,7 +351,9 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
         try {
             // 1. Prepare inputs for resolver:
-            const mainMods = targetMods.map(t => ({
+            const compatibleTargetMods = targetMods.filter(m => !isModIncompatible(m));
+
+            const mainMods = compatibleTargetMods.map(t => ({
                 id: t.name,
                 title: t.title || t.name,
                 version: t.selectedVersion,
@@ -339,7 +362,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             }));
 
             const directDeps: BackendDependency[] = [];
-            targetMods.forEach(t => {
+            compatibleTargetMods.forEach(t => {
                 t.dependencies.forEach(d => {
                     if (t.selectedDepIds.includes(d.id)) {
                         directDeps.push({
@@ -630,15 +653,56 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         e.target.value = '';
     };
 
+const isModIncompatible = (mod: TargetModItem): boolean => {
+        if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return false;
+        if (!mod.availableReleases || mod.availableReleases.length === 0) return false;
+        return !mod.availableReleases.some(rel => {
+            if (!rel.factorio_version) return true;
+            const cleanRel = rel.factorio_version.trim();
+            const cleanTarget = factorioVersion.trim();
+            return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
+        });
+    };
+
     const handleStartDownloadAll = async () => {
         if (targetMods.length === 0 || isBusy) return;
 
+        // Re-scan installed mods folder to get current file state
+        // (handles cases where user manually deleted/added mod files outside the app)
+        const currentFolderPath = folderPath;
+        if (currentFolderPath) {
+            try {
+                const freshInstalledMods = await invoke<InstalledModItem[]>('get_installed_mods_info', { modsFolder: currentFolderPath });
+                const listWithSelection = freshInstalledMods.map(item => ({
+                    ...item,
+                    selectedForUpdate: item.hasUpdate,
+                    selectedTargetVersion: item.newerVersions[0] || item.version
+                }));
+                setInstalledMods(listWithSelection);
+            } catch {
+                // Ignore scan errors — proceed with download regardless
+            }
+        }
+
+        const incompatibleMods = targetMods.filter(isModIncompatible);
+        if (incompatibleMods.length > 0) {
+            const incompatibleNames = incompatibleMods.map(m => m.title || m.name).join(', ');
+            addLog(`Skipping ${incompatibleMods.length} incompatible mod(s): ${incompatibleNames}`, 'warn');
+        }
+
+        const compatibleMods = targetMods.filter(m => !isModIncompatible(m));
+        if (compatibleMods.length === 0) {
+            addLog('No compatible mods to download — all selected mods are incompatible with the target Factorio version.', 'error');
+            setIsResolvingBatch(false);
+            return;
+        }
+
         setIsResolvingBatch(true);
-        addLog(`Resolving dependencies and compatibility tree for ${targetMods.length} target mod(s)...`, 'info');
+        addLog(`Resolving dependencies and compatibility tree for ${compatibleMods.length} target mod(s)...`, 'info');
 
         try {
-            // Build main mods list from selected cards
-            const mainMods: BackendResolvedDownloadItem[] = targetMods.map(t => ({
+            // Build main mods list from compatible cards only
+            const mainMods: BackendResolvedDownloadItem[] = compatibleMods.map(t => ({
                 id: t.name,
                 title: t.title || t.name,
                 version: t.selectedVersion,
@@ -648,7 +712,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
             // Collect direct dependencies enabled by user toggles
             const directDeps: BackendDependency[] = [];
-            targetMods.forEach(t => {
+            compatibleMods.forEach(t => {
                 t.dependencies.forEach(d => {
                     if (t.selectedDepIds.includes(d.id)) {
                         directDeps.push({
@@ -778,6 +842,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                             treeCache={treeCache}
                             visited={new Set()}
                             depth={0}
+                            isIncompatible={isModIncompatible(m)}
                         />
                     ))}
                 </div>
@@ -873,7 +938,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                 </button>
                             </div>
                             <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 pb-3">
-                                {targetMods.length} Target Mods
+                                {targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods
                             </span>
                         </div>
                     )}
@@ -894,16 +959,18 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                     <div className="w-full">
                                         {renderDependencyTreePanel()}
                                     </div>
-                                    <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
-                                        <button
-                                            onClick={handleStartDownloadAll}
-                                            disabled={isBusy}
-                                            className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
-                                        >
-                                            {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                            <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
-                                        </button>
-                                    </div>
+                                    {targetMods.filter(m => !isModIncompatible(m)).length > 0 && (
+                                        <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
+                                            <button
+                                                onClick={handleStartDownloadAll}
+                                                disabled={isBusy}
+                                                className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                            >
+                                                {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                                <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div key="view-cards" className={`w-full ${ANIMATION.subTabPane}`}>
@@ -944,18 +1011,20 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                                                  </div>
                                              </div>
                                          );
-                                     })()}
-                                     <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
-                                         <button
-                                             onClick={handleStartDownloadAll}
-                                             disabled={isBusy}
-                                             className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
-                                         >
-                                             {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                             <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.length} Target Mods)`}</span>
-                                         </button>
-                                     </div>
-                                 </div>
+                                      })()}
+                                      {targetMods.filter(m => !isModIncompatible(m)).length > 0 && (
+                                          <div className="sticky bottom-0 z-20 flex justify-end pt-4 pb-1 pr-1 pointer-events-none">
+                                              <button
+                                                  onClick={handleStartDownloadAll}
+                                                  disabled={isBusy}
+                                                  className="pointer-events-auto py-2.5 px-5 bg-[#1a7f37] hover:bg-[#238636] active:bg-[#196c2e] text-white font-bold text-xs rounded-xl shadow-sm border border-[#1a7f37]/50 flex items-center gap-2 transition-all cursor-pointer select-none disabled:opacity-60"
+                                              >
+                                                  {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                                  <span>{isBusy ? 'Resolving Dependencies...' : `Download All (${targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods)`}</span>
+                                              </button>
+                                          </div>
+                                      )}
+                                  </div>
                             )}
                         </div>
                     </div>

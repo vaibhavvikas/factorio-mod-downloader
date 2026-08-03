@@ -78,6 +78,7 @@ export const Workspace: React.FC = () => {
             const mapDep = (dep: any, type: string) => ({
                 id: `dep-${dep.id}-${Math.random()}`,
                 name: String(dep.id),
+                ineq: dep.ineq,
                 version: String(dep.version || ''),
                 size: 15.0,
                 type: type,

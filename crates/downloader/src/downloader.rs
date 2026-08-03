@@ -18,12 +18,17 @@ pub fn build_download_url(mod_id: &str, version: &str) -> String {
     )
 }
 
+#[derive(Debug, Clone)]
+pub struct DownloadRequest {
+    pub mod_id: String,
+    pub version: String,
+    pub file_name: String,
+    pub expected_sha1: String,
+}
+
 pub async fn download_mod_file<F>(
     client: &reqwest::Client,
-    mod_id: &str,
-    version: &str,
-    file_name: &str,
-    expected_sha1: &str,
+    request: &DownloadRequest,
     output_dir: &Path,
     cancel_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
     on_progress: F,
@@ -31,6 +36,10 @@ pub async fn download_mod_file<F>(
 where
     F: Fn(u64, u64) + Send + Sync + 'static,
 {
+    let mod_id = &request.mod_id;
+    let version = &request.version;
+    let file_name = &request.file_name;
+    let expected_sha1 = &request.expected_sha1;
     let url = build_download_url(mod_id, version);
     let send_future = client.get(&url).header("User-Agent", DEFAULT_USER_AGENT).send();
     

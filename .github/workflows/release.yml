@@ -301,12 +301,34 @@ jobs:
         env:
           TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
         run: |
+          PREVIOUS_TAG=$(gh release list --exclude-drafts --exclude-prereleases --limit 1 --json tagName -q '.[0].tagName' || echo "")
+
           cat << 'EOF' > release_body.md
+
           ## 🚀 Factorio Mod Downloader ${{ env.TARGET_VERSION }}
 
-          ![GitHub Downloads (all assets, specific tag)](https://img.shields.io/github/downloads/vaibhavvikas/factorio-mod-downloader/${{ env.TARGET_VERSION }}/total)
+          <img src="https://img.shields.io/github/downloads/vaibhavvikas/factorio-mod-downloader/${{ env.TARGET_VERSION }}/total" alt="GitHub Downloads (all assets, specific tag)" />
 
           High-performance standalone desktop GUI mod downloader for **Factorio**. Resolves recursive dependency graphs, checks online updates, and downloads modpacks in parallel.
+
+          EOF
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            PREV_DATE=$(git log -1 --format=%cd --date=short "$PREVIOUS_TAG" 2>/dev/null || echo "")
+            if [ -n "$PREV_DATE" ]; then
+              {
+                echo ""
+                echo "## What's Changed"
+                echo ""
+                gh pr list --state merged --base main --search "merged:>=$PREV_DATE" --limit 50 --json number,title,url,author --jq '.[] | "* [\(.title)](\(.url)) by @\(.author.login) in \(.url)"'
+                echo ""
+                echo "**Full Changelog**: https://github.com/vaibhavvikas/factorio-mod-downloader/compare/${PREVIOUS_TAG}...${TARGET_VERSION}"
+                echo ""
+              } >> release_body.md
+            fi
+          fi
+
+          cat << 'EOF' >> release_body.md
 
           ### 📦 Desktop Executables & Archives
 
@@ -351,7 +373,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET_VERSION: ${{ needs.validate.outputs.target_version }}
         run: |
-          TITLE="Factorio Mod Downloader ${TARGET_VERSION}"
+          TITLE="${TARGET_VERSION}"
 
           if gh release view "$TARGET_VERSION" >/dev/null 2>&1; then
             echo "Updating existing release $TARGET_VERSION..."

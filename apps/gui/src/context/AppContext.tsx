@@ -8,7 +8,7 @@ export interface DownloadTask {
     size: number;
     progress: number;
     speed: string;
-    statusType?: 'completed' | 'alreadyExists' | 'updated' | 'downloading' | 'pending' | 'failed';
+    statusType?: 'completed' | 'alreadyExists' | 'updated' | 'downgraded' | 'downloading' | 'pending' | 'failed';
     errorMessage?: string;
 }
 
@@ -24,6 +24,8 @@ export interface InstalledModItem {
     version: string;
     author?: string;
     factorioVersion?: string;
+    minFactorioVersion?: string;
+    maxFactorioVersion?: string;
     category?: string;
     fileName: string;
     filePath: string;
@@ -449,7 +451,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const clearCompleted = async () => {
         try {
             await invoke('clear_completed_download_tasks');
-            setQueue(prev => prev.filter(q => q.progress < 100 && q.statusType !== 'completed' && q.statusType !== 'alreadyExists' && q.statusType !== 'updated'));
+            setQueue(prev => prev.filter(q => q.progress < 100 && q.statusType !== 'completed' && q.statusType !== 'alreadyExists' && q.statusType !== 'updated' && q.statusType !== 'downgraded'));
         } catch (err) {
             console.error('Failed to clear completed tasks:', err);
         }
@@ -479,7 +481,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const cancelAllTasks = async () => {
         try {
-            setQueue(prev => prev.map(q => (q.progress < 100 && q.statusType !== 'completed' && q.statusType !== 'alreadyExists' && q.statusType !== 'updated') ? { ...q, statusType: 'failed', errorMessage: 'Cancelled by user' } : q));
+            setQueue(prev => prev.map(q => (q.progress < 100 && q.statusType !== 'completed' && q.statusType !== 'alreadyExists' && q.statusType !== 'updated' && q.statusType !== 'downgraded') ? { ...q, statusType: 'failed', errorMessage: 'Cancelled by user' } : q));
             await invoke('cancel_all_download_tasks');
             addLog('Cancelled all active downloads', 'warn');
         } catch (err: any) {
@@ -517,7 +519,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     useEffect(() => {
         queue.forEach(item => {
             if (!loggedTaskIds.includes(item.id)) {
-                if (item.progress >= 100 || item.statusType === 'completed' || item.statusType === 'alreadyExists' || item.statusType === 'updated') {
+                if (item.progress >= 100 || item.statusType === 'completed' || item.statusType === 'alreadyExists' || item.statusType === 'updated' || item.statusType === 'downgraded') {
                     setLoggedTaskIds(prev => [...prev, item.id]);
                     addLog(`Download complete: "${item.name}" (v${item.version}) successfully downloaded.`, 'success');
                 } else if (item.statusType === 'failed') {
@@ -558,7 +560,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         let statusStr = typeof t.status === 'string' ? t.status : (t.status?.status || 'pending');
 
                         let progress = 0;
-                        if (statusStr === 'completed' || statusStr === 'alreadyExists' || statusStr === 'updated') {
+                        if (statusStr === 'completed' || statusStr === 'alreadyExists' || statusStr === 'updated' || statusStr === 'downgraded') {
                             progress = 100;
                         } else if (t.totalBytes > 0) {
                             progress = Math.min(100, Math.round((t.downloadedBytes / t.totalBytes) * 100));

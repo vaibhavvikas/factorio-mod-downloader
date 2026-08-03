@@ -127,11 +127,15 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                                                 <span>{isDowngrade ? 'Downgrade to' : 'Update to'} v{targetVer}</span>
                                             </button>
                                         );
-                                    })() : isIncompatible ? (
+                                    })(                                    ) : isIncompatible ? (
                                         <span
                                             className={`panel-pill ${PILL_SIZE.comfortableMono} shrink-0 font-mono font-semibold select-none cursor-default ${PILL_TONE.incompatibleOutline}`}
                                         >
-                                            Requires Factorio {mod.factorioVersion || '< 2.0'}
+                                            {mod.minFactorioVersion && mod.maxFactorioVersion
+                                                ? mod.minFactorioVersion === mod.maxFactorioVersion
+                                                    ? `Factorio ${mod.minFactorioVersion}`
+                                                    : `Factorio ${mod.minFactorioVersion} ... ${mod.maxFactorioVersion}`
+                                                : 'Not Available'}
                                         </span>
                                     ) : null}
                                 </div>

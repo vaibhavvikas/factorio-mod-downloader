@@ -1,4 +1,4 @@
-import { CATEGORY_BADGE_STYLES, DEFAULT_CATEGORY_BADGE_STYLE } from '../../../theme/layers';
+import { CATEGORY_BADGE_STYLES, DEFAULT_CATEGORY_BADGE_STYLE, PILL_TONE } from '../../../theme/layers';
 
 export interface CategoryPillColors {
     active: string;
@@ -54,4 +54,21 @@ export const getCategoryBadgeStyle = (category: string) =>
 export const getCategoryPillStyle = (catId: string, isSelected: boolean): string => {
     const style = CATEGORY_PILL_STYLES[catId] || CATEGORY_PILL_STYLES.all;
     return isSelected ? style.active : style.inactive;
+};
+
+const CATEGORY_TO_PILL_TONE: Record<string, keyof typeof PILL_TONE> = {
+    content: 'content',
+    overhaul: 'overhaul',
+    tweaks: 'tweaks',
+    utilities: 'utilities',
+    'mod-packs': 'mod-packs',
+    scenarios: 'scenarios',
+    localizations: 'localizations',
+    internal: 'internal',
+    'no-category': 'no-category',
+};
+
+export const getCategoryPillTone = (category: string): string => {
+    const key = CATEGORY_TO_PILL_TONE[(category || '').toLowerCase()];
+    return key ? PILL_TONE[key] : PILL_TONE['no-category'];
 };

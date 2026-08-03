@@ -83,10 +83,11 @@ pub async fn search_mods_page(
     let page_number = page.max(1).to_string();
     params.push(("page", &page_number));
 
-    if let Some(ver) = factorio_version {
-        if !ver.trim().is_empty() && !matches!(ver.trim().to_lowercase().as_str(), "all" | "any") {
-            params.push(("factorio_version", ver.trim()));
-        }
+    if let Some(ver) = factorio_version
+        && !ver.trim().is_empty()
+        && !matches!(ver.trim().to_lowercase().as_str(), "all" | "any")
+    {
+        params.push(("factorio_version", ver.trim()));
     }
 
     let html = api_client.get(&url, &params).await?;
@@ -125,6 +126,7 @@ pub async fn search_mods_page(
         regex::Regex::new(r#"(?s)title="Downloads[^"]*"[^>]*>.*?<span title="(\d+)">"#)?;
 
     let clean_tags_re = regex::Regex::new(r"<[^>]*>")?;
+    let collapsed_re = regex::Regex::new(r"\s+")?;
 
     // Helper to unescape basic HTML entities
     let unescape = |s: &str| -> String {
@@ -204,10 +206,9 @@ pub async fn search_mods_page(
                 let text = c[1]
                     .replace("<br>", " ")
                     .replace("<br/>", " ")
-                    .replace('\n', " ")
-                    .replace('\r', " ");
+                    .replace(['\n', '\r'], " ");
                 let clean = clean_tags_re.replace_all(&text, " ");
-                let collapsed = regex::Regex::new(r"\s+").unwrap().replace_all(&clean, " ");
+                let collapsed = collapsed_re.replace_all(&clean, " ");
                 unescape(collapsed.trim())
             })
             .unwrap_or_default();

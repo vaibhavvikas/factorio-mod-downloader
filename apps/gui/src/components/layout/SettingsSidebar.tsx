@@ -98,9 +98,9 @@ export const SettingsSidebar: React.FC = () => {
     }));
 
     const themeOptions = [
-        { id: 'light', label: 'Light', icon: Sun, color: 'text-amber-500' },
-        { id: 'dark', label: 'Dark', icon: Moon, color: 'text-blue-400' },
-        { id: 'system', label: 'System', icon: Monitor, color: 'text-purple-400' },
+        { id: 'light', label: 'Light', icon: Sun },
+        { id: 'dark', label: 'Dark', icon: Moon },
+        { id: 'system', label: 'System', icon: Monitor },
     ];
 
     return (
@@ -127,7 +127,7 @@ export const SettingsSidebar: React.FC = () => {
                             }}
                             className={`${TEXT.muted} hover:text-blue-500 dark:hover:text-blue-400 p-1 rounded transition-colors cursor-pointer ${INTERACTIVE.iconHover}`}
                         >
-                            <FolderCog className="w-3.5 h-3.5 text-blue-500" />
+                            <FolderCog className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors" />
                         </button>
                     </Tooltip>
                     {!folderPath ? (
@@ -149,16 +149,13 @@ export const SettingsSidebar: React.FC = () => {
             </div>
 
             {/* Body Content */}
-            <div className={`scroller-panel card flex-1 flex flex-col p-3 overflow-y-auto ${LAYER.innerRecessed}`}>
+            <div className={`scroller-panel card flex-1 flex flex-col gap-3 p-4 overflow-y-auto ${LAYER.innerRecessed}`}>
                 {/* Section 1: Factorio Game Version */}
-                <div className="pb-3 flex items-center gap-2.5 select-none">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider shrink-0">
-                        <Gamepad2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                        <span>Game Version</span>
+                <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-xl p-4 flex flex-col gap-3 shadow-sm`}>
+                    <div className="flex items-center gap-2.5 select-none">
+                        <Gamepad2 className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider">Game Version</div>
                     </div>
-                    <div className={`h-px ${DIVIDER.line} flex-1`} />
-                </div>
-                <div className="flex flex-col gap-2 pb-5">
                     <p className={`text-[10.5px] leading-snug ${TEXT.secondary}`}>
                         Select target Factorio version for mod search and dependency resolution.
                     </p>
@@ -172,15 +169,15 @@ export const SettingsSidebar: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsVersionDropdownOpen(!isVersionDropdownOpen)}
-                                        className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl ${LAYER.innerRecessed} ${BORDER.inner} hover:bg-slate-200/60 dark:hover:bg-zinc-800/80 hover:border-blue-500/50 focus:border-blue-500 focus:outline-none transition-all cursor-pointer select-none group/trigger shadow-2xs`}
+                                        className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl ${LAYER.innerRecessed} ${BORDER.inner} font-mono text-xs text-slate-800 dark:text-zinc-200 cursor-pointer select-none group/trigger transition-all focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 shadow-2xs`}
                                     >
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                            <Gamepad2 className="w-4 h-4 text-blue-500 shrink-0 group-hover/trigger:scale-110 transition-transform" />
-                                            <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 font-mono truncate">
+                                            <Gamepad2 className="w-4 h-4 text-slate-500 dark:text-zinc-400 group-hover/trigger:text-blue-500 dark:group-hover/trigger:text-[#58a6ff] shrink-0 transition-colors" />
+                                            <span className="font-bold truncate">
                                                 {selectedOpt.label}
                                             </span>
                                         </div>
-                                        <ChevronDown className={`w-4 h-4 text-slate-400 group-hover/trigger:text-blue-500 shrink-0 transition-transform duration-200 ${isVersionDropdownOpen ? 'rotate-180 text-blue-500' : ''}`} />
+                                        <ChevronDown className={`w-4 h-4 text-slate-400 group-hover/trigger:text-blue-500 dark:group-hover/trigger:text-[#58a6ff] shrink-0 transition-transform duration-200 ${isVersionDropdownOpen ? 'rotate-180 text-blue-500 dark:text-[#58a6ff]' : ''}`} />
                                     </button>
 
                                     {/* Floating Popover List */}
@@ -217,14 +214,11 @@ export const SettingsSidebar: React.FC = () => {
                 </div>
 
                 {/* Section 2: Mods Folder Location */}
-                <div className="pt-2 pb-3 flex items-center gap-2.5 select-none">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider shrink-0">
-                        <FolderOpen className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                        <span>Mods Folder</span>
+                <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-xl p-4 flex flex-col gap-3 shadow-sm`}>
+                    <div className="flex items-center gap-2.5 select-none">
+                        <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider">Mods Folder</div>
                     </div>
-                    <div className={`h-px ${DIVIDER.line} flex-1`} />
-                </div>
-                <div className="flex flex-col gap-2 pb-5">
                     <p className={`text-[10.5px] leading-snug ${TEXT.secondary}`}>
                         Directory where installed Factorio `.zip` mod files are loaded.
                     </p>
@@ -234,7 +228,7 @@ export const SettingsSidebar: React.FC = () => {
                         {/* 100% Width Path Bar with Dynamic Flexbox Middle Truncation */}
                         <Tooltip content={folderPath ? `Full Mods Directory: ${folderPath}` : null} className="w-full">
                             <div className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl ${LAYER.innerRecessed} ${BORDER.inner} font-mono text-[11px] text-slate-800 dark:text-zinc-200 overflow-hidden cursor-default`}>
-                                <FolderOpen className="w-4 h-4 text-amber-500 shrink-0" />
+                                <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
                                 {pathSplit ? (
                                     <div className="flex items-center min-w-0 font-mono font-semibold text-[11px] text-slate-800 dark:text-zinc-200 select-all overflow-hidden w-full">
                                         <span className="truncate shrink min-w-0">{pathSplit.head}</span>
@@ -251,9 +245,9 @@ export const SettingsSidebar: React.FC = () => {
                             <Tooltip content="Browse or choose a different Factorio mods folder" className="w-full">
                                 <button
                                     onClick={handleBrowseFolder}
-                                    className={`w-full flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-300/60 dark:hover:bg-zinc-700/80 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer shadow-2xs`}
+                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-transparent ${BORDER.pill} ${HOVER_BORDER.cardBright} hover:bg-slate-200/60 dark:hover:bg-[#21262d] ${INTERACTIVE.pillHover} active:scale-95 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer group shadow-2xs`}
                                 >
-                                    <FolderSearch className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 shrink-0" />
+                                    <FolderSearch className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 group-hover:text-blue-500 dark:group-hover:text-[#58a6ff] shrink-0 transition-colors" />
                                     <span className="truncate">Browse</span>
                                 </button>
                             </Tooltip>
@@ -261,9 +255,9 @@ export const SettingsSidebar: React.FC = () => {
                             <Tooltip content="Auto-detect standard Factorio mods folder for your OS" className="w-full">
                                 <button
                                     onClick={handleAutoDetect}
-                                    className={`w-full flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-300/60 dark:hover:bg-zinc-700/80 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer shadow-2xs`}
+                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-transparent ${BORDER.pill} ${HOVER_BORDER.cardBright} hover:bg-slate-200/60 dark:hover:bg-[#21262d] ${INTERACTIVE.pillHover} active:scale-95 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer group shadow-2xs`}
                                 >
-                                    <Wand2 className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 shrink-0" />
+                                    <Wand2 className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 group-hover:text-blue-500 dark:group-hover:text-[#58a6ff] shrink-0 transition-colors" />
                                     <span className="truncate">Auto-Detect</span>
                                 </button>
                             </Tooltip>
@@ -272,9 +266,9 @@ export const SettingsSidebar: React.FC = () => {
                                 <button
                                     onClick={handleOpenExplorer}
                                     disabled={!folderPath}
-                                    className={`w-full flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl ${LAYER.pillSurface} ${BORDER.pill} ${HOVER_BORDER.pill} hover:bg-slate-300/60 dark:hover:bg-zinc-700/80 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs`}
+                                    className={`w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-transparent ${BORDER.pill} ${HOVER_BORDER.cardBright} hover:bg-slate-200/60 dark:hover:bg-[#21262d] ${INTERACTIVE.pillHover} active:scale-95 transition-all text-slate-800 dark:text-zinc-200 font-semibold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed group shadow-2xs`}
                                 >
-                                    <FolderOpen className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 shrink-0" />
+                                    <FolderOpen className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-400 group-hover:text-blue-500 dark:group-hover:text-[#58a6ff] shrink-0 transition-colors" />
                                     <span className="truncate">Open</span>
                                 </button>
                             </Tooltip>
@@ -283,14 +277,11 @@ export const SettingsSidebar: React.FC = () => {
                 </div>
 
                 {/* Section 3: App Theme Preference */}
-                <div className="pt-2 pb-3 flex items-center gap-2.5 select-none">
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider shrink-0">
-                        <Palette className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                        <span>Theme</span>
+                <div className={`${LAYER.cardSurface} ${BORDER.card} rounded-xl p-4 flex flex-col gap-3 shadow-sm`}>
+                    <div className="flex items-center gap-2.5 select-none">
+                        <Palette className="w-4 h-4 text-blue-500 shrink-0" />
+                        <div className="text-[11px] font-bold text-slate-700 dark:text-zinc-200 uppercase tracking-wider">Theme</div>
                     </div>
-                    <div className={`h-px ${DIVIDER.line} flex-1`} />
-                </div>
-                <div className="flex flex-col gap-2">
                     <p className={`text-[10.5px] leading-snug ${TEXT.secondary}`}>
                         Choose visual theme preference.
                     </p>
@@ -310,7 +301,7 @@ export const SettingsSidebar: React.FC = () => {
                                         : `text-slate-600 dark:text-[#8b949e] hover:text-slate-900 dark:hover:text-[#f0f6fc] font-semibold border border-transparent hover:bg-slate-200/50 dark:hover:bg-[#161b22]/60`
                                         }`}
                                 >
-                                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-blue-600 dark:text-[#58a6ff]' : t.color}`} />
+                                    <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-blue-600 dark:text-[#58a6ff]' : 'text-slate-500 dark:text-zinc-400'}`} />
                                     <span>{t.label}</span>
                                 </button>
                             );
