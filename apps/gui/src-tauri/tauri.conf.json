@@ -21,6 +21,13 @@
         "minHeight": 720,
         "decorations": false,
         "transparent": true,
+        "backgroundColor": "#0d1117",
+        "shadow": true,
+        "windowEffects": {
+          "effects": ["sidebar", "mica"],
+          "state": "followsWindowActiveState",
+          "radius": 12
+        },
         "resizable": true
       }
     ],

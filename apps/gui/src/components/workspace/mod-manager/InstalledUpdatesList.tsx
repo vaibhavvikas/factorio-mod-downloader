@@ -95,7 +95,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                     );
                     if (interactive) (event as any).__ignoreCardToggle = true;
                 }}
-                className={`h-full cursor-pointer ${LAYER.contentCard} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
+                className={`h-full cursor-pointer ${LAYER.contentCard} ${BORDER.card} rounded-lg shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
                 <div className="h-full p-4 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-start gap-3 overflow-hidden">

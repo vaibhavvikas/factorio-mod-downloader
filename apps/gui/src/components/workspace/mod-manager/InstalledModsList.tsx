@@ -69,7 +69,7 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
         return (
             <div
                 key={mod.name}
-                className={`h-full ${LAYER.contentCard} ${BORDER.card} rounded-2xl shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden`}
+                className={`h-full ${LAYER.contentCard} ${BORDER.card} rounded-lg shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden`}
             >
                 <div className="h-full p-4 flex flex-col justify-between gap-3">
                     {/* Top Section: Thumbnail + Mod Title & Name + Author */}

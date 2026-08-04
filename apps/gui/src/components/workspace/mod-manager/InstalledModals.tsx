@@ -141,7 +141,7 @@ export const DeleteModModal: React.FC<DeleteModModalProps> = ({ data, onClose, o
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div
-                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl w-full max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text overflow-hidden`}
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-lg w-full max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text overflow-hidden`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -267,7 +267,7 @@ export const DependencyUpgradeConflictModal: React.FC<DependencyUpgradeConflictM
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div
-                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-6 flex flex-col gap-4 transition-all select-text`}
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-lg w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-6 flex flex-col gap-4 transition-all select-text`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -428,7 +428,7 @@ export const BulkDeleteModModal: React.FC<BulkDeleteModModalProps> = ({ data, on
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div
-                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl w-full max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text overflow-hidden`}
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-lg w-full max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text overflow-hidden`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -596,7 +596,7 @@ export const BatchUpdateModal: React.FC<BatchUpdateModalProps> = ({
             onDoubleClick={(e) => e.stopPropagation()}
         >
             <div
-                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-2xl w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text overflow-hidden`}
+                className={`${LAYER.modalPanel} ${BORDER.outer} rounded-lg w-[92vw] min-w-[360px] max-w-lg md:max-w-xl max-h-[85vh] shadow-2xl p-5 md:p-6 flex flex-col gap-3.5 transition-all select-text overflow-hidden`}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}

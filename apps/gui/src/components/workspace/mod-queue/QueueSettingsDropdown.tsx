@@ -82,7 +82,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
 
             {open && (
                 <div
-                    className={`absolute right-0 top-full mt-2 z-50 w-[350px] rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} shadow-2xl p-3.5 flex flex-col gap-3 animate-fade-in backdrop-blur-xl`}
+                    className={`absolute right-0 top-full mt-2 z-50 w-[350px] rounded-lg ${BORDER.dropdown} ${LAYER.floatingPanel} shadow-2xl p-3.5 flex flex-col gap-3 animate-fade-in backdrop-blur-xl`}
                     onMouseDown={(e) => e.stopPropagation()}
                 >
                     {/* Header */}

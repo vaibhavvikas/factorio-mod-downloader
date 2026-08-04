@@ -106,7 +106,7 @@ export const SettingsSidebar: React.FC = () => {
     return (
         <div
             style={{ transform: isOpen ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
-            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-lg ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
         >
             {/* Header section */}
             <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>

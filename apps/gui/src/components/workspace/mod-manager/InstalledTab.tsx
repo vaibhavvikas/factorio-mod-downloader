@@ -316,68 +316,10 @@ export const InstalledTab: React.FC = () => {
                 />
             )}
 
-            <div className="pt-3 px-3 pb-0 shrink-0 flex flex-col gap-4">
-                <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between text-xs shadow-xs`}>
-                    <div className="flex items-center gap-2.5 text-slate-600 dark:text-zinc-300 overflow-hidden">
-                        <FolderOpen className="w-4 h-4 text-blue-500 shrink-0" />
-                        <span className="font-semibold text-slate-400 dark:text-zinc-500">Mods Path:</span>
-                        <Tooltip content={folderPath}>
-                            <span className="font-mono text-[11px] text-slate-900 dark:text-zinc-100 truncate">
-                                {folderPath ? truncateMiddlePath(folderPath, 50) : 'Detecting folder...'}
-                            </span>
-                        </Tooltip>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                        <Tooltip content="Browse / Change Folder">
-                            <button
-                                onClick={(e) => {
-                                    e.currentTarget.blur();
-                                    handleBrowseFolder();
-                                }}
-                                className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
-                            >
-                                <FolderSearch className="w-3.5 h-3.5 text-blue-500" />
-                            </button>
-                        </Tooltip>
-
-                        <Tooltip content="Open folder in File Explorer">
-                            <button
-                                onClick={async (e) => {
-                                    e.currentTarget.blur();
-                                    if (!folderPath) return;
-                                    try {
-                                        await invoke('open_folder_in_explorer', { path: folderPath });
-                                    } catch (err) {
-                                        console.error('Failed to open folder:', err);
-                                    }
-                                }}
-                                className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors`}
-                            >
-                                <FolderOutput className="w-3.5 h-3.5 text-blue-500" />
-                            </button>
-                        </Tooltip>
-
-                        <Tooltip content={isCheckingUpdates ? 'Checking for online mod updates...' : isAnyLoading ? 'Scanning local mods folder...' : 'Sync & check for mod updates'}>
-                            <button
-                                onClick={(e) => {
-                                    e.currentTarget.blur();
-                                    loadInstalledMods(folderPath);
-                                }}
-                                disabled={isAnyLoading}
-                                className={`${INTERACTIVE.secondary} p-1.5 rounded-lg ${BORDER.inner} cursor-pointer transition-colors disabled:opacity-50 select-none flex items-center justify-center`}
-                                aria-label="Sync & Check Updates"
-                            >
-                                <RefreshCw className={`w-3.5 h-3.5 text-blue-500 ${isAnyLoading ? 'animate-spin' : ''}`} />
-                            </button>
-                        </Tooltip>
-                    </div>
-                </div>
-            </div>
-
             <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
-                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {installedMods.length > 0 && (
-                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 h-11 flex items-center justify-between rounded-t-2xl`}>
+                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 h-11 flex items-center justify-between rounded-t-lg`}>
                              <div className="inline-flex gap-6 h-full text-xs font-bold select-none">
                                  <button
                                      onClick={() => setActiveTab('installed')}
@@ -389,7 +331,7 @@ export const InstalledTab: React.FC = () => {
                                  >
                                      <Package className={`w-3.5 h-3.5 ${activeTab === 'installed' ? 'text-blue-500' : 'text-slate-400 dark:text-zinc-500'}`} />
                                      <span>Installed Mods</span>
-                                     <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${activeTab === 'installed' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-zinc-700/60 text-slate-600 dark:text-zinc-300'}`}>
+                                     <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold ${activeTab === 'installed' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-zinc-700/60 text-slate-600 dark:text-zinc-300'}`}>
                                          {installedMods.length}
                                      </span>
                                      {activeTab === 'installed' && (
@@ -407,7 +349,7 @@ export const InstalledTab: React.FC = () => {
                                      <Wrench className={`w-3.5 h-3.5 ${activeTab === 'updates' ? 'text-amber-500' : 'text-slate-400 dark:text-zinc-500'}`} />
                                      <span>Action Required</span>
                                      {updateCount > 0 && (
-                                         <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                         <span className="px-1.5 py-0.2 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400">
                                              {updateCount}
                                          </span>
                                      )}

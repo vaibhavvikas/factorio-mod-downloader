@@ -23,6 +23,10 @@ export interface ModSearchResultItem {
 interface SearchTabProps {
     existingModNames: string[];
     onAddModToQueue: (modName: string, goToQueue?: boolean) => Promise<void> | void;
+    query: string;
+    setQuery: (q: string) => void;
+    reloadTrigger: number;
+    onSearchLoadingChange: (loading: boolean) => void;
 }
 
 const CATEGORY_FILTERS = [
@@ -178,7 +182,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
 
     return (
         <div
-            className={`relative self-start ${LAYER.contentCard} ${BORDER.card} rounded-2xl p-3 shadow-xs hover:z-10 ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 flex flex-col gap-2.5`}
+            className={`relative self-start ${LAYER.contentCard} ${BORDER.card} rounded-lg p-3 shadow-xs hover:z-10 ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 flex flex-col gap-2.5`}
         >
             <div className="flex min-h-12 items-center gap-2.5">
                 {item.thumbnail && !hasImgError ? (
@@ -311,12 +315,15 @@ interface ModBrowseResponse {
 export const SearchTab: React.FC<SearchTabProps> = ({
     existingModNames,
     onAddModToQueue,
+    query,
+    setQuery,
+    reloadTrigger,
+    onSearchLoadingChange,
 }) => {
     const { addLog, factorioVersion } = useAppContext();
     const addLogRef = useRef(addLog);
     const resultsScrollRef = useRef<HTMLDivElement>(null);
     const categoryScrollRef = useRef<HTMLDivElement>(null);
-    const [query, setQuery] = useState('');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [spaceAgeFilter, setSpaceAgeFilter] = useState(false);
     const [addingModNames, setAddingModNames] = useState<Set<string>>(() => new Set());
@@ -326,7 +333,6 @@ export const SearchTab: React.FC<SearchTabProps> = ({
     const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [reloadTrigger, setReloadTrigger] = useState(0);
 
     useEffect(() => {
         addLogRef.current = addLog;
@@ -354,10 +360,16 @@ export const SearchTab: React.FC<SearchTabProps> = ({
         resultsScrollRef.current?.scrollTo({ top: 0 });
     }, [query, selectedCategories, spaceAgeFilter, page]);
 
+    // Reset to page 1 when query changes
+    useEffect(() => {
+        setPage(1);
+    }, [query]);
+
     useEffect(() => {
         let cancelled = false;
         const timer = setTimeout(async () => {
             setLoading(true);
+            onSearchLoadingChange(true);
             try {
                 const trimmed = query.trim();
                 const res = await invoke<ModBrowseResponse>('browse_mods', {
@@ -377,7 +389,10 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                 setResults([]);
                 setTotalPages(1);
             }
-            if (!cancelled) setLoading(false);
+            if (!cancelled) {
+                setLoading(false);
+                onSearchLoadingChange(false);
+            }
         }, query.trim() ? 300 : 0);
 
         return () => {
@@ -424,49 +439,9 @@ export const SearchTab: React.FC<SearchTabProps> = ({
     })();
 
     return (
-        <div className={`relative h-full min-h-0 flex flex-col gap-4 px-3 pt-3 pb-2 ${LAYER.appCanvas}`}>
-            {/* Top Search Bar & Category Filter Pills */}
-            <div className="flex flex-col gap-4 shrink-0">
-                <div className={`flex h-10 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl pl-3.5 pr-1.5 py-1.5 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
-                    <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value);
-                            setPage(1);
-                        }}
-                        placeholder="Search Factorio mods by title, author, or keyword (e.g. Krastorio, Space Exploration, Bob...)"
-                        className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
-                    />
-                    {query.length > 0 && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setQuery('');
-                                setPage(1);
-                            }}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
-                            aria-label="Clear search"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    )}
-
-
-
-                    {/* Reload Mods Button */}
-                    <button
-                        type="button"
-                        onClick={() => setReloadTrigger(prev => prev + 1)}
-                        disabled={loading}
-                        aria-label="Reload mod results"
-                        className={`h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50`}
-                    >
-                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-blue-500' : ''}`} />
-                    </button>
-                </div>
-
+        <div className={`relative h-full min-h-0 flex flex-col gap-3 px-3 pt-3 pb-2 ${LAYER.appCanvas}`}>
+            {/* Category Filter Pills */}
+            <div className="shrink-0">
                 <div className="relative min-w-0 flex items-center gap-2">
                     {/* Space Age Expansion Toggle Pill */}
                     <button
@@ -529,7 +504,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
             </div>
 
             <div className="relative flex flex-col flex-1 min-h-0">
-                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     <div className="relative flex-1 min-h-0">
                         <div ref={resultsScrollRef} className="scroller-panel card h-full">
                             {results.length === 0 && !loading ? (
@@ -567,7 +542,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         </div>
 
                         {loading && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/15 dark:bg-black/25 pointer-events-auto cursor-wait">
+                            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-black/15 dark:bg-black/25 pointer-events-auto cursor-wait">
                                 <div className={`flex items-center gap-2 rounded-xl ${BORDER.cardSoft} ${LAYER.floatingPanel} px-3 py-2 shadow-lg text-[11px] font-semibold text-slate-700 dark:text-zinc-200`}>
                                     <span className="loading-bars" aria-hidden="true"><i /><i /><i /></span>
                                     Loading mods…

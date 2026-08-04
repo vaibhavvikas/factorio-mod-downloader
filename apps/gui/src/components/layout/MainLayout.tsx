@@ -7,13 +7,10 @@ import { useAppContext } from '../../context/AppContext';
 import { Mail, Sparkles, Heart, ExternalLink } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { getVersion } from '@tauri-apps/api/app';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { LAYER, BORDER, TEXT, HOVER_BORDER } from '../../theme/layers';
 
 import { SettingsSidebar } from './SettingsSidebar';
-
-const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
 
 export function isVersionNewer(onlineVersion: string, currentVersion: string): boolean {
     const clean = (v: string) => v.replace(/^v/i, '').trim();
@@ -35,24 +32,6 @@ export const MainLayout: React.FC = () => {
     const consoleEndRef = useRef<HTMLDivElement>(null);
 
     const [latestRelease, setLatestRelease] = useState<{ version: string; url: string; hasUpdate: boolean } | null>(null);
-    const [isMaximized, setIsMaximized] = useState(false);
-
-    useEffect(() => {
-        const appWindow = getCurrentWindow();
-        const updateMaxed = async () => {
-            try {
-                const maxed = await appWindow.isMaximized();
-                setIsMaximized(maxed);
-            } catch (e) {}
-        };
-        updateMaxed();
-        let unlisten: (() => void) | undefined;
-        appWindow.onResized(() => updateMaxed()).then(u => { unlisten = u; });
-        return () => {
-            if (unlisten) unlisten();
-        };
-    }, []);
-
     // Auto-scroll console to bottom on new logs & check Factorio Mods folder on startup
     useEffect(() => {
         if (consoleOpen && consoleEndRef.current) {
@@ -90,7 +69,7 @@ export const MainLayout: React.FC = () => {
     }, []);
 
     return (
-        <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative ${isMaximized ? (isMac ? 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl' : 'rounded-none border-none') : 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl'}`}>
+        <div className={`app-window-frame h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative`}>
             <TitleBar
                 hasAppUpdate={latestRelease?.hasUpdate || false}
             />
@@ -121,7 +100,7 @@ export const MainLayout: React.FC = () => {
             <div
                 onMouseDown={(e) => e.stopPropagation()}
                 style={{ transform: activeDrawer === 'profile' ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
-                className={`absolute top-11 right-4 z-40 w-84 rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl p-4 flex flex-col gap-4 text-xs max-h-[85vh] overflow-y-auto transition-all duration-500 ease-in-out ${activeDrawer === 'profile' ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+                className={`absolute top-11 right-4 z-40 w-84 rounded-lg ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl p-4 flex flex-col gap-4 text-xs max-h-[85vh] overflow-y-auto transition-all duration-500 ease-in-out ${activeDrawer === 'profile' ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
             >
                     {/* Avatar & Header */}
                     <div className="flex items-center gap-3">

@@ -202,7 +202,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 >
                     <Download className="w-4 h-4" />
                     {queue.length > 0 && (
-                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-zinc-900 shadow-sm ${isDownloading
+                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-md flex items-center justify-center border-2 border-slate-50 dark:border-zinc-900 shadow-sm ${isDownloading
                             ? 'bg-blue-500 text-white animate-pulse'
                             : 'bg-emerald-500 text-white'
                             }`}>

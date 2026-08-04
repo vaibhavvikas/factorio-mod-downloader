@@ -181,14 +181,14 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
 
                 {/* Recursion / Cycle warning */}
                 {hasCycle && (
-                    <span className={`text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono`}>
+                    <span className={`text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-md shrink-0 font-mono`}>
                         cycle detected
                     </span>
                 )}
 
                 {/* Incompatible tag */}
                 {isIncompatible && (
-                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono">
+                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-md shrink-0 font-mono">
                         incompatible
                     </span>
                 )}
@@ -225,6 +225,11 @@ export interface ResolverTabProps {
     setTargetMods?: React.Dispatch<React.SetStateAction<TargetModItem[]>>;
     parseAndAddMods?: (text: string) => Promise<void>;
     loading?: boolean;
+    autoIncludeRecommended: boolean;
+    autoIncludeOptional: boolean;
+    onToggleAutoIncludeRecommended: (enabled: boolean) => void;
+    onToggleAutoIncludeOptional: (enabled: boolean) => void;
+    onBusyChange?: (busy: boolean) => void;
 }
 
 export const ResolverTab: React.FC<ResolverTabProps> = ({
@@ -232,6 +237,11 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     setTargetMods: externalSetTargetMods,
     parseAndAddMods: externalParseAndAddMods,
     loading: externalLoading,
+    autoIncludeRecommended,
+    autoIncludeOptional,
+    onToggleAutoIncludeRecommended: handleToggleAutoIncludeRecommended,
+    onToggleAutoIncludeOptional: handleToggleAutoIncludeOptional,
+    onBusyChange,
 }) => {
     const { startDownload, addLog, factorioVersion, folderPath, setInstalledMods } = useAppContext();
     const [localTargetMods, setLocalTargetMods] = useState<TargetModItem[]>([]);
@@ -246,17 +256,10 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
             prev.includes(id) ? prev.filter(modId => modId !== id) : [...prev, id]
         );
     };
-    const [inputText, setInputText] = useState('');
     const [isResolvingBatch, setIsResolvingBatch] = useState(false);
     const [viewMode, setViewMode] = useState<'cards' | 'tree'>('cards');
     const [treeCache, setTreeCache] = useState<Record<string, TargetModItem>>({});
     const [isLoadingTree, setIsLoadingTree] = useState(false);
-    const [autoIncludeRecommended, setAutoIncludeRecommended] = useState<boolean>(() => {
-        return getQueueAutoIncludeSettings().recommended;
-    });
-    const [autoIncludeOptional, setAutoIncludeOptional] = useState<boolean>(() => {
-        return getQueueAutoIncludeSettings().optional;
-    });
 
     const lastResolvedKeyRef = useRef<string>('');
 
@@ -295,30 +298,15 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     }, [factorioVersion]);
 
     // Sync selectedDepIds on targetMods when autoIncludeRecommended setting changes
-    const handleToggleAutoIncludeRecommended = (enabled: boolean) => {
-        setAutoIncludeRecommended(enabled);
-        localStorage.setItem(QUEUE_AUTO_RECOMMENDED_KEY, String(enabled));
-        const settings = { recommended: enabled, optional: autoIncludeOptional };
+    useEffect(() => {
+        const settings = { recommended: autoIncludeRecommended, optional: autoIncludeOptional };
         setTargetMods((prev: TargetModItem[]) =>
             prev.map(mod => ({
                 ...mod,
                 selectedDepIds: getInitialSelectedDepIds(mod.dependencies, settings),
             }))
         );
-    };
-
-    // Sync selectedDepIds on targetMods when autoIncludeOptional setting changes
-    const handleToggleAutoIncludeOptional = (enabled: boolean) => {
-        setAutoIncludeOptional(enabled);
-        localStorage.setItem(QUEUE_AUTO_OPTIONAL_KEY, String(enabled));
-        const settings = { recommended: autoIncludeRecommended, optional: enabled };
-        setTargetMods((prev: TargetModItem[]) =>
-            prev.map(mod => ({
-                ...mod,
-                selectedDepIds: getInitialSelectedDepIds(mod.dependencies, settings),
-            }))
-        );
-    };
+    }, [autoIncludeRecommended, autoIncludeOptional]);
 
     // Auto-clear cache when targetMods is cleared
     useEffect(() => {
@@ -449,6 +437,11 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     };
 
     const isBusy = isResolvingBatch || loading || externalLoading === true;
+
+    // Notify parent of busy state changes
+    useEffect(() => {
+        onBusyChange?.(isBusy);
+    }, [isBusy]);
 
     // Convert flat backend dependencies to tree nodes
     const convertBackendDepsToTree = (deps: BackendDependencies): TreeNode[] => {
@@ -634,24 +627,6 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         setTargetMods((prev: TargetModItem[]) => prev.filter((m: TargetModItem) => m.id !== id));
     };
 
-    const handleAddClick = () => {
-        if (!inputText.trim()) return;
-        parseAndAddMods(inputText);
-        setInputText('');
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            parseAndAddMods(text);
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    };
 
 const isModIncompatible = (mod: TargetModItem): boolean => {
         if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return false;
@@ -795,7 +770,7 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
     const renderDependencyTreePanel = () => {
         if (isLoadingTree) {
             return (
-                <div className={`flex flex-col ${LAYER.groupPanel} rounded-2xl ${BORDER.card} shadow-xs items-center justify-center p-6 ${TEXT.muted} gap-3 select-none`}>
+                <div className={`flex flex-col ${LAYER.groupPanel} rounded-lg ${BORDER.card} shadow-xs items-center justify-center p-6 ${TEXT.muted} gap-3 select-none`}>
                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                     <div className="flex flex-col gap-1 text-center max-w-[320px]">
                         <span className={`font-bold ${TEXT.emphasis} text-xs`}>
@@ -812,12 +787,12 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
         const rootMods = getRootMods();
 
         return (
-            <div className={`flex flex-col ${LAYER.groupPanel} ${BORDER.card} shadow-xs overflow-hidden rounded-2xl animate-fade-in`}>
-                <div className={`h-8.5 min-h-8.5 px-3.5 border-b ${BORDER.card} flex items-center justify-between ${LAYER.contentCard} shrink-0 select-none rounded-t-2xl`}>
+            <div className={`flex flex-col ${LAYER.groupPanel} ${BORDER.card} shadow-xs overflow-hidden rounded-lg animate-fade-in`}>
+                <div className={`h-8.5 min-h-8.5 px-3.5 border-b ${BORDER.card} flex items-center justify-between ${LAYER.contentCard} shrink-0 select-none rounded-t-lg`}>
                     <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                         <Layers className="w-3.5 h-3.5 text-blue-500" />
                         <span>Dependency Graph Explorer</span>
-                        <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>
+                        <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-md font-mono font-bold text-slate-700 dark:text-zinc-300`}>
                             {targetMods.length + Object.keys(treeCache).length} resolved
                         </span>
                     </div>
@@ -852,63 +827,11 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
 
     return (
         <div className={`flex h-full min-h-0 flex-col ${LAYER.appCanvas} relative`}>
-            {/* Input Bar Section */}
-            <div className="pt-3 px-3 pb-0 shrink-0 flex flex-col gap-4">
-                <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between shadow-xs gap-3 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all`}>
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                            type="text"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleAddClick();
-                            }}
-                            placeholder="Paste Factorio Mod URL (e.g. mods.factorio.com/mod/Krastorio2) or type mod name..."
-                            className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <QueueSettingsDropdown
-                            autoIncludeRecommended={autoIncludeRecommended}
-                            autoIncludeOptional={autoIncludeOptional}
-                            onToggleRecommended={handleToggleAutoIncludeRecommended}
-                            onToggleOptional={handleToggleAutoIncludeOptional}
-                        />
-
-                        <button
-                            onClick={() => document.getElementById('file-import')?.click()}
-                            className={`${INTERACTIVE.secondary} px-3 py-1.5 rounded-lg text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors`}
-                        >
-                            <FileText className="w-3.5 h-3.5 text-blue-500" />
-                            <span>Import .txt</span>
-                        </button>
-                        <button
-                            onClick={handleAddClick}
-                            disabled={isBusy}
-                            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-[11px] font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                            {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                            <span>{isBusy ? 'Fetching...' : 'Add Mods'}</span>
-                        </button>
-                    </div>
-                    <input
-                        type="file"
-                        id="file-import"
-                        accept=".txt"
-                        style={{ display: 'none' }}
-                        onChange={handleFileChange}
-                    />
-                </div>
-
-
-            </div>
-
             {/* Content view workspace */}
             <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
-                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {targetMods.length > 0 && (
-                        <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 pt-3.5 pb-0 flex items-start justify-between rounded-t-2xl`}>
+                        <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 pt-3.5 pb-0 flex items-start justify-between rounded-t-lg`}>
                             <div className="inline-flex gap-6 text-xs font-bold select-none">
                                 <button
                                     onClick={() => setViewMode('cards')}

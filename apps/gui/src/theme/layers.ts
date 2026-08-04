@@ -1,9 +1,11 @@
 export const LAYER = {
     appCanvas: 'bg-slate-100 dark:bg-[#0d1117]',
-    chromeHeavy: 'bg-slate-50 dark:bg-[#010409]',
+    // Translucent app chrome: enough opacity for contrast, with the layered
+    // depth and blur used by modern desktop shells.
+    chromeHeavy: 'bg-slate-50/78 dark:bg-[#161b22]/78 backdrop-blur-xl backdrop-saturate-150',
 
     viewportGlass: 'bg-slate-50/80 dark:bg-[#0d1117]/80 backdrop-blur-md',
-    navBar: 'bg-slate-50/80 dark:bg-[#161b22]/90 backdrop-blur-md shadow-xs',
+    navBar: 'bg-slate-50/58 dark:bg-[#161b22]/58 backdrop-blur-xl backdrop-saturate-150 shadow-xs',
 
     viewportHeader: 'bg-slate-50 dark:bg-[#161b22]',
     groupPanel: 'bg-slate-50 dark:bg-[#161b22]',
@@ -128,10 +130,10 @@ export const ANIMATION = {
 } as const;
 
 export const PILL_SIZE = {
-    compact: 'h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
-    compactMono: 'panel-pill-mono h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
-    comfortable: 'h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
-    comfortableMono: 'panel-pill-mono h-6 min-h-6 max-h-6 px-2.5 rounded-full inline-flex items-center justify-center leading-none text-[11px]',
+    compact: 'h-6 min-h-6 max-h-6 px-2.5 rounded-md inline-flex items-center justify-center leading-none text-[11px]',
+    compactMono: 'panel-pill-mono h-6 min-h-6 max-h-6 px-2.5 rounded-md inline-flex items-center justify-center leading-none text-[11px]',
+    comfortable: 'h-6 min-h-6 max-h-6 px-2.5 rounded-md inline-flex items-center justify-center leading-none text-[11px]',
+    comfortableMono: 'panel-pill-mono h-6 min-h-6 max-h-6 px-2.5 rounded-md inline-flex items-center justify-center leading-none text-[11px]',
 } as const;
 
 export const PILL_TONE = {

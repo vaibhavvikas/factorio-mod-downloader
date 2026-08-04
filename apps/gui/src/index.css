@@ -3,9 +3,21 @@
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Desktop chrome uses one compact surface radius.  This also normalizes
+     legacy rounded-xl/2xl/3xl utilities without affecting circular icons. */
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.5rem;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* The native compositor supplies the OS shadow/rounded frame where available.
+   These layers also clip the webview itself so undecorated Linux and older
+   Windows hosts never expose square child-content corners. */
+:root {
+  --app-frame-radius: 12px;
+}
 
 /* 1. Lock the root window frame to prevent the entire app from bouncing */
 html,
@@ -15,6 +27,8 @@ body {
   overscroll-behavior: none !important;
   overscroll-behavior-x: none !important;
   overflow-x: hidden !important;
+  border-radius: var(--app-frame-radius);
+  overflow: hidden;
 }
 
 html.dark,
@@ -29,6 +43,9 @@ html.dark body {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  border-radius: var(--app-frame-radius);
+  clip-path: inset(0 round var(--app-frame-radius));
+  isolation: isolate;
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -37,6 +54,14 @@ html.dark body {
 /* 1b. Smooth app entrance – prevents layout shift flash */
 .app-ready {
   opacity: 1;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.app-window-frame {
+  border-radius: inherit;
+  clip-path: inset(0 round var(--app-frame-radius));
 }
 
 /* 2. Target your scrollable workspace/sidebar containers to stop internal rubber-banding.
@@ -347,6 +372,7 @@ html.dark body {
   appearance: none;
   -webkit-appearance: none;
   vertical-align: middle;
+  border-radius: var(--radius-md);
 }
 
 .panel-pill-mono {

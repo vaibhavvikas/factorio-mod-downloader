@@ -33,14 +33,14 @@ export const NetworkSidebar: React.FC = () => {
     return (
         <div
             style={{ transform: sidebarOpen ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
-            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${sidebarOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-lg ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${sidebarOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
         >
             {/* Header section */}
             <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                     <Download className="w-3.5 h-3.5 text-blue-500" />
                     <span>Download Manager</span>
-                    <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>{queue.length}</span>
+                    <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-md font-mono font-bold text-slate-700 dark:text-zinc-300`}>{queue.length}</span>
                 </div>
                 <div className="flex items-center gap-1">
                     {activeItems.length > 0 && (

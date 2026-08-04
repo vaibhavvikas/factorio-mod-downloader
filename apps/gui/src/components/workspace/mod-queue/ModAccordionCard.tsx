@@ -247,9 +247,9 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     const categoryPillTone = getCategoryPillTone(mod.category);
 
     return (
-        <div className={`w-full ${LAYER.cardSurface} ${BORDER.card} rounded-2xl shadow-xs ${isCardIncompatible ? 'hover:border-rose-400 dark:hover:border-rose-500/60' : HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
+        <div className={`w-full ${LAYER.cardSurface} ${BORDER.card} rounded-lg shadow-xs ${isCardIncompatible ? 'hover:border-rose-400 dark:hover:border-rose-500/60' : HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
             {/* Sticky Header — pins to top of scroll container like VS Code sticky scroll */}
-            <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.cardSurface} rounded-t-2xl`}>
+            <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.cardSurface} rounded-t-lg`}>
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 overflow-hidden">
                         {/* Mod Thumbnail image with initial letter fallback */}
