@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Compass, Package, HardDrive, Terminal, Trash2, X, Search as SearchIcon, RefreshCw, FileText, Loader2, FolderOpen, FolderSearch, FolderOutput } from 'lucide-react';
+import { Compass, Package, HardDrive, Terminal, Trash2, X, Search as SearchIcon, RefreshCw, FileText, Loader2, FolderOpen, FolderSearch, FolderOutput, Plus } from 'lucide-react';
 import { SearchTab } from './explore/SearchTab';
 import { ResolverTab } from './mod-queue/ResolverTab';
 import { InstalledTab } from './mod-manager/InstalledTab';
@@ -298,54 +298,69 @@ export const Workspace: React.FC = () => {
                 </nav>
 
                 {/* Contextual Toolbar — changes based on active tab */}
-                <div className="flex-1 min-w-0 flex items-center h-full">
+                <div className="flex-1 min-w-0 flex items-center justify-end h-full">
                     {/* Explore tab: Search bar */}
                     {activeTab === 'search' && (
-                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-1.5 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
-                            <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Search Factorio mods by title, author, or keyword (e.g. Krastorio, Space Exploration, Bob...)"
-                                className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
-                            />
-                            {searchQuery.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchQuery('')}
-                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
-                                    aria-label="Clear search"
-                                >
-                                    <X className="w-3.5 h-3.5" />
-                                </button>
-                            )}
+                        <div className="flex items-center gap-2 w-full max-w-3xl">
+                            <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-2 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
+                                <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search Factorio mods by title, author, or keyword (e.g. Krastorio, Space Exploration, Bob...)"
+                                    className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
+                                />
+                                {searchQuery.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery('')}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+                                        aria-label="Clear search"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setSearchReloadTrigger(prev => prev + 1)}
                                 disabled={searchLoading}
                                 aria-label="Reload mod results"
-                                className={`h-6 px-2 flex items-center justify-center gap-1 rounded-md ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50`}
+                                className={`h-9 px-3 flex items-center justify-center gap-1.5 rounded-md ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50 text-xs font-medium`}
                             >
-                                <RefreshCw className={`w-3 h-3 ${searchLoading ? 'animate-spin text-blue-500' : ''}`} />
+                                <RefreshCw className={`w-3.5 h-3.5 ${searchLoading ? 'animate-spin text-blue-500' : 'text-slate-500 dark:text-zinc-400'}`} />
+                                <span>Reload</span>
                             </button>
                         </div>
                     )}
 
                     {/* Mod Queue tab: URL/name input bar */}
                     {activeTab === 'queue' && (
-                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-1.5 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
-                            <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <input
-                                type="text"
-                                value={queueInputText}
-                                onChange={(e) => setQueueInputText(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleQueueAddClick();
-                                }}
-                                placeholder="Paste Factorio Mod URL or type mod name..."
-                                className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
-                            />
+                        <div className="flex items-center gap-2 w-full max-w-3xl">
+                            <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-2 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
+                                <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <input
+                                    type="text"
+                                    value={queueInputText}
+                                    onChange={(e) => setQueueInputText(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleQueueAddClick();
+                                    }}
+                                    placeholder="Paste Factorio Mod URL or type mod name..."
+                                    className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
+                                />
+                                {queueInputText.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setQueueInputText('')}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+                                        aria-label="Clear input"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
                             <div className="flex items-center gap-1.5 shrink-0">
                                 <QueueSettingsDropdown
                                     autoIncludeRecommended={queueAutoIncludeRecommended}
@@ -355,17 +370,17 @@ export const Workspace: React.FC = () => {
                                 />
                                 <button
                                     onClick={() => queueFileInputRef.current?.click()}
-                                    className={`${INTERACTIVE.secondary} px-2 py-1 rounded-md text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1 transition-colors`}
+                                    className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors shadow-2xs`}
                                 >
-                                    <FileText className="w-3 h-3 text-blue-500" />
+                                    <FileText className="w-3.5 h-3.5 text-blue-500" />
                                     <span>Import</span>
                                 </button>
                                 <button
                                     onClick={handleQueueAddClick}
                                     disabled={queueBusy || loading}
-                                    className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-2.5 py-1 rounded-md text-[11px] font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                                    className={`h-9 ${INTERACTIVE.secondary} px-3 rounded-md text-xs font-medium ${BORDER.inner} cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50 shrink-0`}
                                 >
-                                    {(queueBusy || loading) ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                                    {(queueBusy || loading) ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" /> : <Plus className="w-3.5 h-3.5 text-blue-500" />}
                                     <span>{(queueBusy || loading) ? 'Fetching...' : 'Add'}</span>
                                 </button>
                             </div>
@@ -381,26 +396,27 @@ export const Workspace: React.FC = () => {
 
                     {/* Mod Manager tab: Folder path bar */}
                     {activeTab === 'installed' && (
-                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-1.5 py-1 items-center justify-between text-xs shadow-xs`}>
-                             <div className="flex items-center gap-2 text-slate-600 dark:text-zinc-300 overflow-hidden min-w-0">
-                                 <FolderOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                 <span className="font-semibold text-slate-400 dark:text-zinc-500 shrink-0">Mods Path:</span>
-                                 <Tooltip content={folderPath}>
-                                     <span className="font-mono text-[11px] text-slate-900 dark:text-zinc-100 overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
-                                         {folderPath || 'Detecting folder...'}
-                                     </span>
-                                 </Tooltip>
-                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-2 w-full max-w-3xl">
+                            <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-3 py-1 items-center gap-2 text-xs shadow-xs min-w-0`}>
+                                <FolderOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                <span className="font-semibold text-slate-400 dark:text-zinc-500 shrink-0">Mods Path:</span>
+                                <Tooltip content={folderPath}>
+                                    <span className="font-mono text-[11px] text-slate-900 dark:text-zinc-100 overflow-hidden text-ellipsis whitespace-nowrap min-w-0 flex-1">
+                                        {folderPath || 'Detecting folder...'}
+                                    </span>
+                                </Tooltip>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
                                 <Tooltip content="Browse / Change Folder">
                                     <button
                                         onClick={(e) => {
                                             e.currentTarget.blur();
                                             handleBrowseFolder();
                                         }}
-                                        className={`${INTERACTIVE.secondary} p-1 rounded-md ${BORDER.inner} cursor-pointer transition-colors`}
+                                        className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md ${BORDER.inner} cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-2xs text-xs font-medium`}
                                     >
-                                        <FolderSearch className="w-3 h-3 text-blue-500" />
+                                        <FolderSearch className="w-3.5 h-3.5 text-blue-500" />
+                                        <span>Browse</span>
                                     </button>
                                 </Tooltip>
                                 <Tooltip content="Open folder in File Explorer">
@@ -414,9 +430,10 @@ export const Workspace: React.FC = () => {
                                                 console.error('Failed to open folder:', err);
                                             }
                                         }}
-                                        className={`${INTERACTIVE.secondary} p-1 rounded-md ${BORDER.inner} cursor-pointer transition-colors`}
+                                        className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md ${BORDER.inner} cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-2xs text-xs font-medium`}
                                     >
-                                        <FolderOutput className="w-3 h-3 text-blue-500" />
+                                        <FolderOutput className="w-3.5 h-3.5 text-blue-500" />
+                                        <span>Open Folder</span>
                                     </button>
                                 </Tooltip>
                                 <Tooltip content={isCheckingUpdates ? 'Checking for online mod updates...' : isInstalledAnyLoading ? 'Scanning local mods folder...' : 'Sync & check for mod updates'}>
@@ -426,10 +443,11 @@ export const Workspace: React.FC = () => {
                                             loadInstalledMods(folderPath);
                                         }}
                                         disabled={isInstalledAnyLoading}
-                                        className={`${INTERACTIVE.secondary} p-1 rounded-md ${BORDER.inner} cursor-pointer transition-colors disabled:opacity-50 select-none flex items-center justify-center`}
+                                        className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md ${BORDER.inner} cursor-pointer transition-colors disabled:opacity-50 select-none flex items-center justify-center gap-1.5 shadow-2xs text-xs font-medium`}
                                         aria-label="Sync & Check Updates"
                                     >
-                                        <RefreshCw className={`w-3 h-3 text-blue-500 ${isInstalledAnyLoading ? 'animate-spin' : ''}`} />
+                                        <RefreshCw className={`w-3.5 h-3.5 text-blue-500 ${isInstalledAnyLoading ? 'animate-spin' : ''}`} />
+                                        <span>Sync</span>
                                     </button>
                                 </Tooltip>
                             </div>

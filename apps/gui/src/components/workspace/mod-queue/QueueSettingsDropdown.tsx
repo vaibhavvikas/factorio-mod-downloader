@@ -66,7 +66,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors ${open
+                className={`h-9 px-2.5 rounded-md text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-2xs ${open
                     ? 'bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400'
                     : `${INTERACTIVE.secondary} text-slate-800 dark:text-zinc-200`
                     }`}
