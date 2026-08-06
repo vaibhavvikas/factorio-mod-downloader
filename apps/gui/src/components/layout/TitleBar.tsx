@@ -35,7 +35,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             try {
                 const maxed = await appWindow.isMaximized();
                 setIsMaximized(maxed);
-            } catch (e) {
+            } catch {
                 // Ignore error if window API not ready
             }
         };
@@ -47,7 +47,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 unlisten = await appWindow.onResized(() => {
                     updateMaximizedState();
                 });
-            } catch (e) {
+            } catch {
                 // Ignore fallback
             }
         };
@@ -171,7 +171,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         <div
             data-tauri-drag-region
             onDoubleClick={handleTitleBarDoubleClick}
-            className={`relative h-10 ${LAYER.chromeHeavy} border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
+            className={`relative h-10 ${LAYER.navBar} backdrop-blur-2xl backdrop-saturate-200 border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
         >
             {/* Left Side: OS controls on Mac, Brand logo on Windows */}
             {isMac ? renderMacControls() : (

@@ -6,20 +6,7 @@ import { Checkbox } from '../../ui/Checkbox';
 import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, PILL_SIZE } from '../../../theme/layers';
 import { InstalledVersionDropdown } from './InstalledVersionDropdown';
 import { Tooltip } from '../../ui/Tooltip';
-
-function compareVersions(a: string, b: string): number {
-    const parse = (v: string) => (v || '').replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
-    const pa = parse(a);
-    const pb = parse(b);
-    const maxLen = Math.max(pa.length, pb.length);
-    for (let i = 0; i < maxLen; i++) {
-        const na = pa[i] || 0;
-        const nb = pb[i] || 0;
-        if (na > nb) return 1;
-        if (na < nb) return -1;
-    }
-    return 0;
-}
+import { compareVersions } from '../../../utils/versionUtils';
 
 const getInitials = (title: string): string => {
     if (!title) return 'MD';
@@ -95,7 +82,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                     );
                     if (interactive) (event as any).__ignoreCardToggle = true;
                 }}
-                className={`h-full cursor-pointer ${LAYER.contentCard} ${BORDER.card} rounded-lg shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
+                className={`h-full cursor-pointer ${LAYER.contentCard} ${BORDER.card} rounded-md shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden ${activeDownloading ? 'opacity-60 pointer-events-none' : ''}`}>
                 <div className="h-full p-4 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-start gap-3 overflow-hidden">
@@ -139,7 +126,7 @@ export const InstalledUpdatesList: React.FC<InstalledUpdatesListProps> = ({
                                     await openUrl(`https://mods.factorio.com/mod/${mod.name}`);
                                 }}
                                 aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer block"
+                                className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-md transition-colors cursor-pointer block"
                             >
                                 <ExternalLink className="w-4 h-4" />
                             </a>

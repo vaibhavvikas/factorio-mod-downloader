@@ -33,7 +33,7 @@ export const NetworkSidebar: React.FC = () => {
     return (
         <div
             style={{ transform: sidebarOpen ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
-            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-lg ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${sidebarOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-md ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${sidebarOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
         >
             {/* Header section */}
             <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
@@ -186,7 +186,7 @@ export const NetworkSidebar: React.FC = () => {
                                                 </div>
                                                 <button
                                                     onClick={() => retryTask(item.id)}
-                                                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
+                                                    className="px-2.5 py-1 rounded-md bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs"
                                                     title="Retry downloading this mod"
                                                 >
                                                     <RotateCcw className="w-3 h-3" />

@@ -17,23 +17,6 @@ import {
     getQueueAutoIncludeSettings,
 } from './mod-queue/queueAutoSelect';
 
-function truncateMiddlePath(path: string, maxLength: number = 45): string {
-    if (!path || path.length <= maxLength) return path;
-    const parts = path.split(/[/\\]/);
-    if (parts.length <= 3) {
-        const half = Math.floor((maxLength - 5) / 2);
-        return `${path.slice(0, half)}...${path.slice(-half)}`;
-    }
-    const sep = path.includes('/') ? '/' : '\\\\';
-    const root = parts.slice(0, 2).join(sep);
-    const tail = parts.slice(-2).join(sep);
-    const middle = `${root}${sep}...${sep}${tail}`;
-    if (middle.length <= maxLength + 10) return middle;
-
-    const half = Math.floor((maxLength - 5) / 2);
-    return `${path.slice(0, half)}...${path.slice(-half)}`;
-}
-
 export const Workspace: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'search' | 'queue' | 'installed'>('search');
     const [targetMods, setTargetMods] = useState<TargetModItem[]>([]);
@@ -60,8 +43,7 @@ export const Workspace: React.FC = () => {
     });
 
     // === Lifted state for InstalledTab (Mod Manager) ===
-    const [installedLoading, setInstalledLoading] = useState(false);
-    const isInstalledAnyLoading = installedLoading || loadingInstalled;
+    const isInstalledAnyLoading = loadingInstalled;
 
     const handleClearLogs = () => {
         setIsClearingLogs(true);
@@ -197,7 +179,7 @@ export const Workspace: React.FC = () => {
                         modName = pathParts[pathParts.length - 1];
                     }
                 }
-            } catch (e) {
+            } catch {
                 // Ignore URL parsing errors
             }
 
@@ -274,12 +256,12 @@ export const Workspace: React.FC = () => {
     return (
         <div className={`flex-1 flex flex-col w-full h-full min-w-0 min-h-0 ${LAYER.appCanvas} transition-colors relative overflow-hidden`}>
             {/* Primary App Navigation Header Bar */}
-            <div className={`h-14 flex items-center justify-between ${LAYER.navBar} border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none relative z-30 gap-3`}>
+            <div className={`h-14 flex items-center justify-between ${LAYER.navBar} border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none relative z-30 gap-8`}>
                 <nav className="flex items-center gap-2 h-full shrink-0">
                     {/* Tab 1: Explore */}
                     <button
                         onClick={() => setActiveTab('search')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'search' ? LAYER.navTabActive : LAYER.navTabInactive
+                        className={`h-9 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'search' ? LAYER.navTabActive : LAYER.navTabInactive
                             }`}
                     >
                         <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
@@ -289,7 +271,7 @@ export const Workspace: React.FC = () => {
                     {/* Tab 2: Mod Queue */}
                     <button
                         onClick={() => setActiveTab('queue')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'queue' ? LAYER.navTabActive : LAYER.navTabInactive
+                        className={`h-9 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'queue' ? LAYER.navTabActive : LAYER.navTabInactive
                             }`}
                     >
                         <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
@@ -307,7 +289,7 @@ export const Workspace: React.FC = () => {
                     {/* Tab 3: Mod Manager */}
                     <button
                         onClick={() => setActiveTab('installed')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'installed' ? LAYER.navTabActive : LAYER.navTabInactive
+                        className={`h-9 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'installed' ? LAYER.navTabActive : LAYER.navTabInactive
                             }`}
                     >
                         <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
@@ -319,7 +301,7 @@ export const Workspace: React.FC = () => {
                 <div className="flex-1 min-w-0 flex items-center h-full">
                     {/* Explore tab: Search bar */}
                     {activeTab === 'search' && (
-                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-lg pl-3 pr-1.5 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
+                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-1.5 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
                             <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <input
                                 type="text"
@@ -352,7 +334,7 @@ export const Workspace: React.FC = () => {
 
                     {/* Mod Queue tab: URL/name input bar */}
                     {activeTab === 'queue' && (
-                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-lg pl-3 pr-1.5 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
+                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-1.5 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
                             <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                             <input
                                 type="text"
@@ -399,16 +381,16 @@ export const Workspace: React.FC = () => {
 
                     {/* Mod Manager tab: Folder path bar */}
                     {activeTab === 'installed' && (
-                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-lg pl-3 pr-1.5 py-1 items-center justify-between text-xs shadow-xs`}>
-                            <div className="flex items-center gap-2 text-slate-600 dark:text-zinc-300 overflow-hidden">
-                                <FolderOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                <span className="font-semibold text-slate-400 dark:text-zinc-500 shrink-0">Mods Path:</span>
-                                <Tooltip content={folderPath}>
-                                    <span className="font-mono text-[11px] text-slate-900 dark:text-zinc-100 truncate">
-                                        {folderPath ? truncateMiddlePath(folderPath, 50) : 'Detecting folder...'}
-                                    </span>
-                                </Tooltip>
-                            </div>
+                        <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-1.5 py-1 items-center justify-between text-xs shadow-xs`}>
+                             <div className="flex items-center gap-2 text-slate-600 dark:text-zinc-300 overflow-hidden min-w-0">
+                                 <FolderOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                 <span className="font-semibold text-slate-400 dark:text-zinc-500 shrink-0">Mods Path:</span>
+                                 <Tooltip content={folderPath}>
+                                     <span className="font-mono text-[11px] text-slate-900 dark:text-zinc-100 overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                                         {folderPath || 'Detecting folder...'}
+                                     </span>
+                                 </Tooltip>
+                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                                 <Tooltip content="Browse / Change Folder">
                                     <button
@@ -464,7 +446,6 @@ export const Workspace: React.FC = () => {
                             existingModNames={targetMods.map(m => m.name)}
                             onAddModToQueue={handleAddModToQueue}
                             query={searchQuery}
-                            setQuery={setSearchQuery}
                             reloadTrigger={searchReloadTrigger}
                             onSearchLoadingChange={setSearchLoading}
                         />
@@ -474,11 +455,8 @@ export const Workspace: React.FC = () => {
                             targetMods={targetMods}
                             setTargetMods={setTargetMods}
                             loading={loading}
-                            parseAndAddMods={handleParseAndAddMods}
                             autoIncludeRecommended={queueAutoIncludeRecommended}
                             autoIncludeOptional={queueAutoIncludeOptional}
-                            onToggleAutoIncludeRecommended={handleToggleAutoIncludeRecommended}
-                            onToggleAutoIncludeOptional={handleToggleAutoIncludeOptional}
                             onBusyChange={setQueueBusy}
                         />
                     </div>
@@ -490,7 +468,7 @@ export const Workspace: React.FC = () => {
                 {/* System Console Logs Panel — Bottom Docked Persistent Window pushing content up */}
                 {consoleOpen && (
                     <div className={`h-[206px] shrink-0 w-full px-4 pb-3 pt-2 ${LAYER.appCanvas} transition-all duration-200`}>
-                        <div className={`h-full ${LAYER.groupPanel} backdrop-blur-md rounded-lg ${BORDER.outer} shadow-xl flex flex-col overflow-hidden`}>
+                        <div className={`h-full ${LAYER.groupPanel} backdrop-blur-md rounded-md ${BORDER.outer} shadow-xl flex flex-col overflow-hidden`}>
                             {/* Console Header */}
                             <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
                                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
@@ -544,7 +522,7 @@ export const Workspace: React.FC = () => {
                                         <div
                                             key={log.id}
                                             style={animationDelay ? { animationDelay } : undefined}
-                                            className={`flex gap-2.5 items-start py-0.5 px-2 rounded-lg transition-all border border-transparent shrink-0 hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 hover:border-slate-200/60 dark:hover:border-zinc-700/50 ${isClearingLogs ? 'item-dismissing' : ''}`}
+                                            className={`flex gap-2.5 items-start py-0.5 px-2 rounded-md transition-all border border-transparent shrink-0 hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 hover:border-slate-200/60 dark:hover:border-zinc-700/50 ${isClearingLogs ? 'item-dismissing' : ''}`}
                                         >
                                             <span className={`${TEXT.muted} select-none shrink-0 font-medium`}>{log.timestamp}</span>
                                             <span className={`${levelColor} font-bold select-none shrink-0 uppercase text-[10px]`}>[{levelLabel}]</span>

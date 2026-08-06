@@ -1,7 +1,5 @@
 export const LAYER = {
     appCanvas: 'bg-slate-100 dark:bg-[#0d1117]',
-    // Translucent app chrome: enough opacity for contrast, with the layered
-    // depth and blur used by modern desktop shells.
     chromeHeavy: 'bg-slate-50/78 dark:bg-[#161b22]/78 backdrop-blur-xl backdrop-saturate-150',
 
     viewportGlass: 'bg-slate-50/80 dark:bg-[#0d1117]/80 backdrop-blur-md',

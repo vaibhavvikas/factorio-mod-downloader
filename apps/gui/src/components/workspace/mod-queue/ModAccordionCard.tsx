@@ -7,8 +7,8 @@ import type { TreeNode } from './DependencyTree';
 import { formatCategoryLabel, getCategoryPillTone } from '../shared/modCategory';
 import { useAppContext } from '../../../context/AppContext';
 import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, ACCENT, INTERACTIVE, PILL_SIZE, PILL_TONE } from '../../../theme/layers';
+import { compareVersions } from '../../../utils/versionUtils';
 import { Tooltip } from '../../ui/Tooltip';
-import { compareVersions } from '../mod-manager/InstalledModsList';
 
 export interface ModVersionRelease {
     version: string;
@@ -90,19 +90,16 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                 top = Math.round(rect.bottom + 6);
             }
 
-            const width = Math.max(256, Math.round(rect.width));
-            const MIN_EDGE = 12; // always keep 12px from any viewport edge
-            const maxLeft = Math.max(MIN_EDGE, window.innerWidth - width - MIN_EDGE);
+            const width = Math.max(200, Math.round(rect.width));
+            const MIN_EDGE = 12;
 
-            const preferredLeft = Math.round(rect.right - width);
-            const leftAnchorLeft = Math.round(rect.left);
-
+            const preferredLeft = Math.round(rect.left);
             let left = preferredLeft;
-            if (preferredLeft < MIN_EDGE) {
-                left = Math.min(leftAnchorLeft, maxLeft);
+
+            if (left + width > window.innerWidth - MIN_EDGE) {
+                left = Math.round(window.innerWidth - width - MIN_EDGE);
             }
 
-            left = Math.min(left, maxLeft);
             left = Math.max(MIN_EDGE, left);
 
             setDropdownPos({ top, bottom, left, width });
@@ -141,10 +138,10 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                             bottom: dropdownPos.bottom !== undefined ? `${dropdownPos.bottom}px` : undefined,
                             left: `${dropdownPos.left}px`,
                             width: dropdownPos.width ? `${dropdownPos.width}px` : undefined,
-                            minWidth: '256px',
+                            minWidth: '200px',
                         }}
                     >
-                        <div className="scroller-dropdown scroller-inner dense max-h-[280px] text-xs font-mono flex flex-col gap-0.5">
+                        <div className="scroller-dropdown scroller-inner max-h-[280px] text-xs font-mono flex flex-col gap-1">
                             {displayReleases && displayReleases.length > 0 ? (
                                 displayReleases.map(rel => {
                                     const isSelected = rel.version === selectedVersion;
@@ -159,7 +156,7 @@ const CustomVersionDropdown: React.FC<CustomVersionDropdownProps> = ({
                                                 setIsOpen(false);
                                             }}
                                             onMouseDown={(event) => event.stopPropagation()}
-                                            className={`px-3 py-2 rounded-lg flex items-center justify-between transition-colors gap-3 cursor-pointer ${isSelected
+                                            className={`px-3 py-2 rounded-md flex items-center justify-between transition-colors gap-3 cursor-pointer ${isSelected
                                                 ? `${ACCENT.menuItemSelected} font-bold`
                                                 : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                                 }`}
@@ -247,7 +244,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
     const categoryPillTone = getCategoryPillTone(mod.category);
 
     return (
-        <div className={`w-full ${LAYER.cardSurface} ${BORDER.card} rounded-lg shadow-xs ${isCardIncompatible ? 'hover:border-rose-400 dark:hover:border-rose-500/60' : HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
+        <div className={`w-full ${LAYER.cardSurface} ${BORDER.card} rounded-md shadow-xs ${isCardIncompatible ? 'hover:border-rose-400 dark:hover:border-rose-500/60' : HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 ${isRemoving ? 'item-dismissing' : 'animate-fade-in'} overflow-hidden`}>
             {/* Sticky Header — pins to top of scroll container like VS Code sticky scroll */}
             <div className={`p-4 flex flex-col gap-3 sticky top-0 z-10 ${LAYER.cardSurface} rounded-t-lg`}>
                 <div className="flex items-start justify-between gap-3">
@@ -315,7 +312,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                                     await openUrl(`https://mods.factorio.com/mod/${mod.name}`);
                                 }}
                                 aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 cursor-pointer block"
+                                className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 cursor-pointer block"
                             >
                                 <ExternalLink className="h-3.5 w-3.5" />
                             </a>
@@ -324,7 +321,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                         <Tooltip content="Remove from queue">
                             <button
                                 onClick={handleRemove}
-                                className="rounded-lg p-1.5 border transition-colors cursor-pointer bg-transparent text-slate-400 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 border-slate-200/80 dark:border-zinc-800 hover:bg-slate-200/60 dark:hover:bg-zinc-800 shrink-0"
+                                className="rounded-md p-1.5 border transition-colors cursor-pointer bg-transparent text-slate-400 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-200 border-slate-200/80 dark:border-zinc-800 hover:bg-slate-200/60 dark:hover:bg-zinc-800 shrink-0"
                                 aria-label="Remove from queue"
                             >
                                 <MinusCircle className="h-3.5 w-3.5" />
@@ -414,7 +411,7 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
                     <button
                         onClick={toggleExpanded}
                         disabled={!hasDependencies}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors select-none ${hasDependencies
+                        className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-md transition-colors select-none ${hasDependencies
                             ? `${TEXT.secondary} hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 cursor-pointer`
                             : 'text-slate-300 dark:text-zinc-600 cursor-not-allowed opacity-50'
                             }`}

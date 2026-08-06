@@ -92,9 +92,12 @@ export const Tooltip: React.FC<TooltipProps> = ({
         }
     };
 
+    const calculateStyleRef = useRef(calculateStyle);
+    calculateStyleRef.current = calculateStyle;
+
     useLayoutEffect(() => {
         if (isVisible && tooltipRef.current) {
-            const exactStyle = calculateStyle();
+            const exactStyle = calculateStyleRef.current();
             if (exactStyle) {
                 setTooltipStyle(exactStyle);
             }
@@ -128,7 +131,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
                 <div
                     ref={tooltipRef}
                     style={tooltipStyle}
-                    className={`pointer-events-none whitespace-nowrap rounded-lg ${BORDER.tooltip} ${LAYER.tooltipSurface} px-2.5 py-1 text-[10px] font-medium shadow-xl backdrop-blur-sm animate-fade-in select-none`}
+                    className={`pointer-events-none whitespace-nowrap rounded-md ${BORDER.tooltip} ${LAYER.tooltipSurface} px-2.5 py-1 text-[10px] font-medium shadow-xl backdrop-blur-sm animate-fade-in select-none`}
                 >
                     {content}
                 </div>,
@@ -306,7 +309,7 @@ export const SummaryTooltip: React.FC<SummaryTooltipProps> = ({ content, childre
             {isVisible && content && createPortal(
                 <div
                     ref={tooltipRef}
-                    className={`pointer-events-none fixed z-[80] min-w-[180px] w-fit max-w-[420px] whitespace-pre-wrap rounded-lg ${BORDER.tooltip} ${LAYER.tooltipSurface} px-3 py-2 text-[11px] leading-relaxed shadow-xl animate-fade-in select-none`}
+                    className={`pointer-events-none fixed z-[80] min-w-[180px] w-fit max-w-[420px] whitespace-pre-wrap rounded-md ${BORDER.tooltip} ${LAYER.tooltipSurface} px-3 py-2 text-[11px] leading-relaxed shadow-xl animate-fade-in select-none`}
                     style={{
                         left: `${pos.left}px`,
                         top: `${pos.top}px`,

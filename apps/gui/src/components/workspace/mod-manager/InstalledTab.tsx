@@ -1,42 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { FolderOpen, FolderSearch, FolderOutput, RefreshCw, Package, Trash2, Wrench } from 'lucide-react';
+import { Package, Trash2, Wrench } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import type { InstalledModItem } from '../../../context/AppContext';
-import { LAYER, BORDER, INTERACTIVE, ANIMATION } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, ANIMATION } from '../../../theme/layers';
 import { Tooltip } from '../../ui/Tooltip';
 import {
     DeleteModModal,
     DependencyUpgradeConflictModal,
     BulkDeleteModModal,
     BatchUpdateModal,
+    type BatchUpdateItem,
+} from './InstalledModals';
+import {
     computeReverseDependencies,
     calculateDeleteImpact,
     calculateBulkDeleteImpact,
     type ConflictModalData,
     type DeleteModalData,
     type BulkDeleteModalData,
-    type BatchUpdateItem,
-} from './InstalledModals';
+} from '../../../utils/modDependencyUtils';
 import { InstalledModsList } from './InstalledModsList';
 import { InstalledUpdatesList, UpdatesHeaderActions } from './InstalledUpdatesList';
-
-function truncateMiddlePath(path: string, maxLength: number = 45): string {
-    if (!path || path.length <= maxLength) return path;
-    const parts = path.split(/[/\\]/);
-    if (parts.length <= 3) {
-        const half = Math.floor((maxLength - 5) / 2);
-        return `${path.slice(0, half)}...${path.slice(-half)}`;
-    }
-    const sep = path.includes('/') ? '/' : '\\';
-    const root = parts.slice(0, 2).join(sep);
-    const tail = parts.slice(-2).join(sep);
-    const middle = `${root}${sep}...${sep}${tail}`;
-    if (middle.length <= maxLength + 10) return middle;
-
-    const half = Math.floor((maxLength - 5) / 2);
-    return `${path.slice(0, half)}...${path.slice(-half)}`;
-}
 
 export const InstalledTab: React.FC = () => {
     const {
@@ -44,7 +29,6 @@ export const InstalledTab: React.FC = () => {
         addLog,
         queue,
         folderPath,
-        setFolderPath,
         installedMods,
         setInstalledMods,
         loadingInstalled,
@@ -184,19 +168,6 @@ export const InstalledTab: React.FC = () => {
         });
     };
 
-    const handleBrowseFolder = async () => {
-        try {
-            const newPath = await invoke<string | null>('pick_mods_folder_dialog');
-            if (newPath) {
-                setFolderPath(newPath);
-                await invoke('save_mods_folder', { path: newPath });
-                await loadInstalledMods(newPath);
-            }
-        } catch (err) {
-            console.error('Failed to pick folder:', err);
-        }
-    };
-
     const handleToggleSelect = (modName: string) => {
         setInstalledMods(prev =>
             prev.map(m => (m.name === modName ? { ...m, selectedForUpdate: !m.selectedForUpdate } : m))
@@ -316,10 +287,10 @@ export const InstalledTab: React.FC = () => {
                 />
             )}
 
-            <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
-                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-lg ${BORDER.outer} ${LAYER.viewportGlass}`}>
+            <div className="relative flex flex-col flex-1 min-h-0 panel-content">
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-md ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {installedMods.length > 0 && (
-                         <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 h-11 flex items-center justify-between rounded-t-lg`}>
+                          <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.contentCard} px-4 h-9 flex items-center justify-between rounded-t-md`}>
                              <div className="inline-flex gap-6 h-full text-xs font-bold select-none">
                                  <button
                                      onClick={() => setActiveTab('installed')}
@@ -365,7 +336,7 @@ export const InstalledTab: React.FC = () => {
                                             <Tooltip content={`Apply fixes for ${fixableMods.length} mod(s)`}>
                                                 <button
                                                     onClick={handleUpdateFixableBatch}
-                                                    className="px-2.5 py-1 rounded-lg font-bold text-[11px] bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 dark:border-amber-400/30 hover:bg-amber-500/20 dark:hover:bg-amber-400/30 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                                                    className="px-2.5 py-1 rounded-md font-bold text-[11px] bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 dark:border-amber-400/30 hover:bg-amber-500/20 dark:hover:bg-amber-400/30 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
                                                 >
                                                     <Wrench className="w-3 h-3 text-amber-500 shrink-0" />
                                                     <span>Action Required ({fixableMods.length})</span>
@@ -377,7 +348,7 @@ export const InstalledTab: React.FC = () => {
                                             <Tooltip content={`Remove ${incompatibleMods.length} mod(s) incompatible with Factorio ${factorioVersion}`}>
                                                 <button
                                                     onClick={handleOpenBulkDeleteModal}
-                                                    className="px-2.5 py-1 rounded-lg font-bold text-[11px] bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 dark:border-rose-400/30 hover:bg-rose-500/20 dark:hover:bg-rose-400/30 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                                                    className="px-2.5 py-1 rounded-md font-bold text-[11px] bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 dark:border-rose-400/30 hover:bg-rose-500/20 dark:hover:bg-rose-400/30 transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
                                                 >
                                                     <Trash2 className="w-3 h-3 text-rose-500 shrink-0" />
                                                     <span>Remove Incompatible ({incompatibleMods.length})</span>

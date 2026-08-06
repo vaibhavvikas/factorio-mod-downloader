@@ -1,24 +1,12 @@
 import React from 'react';
+// eslint-disable-next-line react/only-export-components
 import { Trash2, ExternalLink, AlertTriangle, ArrowDown, Wrench, CheckCircle, ArrowUp } from 'lucide-react';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import type { InstalledModItem } from '../../../context/AppContext';
 import { useAppContext } from '../../../context/AppContext';
 import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, PILL_SIZE, PILL_TONE } from '../../../theme/layers';
 import { Tooltip } from '../../ui/Tooltip';
-
-export function compareVersions(a: string, b: string): number {
-    const parse = (v: string) => (v || '').replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
-    const pa = parse(a);
-    const pb = parse(b);
-    const maxLen = Math.max(pa.length, pb.length);
-    for (let i = 0; i < maxLen; i++) {
-        const na = pa[i] || 0;
-        const nb = pb[i] || 0;
-        if (na > nb) return 1;
-        if (na < nb) return -1;
-    }
-    return 0;
-}
+import { compareVersions } from '../../../utils/versionUtils';
 
 const getInitials = (title: string): string => {
     if (!title) return 'MD';
@@ -69,7 +57,7 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
         return (
             <div
                 key={mod.name}
-                className={`h-full ${LAYER.contentCard} ${BORDER.card} rounded-lg shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden`}
+                className={`h-full ${LAYER.contentCard} ${BORDER.card} rounded-md shadow-xs ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 overflow-hidden`}
             >
                 <div className="h-full p-4 flex flex-col justify-between gap-3">
                     {/* Top Section: Thumbnail + Mod Title & Name + Author */}
@@ -155,7 +143,7 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                                         await openUrl(`https://mods.factorio.com/mod/${mod.name}`);
                                     }}
                                     aria-label={`Open ${mod.title || mod.name} on the Factorio Mod Portal`}
-                                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 cursor-pointer block"
+                                    className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 cursor-pointer block"
                                 >
                                     <ExternalLink className="h-3.5 w-3.5" />
                                 </a>
@@ -165,7 +153,7 @@ export const InstalledModsList: React.FC<InstalledModsListProps> = ({ mods, depe
                                 <button
                                     onClick={() => onOpenDeleteModal(mod)}
                                     disabled={isDependentLocked}
-                                    className={`rounded-lg p-1.5 border transition-all cursor-pointer ${isDependentLocked
+                                    className={`rounded-md p-1.5 border transition-all cursor-pointer ${isDependentLocked
                                         ? 'bg-slate-100/50 dark:bg-zinc-800/40 text-slate-300 dark:text-zinc-700 border-slate-200/60 dark:border-zinc-800/60 cursor-not-allowed opacity-40'
                                         : 'bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 dark:text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 border-slate-200 dark:border-zinc-800 hover:border-rose-200 dark:hover:border-rose-800/60'
                                         }`}

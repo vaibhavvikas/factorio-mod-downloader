@@ -21,7 +21,7 @@
         "minHeight": 720,
         "decorations": false,
         "transparent": true,
-        "backgroundColor": "#0d1117",
+        "backgroundColor": "#00000000",
         "shadow": true,
         "windowEffects": {
           "effects": ["sidebar", "mica"],
