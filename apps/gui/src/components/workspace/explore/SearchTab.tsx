@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search as SearchIcon, Download, Check, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Rocket, Loader2 } from 'lucide-react';
+import { Download, Check, Sparkles, X, ChevronLeft, ChevronRight, ExternalLink, Rocket, Loader2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -23,6 +23,9 @@ export interface ModSearchResultItem {
 interface SearchTabProps {
     existingModNames: string[];
     onAddModToQueue: (modName: string, goToQueue?: boolean) => Promise<void> | void;
+    query: string;
+    reloadTrigger: number;
+    onSearchLoadingChange: (loading: boolean) => void;
 }
 
 const CATEGORY_FILTERS = [
@@ -178,7 +181,7 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
 
     return (
         <div
-            className={`relative self-start ${LAYER.contentCard} ${BORDER.card} rounded-2xl p-3 shadow-xs hover:z-10 ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 flex flex-col gap-2.5`}
+            className={`relative self-start ${LAYER.contentCard} ${BORDER.card} rounded-md p-3 shadow-xs hover:z-10 ${HOVER_BORDER.cardBright} hover:shadow-md transition-all duration-200 flex flex-col gap-2.5`}
         >
             <div className="flex min-h-12 items-center gap-2.5">
                 {item.thumbnail && !hasImgError ? (
@@ -236,6 +239,8 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                 </p>
             </SummaryTooltip>
 
+            <div className={`border-b ${DIVIDER.inner}`} />
+
             <div className="flex min-w-0 items-center justify-between gap-3">
                 <div
                     ref={tagsRowRef}
@@ -264,15 +269,15 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                                 event.preventDefault();
                                 await openUrl(`https://mods.factorio.com/mod/${item.name}`);
                             }}
-                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 block"
+                            className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-blue-400 block"
                             aria-label={`View ${item.title || item.name} on Mod Portal`}
                         >
                             <ExternalLink className="h-3.5 w-3.5" />
                         </a>
                     </Tooltip>
                     {isAlreadyInQueue ? (
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 dark:border-emerald-800/40 flex items-center gap-1.5 select-none">
-                            <Check className="w-3.5 h-3.5" />
+                        <span className="panel-pill w-[84px] shrink-0 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center gap-1.5 select-none">
+                            <Check className="w-3.5 h-3.5 shrink-0" />
                             <span>Queued</span>
                         </span>
                     ) : (
@@ -282,11 +287,11 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                                 onAddQueue(item.name);
                             }}
                             disabled={addingModNames.has(item.name)}
-                            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
+                            className={`panel-pill w-[84px] shrink-0 ${LAYER.pillSurface} ${BORDER.pill} ${INTERACTIVE.pillHover} ${TEXT.emphasis} text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60`}
                         >
                             {addingModNames.has(item.name) ? (
                                 <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                                     <span>Adding...</span>
                                 </>
                             ) : (
@@ -311,12 +316,14 @@ interface ModBrowseResponse {
 export const SearchTab: React.FC<SearchTabProps> = ({
     existingModNames,
     onAddModToQueue,
+    query,
+    reloadTrigger,
+    onSearchLoadingChange,
 }) => {
     const { addLog, factorioVersion } = useAppContext();
     const addLogRef = useRef(addLog);
     const resultsScrollRef = useRef<HTMLDivElement>(null);
     const categoryScrollRef = useRef<HTMLDivElement>(null);
-    const [query, setQuery] = useState('');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [spaceAgeFilter, setSpaceAgeFilter] = useState(false);
     const [addingModNames, setAddingModNames] = useState<Set<string>>(() => new Set());
@@ -326,7 +333,6 @@ export const SearchTab: React.FC<SearchTabProps> = ({
     const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [reloadTrigger, setReloadTrigger] = useState(0);
 
     useEffect(() => {
         addLogRef.current = addLog;
@@ -352,12 +358,18 @@ export const SearchTab: React.FC<SearchTabProps> = ({
 
     useEffect(() => {
         resultsScrollRef.current?.scrollTo({ top: 0 });
-    }, [query, selectedCategories, spaceAgeFilter, page]);
+    }, [query, selectedCategories, spaceAgeFilter, page, onSearchLoadingChange]);
+
+    // Reset to page 1 when query changes
+    useEffect(() => {
+        setPage(1);
+    }, [query]);
 
     useEffect(() => {
         let cancelled = false;
         const timer = setTimeout(async () => {
             setLoading(true);
+            onSearchLoadingChange(true);
             try {
                 const trimmed = query.trim();
                 const res = await invoke<ModBrowseResponse>('browse_mods', {
@@ -377,14 +389,17 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                 setResults([]);
                 setTotalPages(1);
             }
-            if (!cancelled) setLoading(false);
+            if (!cancelled) {
+                setLoading(false);
+                onSearchLoadingChange(false);
+            }
         }, query.trim() ? 300 : 0);
 
         return () => {
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [query, selectedCategories, spaceAgeFilter, factorioVersion, page, reloadTrigger]);
+    }, [query, selectedCategories, spaceAgeFilter, factorioVersion, page, reloadTrigger, onSearchLoadingChange]);
 
     const handleToggleCategory = (catId: string) => {
         setPage(1);
@@ -424,49 +439,9 @@ export const SearchTab: React.FC<SearchTabProps> = ({
     })();
 
     return (
-        <div className={`relative h-full min-h-0 flex flex-col gap-4 px-3 pt-3 pb-2 ${LAYER.appCanvas}`}>
-            {/* Top Search Bar & Category Filter Pills */}
-            <div className="flex flex-col gap-4 shrink-0">
-                <div className={`flex h-10 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl pl-3.5 pr-1.5 py-1.5 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
-                    <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value);
-                            setPage(1);
-                        }}
-                        placeholder="Search Factorio mods by title, author, or keyword (e.g. Krastorio, Space Exploration, Bob...)"
-                        className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
-                    />
-                    {query.length > 0 && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setQuery('');
-                                setPage(1);
-                            }}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
-                            aria-label="Clear search"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    )}
-
-
-
-                    {/* Reload Mods Button */}
-                    <button
-                        type="button"
-                        onClick={() => setReloadTrigger(prev => prev + 1)}
-                        disabled={loading}
-                        aria-label="Reload mod results"
-                        className={`h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50`}
-                    >
-                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-blue-500' : ''}`} />
-                    </button>
-                </div>
-
+        <div className={`relative h-full min-h-0 flex flex-col gap-3 panel-content ${LAYER.appCanvas}`}>
+            {/* Category Filter Pills */}
+            <div className="shrink-0">
                 <div className="relative min-w-0 flex items-center gap-2">
                     {/* Space Age Expansion Toggle Pill */}
                     <button
@@ -529,7 +504,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
             </div>
 
             <div className="relative flex flex-col flex-1 min-h-0">
-                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-md ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     <div className="relative flex-1 min-h-0">
                         <div ref={resultsScrollRef} className="scroller-panel card h-full">
                             {results.length === 0 && !loading ? (
@@ -547,7 +522,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                     </div>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 card-grid items-start">
                                     {results.map(item => {
                                         const isAlreadyInQueue = existingModNames.includes(item.name);
                                         return (
@@ -567,7 +542,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                         </div>
 
                         {loading && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/15 dark:bg-black/25 pointer-events-auto cursor-wait">
+                            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-md bg-black/15 dark:bg-black/25 pointer-events-auto cursor-wait">
                                 <div className={`flex items-center gap-2 rounded-xl ${BORDER.cardSoft} ${LAYER.floatingPanel} px-3 py-2 shadow-lg text-[11px] font-semibold text-slate-700 dark:text-zinc-200`}>
                                     <span className="loading-bars" aria-hidden="true"><i /><i /><i /></span>
                                     Loading mods…
@@ -589,7 +564,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 type="button"
                                 onClick={() => setPage(current => Math.max(1, current - 1))}
                                 disabled={page === 1 || loading || totalPages <= 1}
-                                className={`w-7 h-7 flex items-center justify-center rounded-lg ${BORDER.card} ${LAYER.contentCard} text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer`}
+                                className={`w-7 h-7 flex items-center justify-center rounded-md ${BORDER.card} ${LAYER.contentCard} text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer`}
                                 aria-label="Previous page"
                             >
                                 <ChevronLeft className="w-3.5 h-3.5" />
@@ -598,7 +573,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 // Single-page: one fixed page-1 pill (active + visually disabled)
                                 // so the button-row footprint and height are identical to multi-page.
                                 <span
-                                    className="w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold bg-blue-600 border-blue-600 text-white shadow-xs opacity-80 cursor-default select-none"
+                                    className="w-7 h-7 flex items-center justify-center rounded-md border text-[11px] font-bold bg-blue-600 border-blue-600 text-white shadow-xs opacity-80 cursor-default select-none"
                                     aria-current="page"
                                 >
                                     1
@@ -610,7 +585,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                         type="button"
                                         onClick={() => setPage(item)}
                                         disabled={loading}
-                                        className={`w-7 h-7 flex items-center justify-center rounded-lg border text-[11px] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 cursor-pointer disabled:cursor-not-allowed ${page === item
+                                        className={`w-7 h-7 flex items-center justify-center rounded-md border text-[11px] font-bold transition-all duration-200 animate-in fade-in zoom-in-95 cursor-pointer disabled:cursor-not-allowed ${page === item
                                             ? 'bg-blue-600 border-blue-600 text-white shadow-xs scale-105'
                                             : `${LAYER.contentCard} ${BORDER.card} text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800`
                                             }`}
@@ -625,7 +600,7 @@ export const SearchTab: React.FC<SearchTabProps> = ({
                                 type="button"
                                 onClick={() => setPage(current => Math.min(totalPages, current + 1))}
                                 disabled={page === totalPages || loading || totalPages <= 1}
-                                className={`w-7 h-7 flex items-center justify-center rounded-lg ${BORDER.card} ${LAYER.contentCard} text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer`}
+                                className={`w-7 h-7 flex items-center justify-center rounded-md ${BORDER.card} ${LAYER.contentCard} text-slate-600 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer`}
                                 aria-label="Next page"
                             >
                                 <ChevronRight className="w-3.5 h-3.5" />

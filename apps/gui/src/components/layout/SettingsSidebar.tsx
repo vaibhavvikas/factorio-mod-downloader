@@ -106,7 +106,7 @@ export const SettingsSidebar: React.FC = () => {
     return (
         <div
             style={{ transform: isOpen ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
-            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+            className={`absolute right-4 top-2 bottom-4 w-[380px] z-40 ${LAYER.groupPanel} backdrop-blur-md rounded-md ${BORDER.outer} flex flex-col shrink-0 transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
         >
             {/* Header section */}
             <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
@@ -182,7 +182,7 @@ export const SettingsSidebar: React.FC = () => {
 
                                     {/* Floating Popover List */}
                                     {isVersionDropdownOpen && (
-                                        <div className={`absolute top-full left-0 right-0 mt-1.5 z-50 rounded-xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl shadow-xl p-1.5 flex flex-col gap-0.5 max-h-60 overflow-y-auto scroller-dropdown loose animate-fade-in`}>
+                                        <div className={`absolute top-full left-0 right-0 mt-1.5 z-50 rounded-xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl shadow-xl p-2 flex flex-col gap-1 max-h-60 overflow-y-auto scroller-dropdown animate-fade-in`}>
                                             {versionOptions.map(ver => {
                                                 const isSelected = factorioVersion === ver.id;
                                                 return (
@@ -193,7 +193,7 @@ export const SettingsSidebar: React.FC = () => {
                                                             setFactorioVersion(ver.id);
                                                             setIsVersionDropdownOpen(false);
                                                         }}
-                                                        className={`w-full px-3 py-2 rounded-lg text-left transition-colors cursor-pointer flex items-center justify-between gap-2 ${isSelected
+                                                        className={`w-full px-3 py-2 rounded-md text-left transition-colors cursor-pointer flex items-center justify-between gap-2 ${isSelected
                                                             ? 'bg-blue-500/15 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-500/25 dark:hover:bg-blue-900/80'
                                                             : `hover:bg-slate-200/80 dark:hover:bg-zinc-700/80 text-slate-800 dark:text-zinc-100`
                                                             }`}
@@ -296,7 +296,7 @@ export const SettingsSidebar: React.FC = () => {
                                     key={t.id}
                                     type="button"
                                     onClick={() => setThemeMode(t.id as any)}
-                                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs transition-all duration-200 cursor-pointer select-none ${isSelected
+                                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-xs transition-all duration-200 cursor-pointer select-none ${isSelected
                                         ? 'bg-white dark:bg-[#21262d] text-blue-600 dark:text-[#58a6ff] font-bold shadow-xs border border-slate-200/80 dark:border-[#30363d]'
                                         : `text-slate-600 dark:text-[#8b949e] hover:text-slate-900 dark:hover:text-[#f0f6fc] font-semibold border border-transparent hover:bg-slate-200/50 dark:hover:bg-[#161b22]/60`
                                         }`}

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+// eslint-disable-next-line react/only-export-components
 import { TitleBar } from './TitleBar';
 import { Workspace } from '../workspace/Workspace';
 import { NetworkSidebar } from './NetwrokSidebar';
@@ -10,25 +11,10 @@ import { getVersion } from '@tauri-apps/api/app';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { LAYER, BORDER, TEXT, HOVER_BORDER } from '../../theme/layers';
-
+import { isVersionNewer } from '../../utils/versionUtils';
 import { SettingsSidebar } from './SettingsSidebar';
 
 const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
-
-export function isVersionNewer(onlineVersion: string, currentVersion: string): boolean {
-    const clean = (v: string) => v.replace(/^v/i, '').trim();
-    const onlineParts = clean(onlineVersion).split('.').map(n => parseInt(n, 10) || 0);
-    const currentParts = clean(currentVersion).split('.').map(n => parseInt(n, 10) || 0);
-
-    const maxLen = Math.max(onlineParts.length, currentParts.length);
-    for (let i = 0; i < maxLen; i++) {
-        const onlineNum = onlineParts[i] || 0;
-        const currentNum = currentParts[i] || 0;
-        if (onlineNum > currentNum) return true;
-        if (onlineNum < currentNum) return false;
-    }
-    return false;
-}
 
 export const MainLayout: React.FC = () => {
     const { consoleOpen, logs, activeDrawer, toggleDrawer, setActiveDrawer, folderPath } = useAppContext();
@@ -43,7 +29,7 @@ export const MainLayout: React.FC = () => {
             try {
                 const maxed = await appWindow.isMaximized();
                 setIsMaximized(maxed);
-            } catch (e) {}
+            } catch {}
         };
         updateMaxed();
         let unlisten: (() => void) | undefined;
@@ -52,7 +38,6 @@ export const MainLayout: React.FC = () => {
             if (unlisten) unlisten();
         };
     }, []);
-
     // Auto-scroll console to bottom on new logs & check Factorio Mods folder on startup
     useEffect(() => {
         if (consoleOpen && consoleEndRef.current) {
@@ -86,8 +71,8 @@ export const MainLayout: React.FC = () => {
                     });
                 }
             })
-            .catch(() => {});
-    }, []);
+.catch(() => {});
+     }, [setActiveDrawer]);
 
     return (
         <div className={`h-screen flex flex-col overflow-hidden select-none ${LAYER.appCanvas} text-slate-800 dark:text-zinc-100 relative ${isMaximized ? (isMac ? 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl' : 'rounded-none border-none') : 'rounded-xl border border-slate-300/40 dark:border-zinc-800/80 shadow-2xl'}`}>
@@ -121,7 +106,7 @@ export const MainLayout: React.FC = () => {
             <div
                 onMouseDown={(e) => e.stopPropagation()}
                 style={{ transform: activeDrawer === 'profile' ? 'translateX(0)' : 'translateX(calc(100% + 2rem))' }}
-                className={`absolute top-11 right-4 z-40 w-84 rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl p-4 flex flex-col gap-4 text-xs max-h-[85vh] overflow-y-auto transition-all duration-500 ease-in-out ${activeDrawer === 'profile' ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
+                className={`absolute top-11 right-4 z-40 w-84 rounded-md ${BORDER.dropdown} ${LAYER.floatingPanel} backdrop-blur-xl p-4 flex flex-col gap-4 text-xs max-h-[85vh] overflow-y-auto transition-all duration-500 ease-in-out ${activeDrawer === 'profile' ? 'opacity-100 shadow-2xl pointer-events-auto' : 'opacity-0 shadow-none pointer-events-none'}`}
             >
                     {/* Avatar & Header */}
                     <div className="flex items-center gap-3">

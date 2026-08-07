@@ -1,96 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-
-export interface DownloadTask {
-    id: string;
-    name: string;
-    version: string;
-    size: number;
-    progress: number;
-    speed: string;
-    statusType?: 'completed' | 'alreadyExists' | 'updated' | 'downgraded' | 'downloading' | 'pending' | 'failed';
-    errorMessage?: string;
-}
-
-export interface FactorioVersionOption {
-    value: string;
-    label: string;
-    shortLabel: string;
-}
-
-export interface InstalledModItem {
-    name: string;
-    title: string;
-    version: string;
-    author?: string;
-    factorioVersion?: string;
-    minFactorioVersion?: string;
-    maxFactorioVersion?: string;
-    category?: string;
-    fileName: string;
-    filePath: string;
-    thumbnail?: string;
-    dependencies: string[];
-    hasUpdate: boolean;
-    latestVersion?: string;
-    newerVersions: string[];
-    selectedTargetVersion?: string;
-    selectedForUpdate?: boolean;
-}
-
-export interface LogMessage {
-    id: string;
-    timestamp: string;
-    level: 'info' | 'warn' | 'success' | 'error';
-    message: string;
-}
-
 import { invoke } from '@tauri-apps/api/core';
-
-type ThemeMode = 'light' | 'dark' | 'system';
-export type ActiveDrawer = 'downloads' | 'settings' | 'profile' | null;
-
-interface AppContextType {
-    themeMode: ThemeMode;
-    setThemeMode: (mode: ThemeMode) => void;
-    isDark: boolean;
-
-    // Single active drawer state
-    activeDrawer: ActiveDrawer;
-    setActiveDrawer: (drawer: ActiveDrawer) => void;
-    toggleDrawer: (drawer: ActiveDrawer) => void;
-
-    sidebarOpen: boolean;
-    toggleSidebar: (force?: boolean) => void;
-    queue: DownloadTask[];
-    startDownload: (items: Omit<DownloadTask, 'progress' | 'speed'>[], type: 'update' | 'download') => void;
-    clearCompleted: () => void;
-    retryTask: (taskId: string) => void;
-    cancelTask: (taskId: string) => void;
-    cancelAllTasks: () => void;
-    isDownloading: boolean;
-    totalSpeed: number;
-    statusBadgeText: string;
-    logs: LogMessage[];
-    addLog: (message: string, level?: 'info' | 'warn' | 'success' | 'error') => void;
-    clearLogs: () => void;
-    consoleOpen: boolean;
-    setConsoleOpen: (open: boolean) => void;
-    profileOpen: boolean;
-    setProfileOpen: (open: boolean) => void;
-    factorioVersion: string;
-    validFactorioVersions: FactorioVersionOption[];
-    setFactorioVersion: (version: string) => void;
-    installedMods: InstalledModItem[];
-    setInstalledMods: React.Dispatch<React.SetStateAction<InstalledModItem[]>>;
-    folderPath: string;
-    setFolderPath: (path: string) => void;
-    refreshInstalledMods: (customPath?: string) => Promise<void>;
-    loadingInstalled: boolean;
-    isCheckingUpdates: boolean;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
+import {
+    AppContext,
+    DEFAULT_VERSION_OPTIONS,
+    type DownloadTask,
+    type FactorioVersionOption,
+    type InstalledModItem,
+    type LogMessage,
+    type ThemeMode,
+    type ActiveDrawer,
+} from './AppContext';
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // —— THEME: Bootstrap from paint-before-react (head script, index.html) ——
@@ -158,7 +78,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             .then(mode => {
                 if (mode === 'light' || mode === 'dark' || mode === 'system') {
                     setThemeModeState(mode);
-                    try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) { }
+                    try { localStorage.setItem('fmd_theme_mode', mode); } catch { }
                     // Also re-sync data attrs so head script + React stay in agreement
                     document.documentElement.setAttribute('data-pref-theme', mode);
                 }
@@ -175,7 +95,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         // Mirror to localStorage for the paint-before-react head script on next boot.
         // (Rust-side persistence below is still the source of truth cross-session;
         //  localStorage is merely intra-process pre-paint cache.)
-        try { localStorage.setItem('fmd_theme_mode', mode); } catch (e) { }
+        try { localStorage.setItem('fmd_theme_mode', mode); } catch { }
 
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const targetIsDark = mode === 'system' ? mediaQuery.matches : mode === 'dark';
@@ -219,20 +139,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }, TRANSITION_MS);
     };
 
-    const DEFAULT_VERSION_OPTIONS: FactorioVersionOption[] = [
-        { value: '2.1', label: 'Factorio 2.1', shortLabel: '2.1' },
-        { value: '2.0', label: 'Factorio 2.0', shortLabel: '2.0' },
-        { value: '1.1', label: 'Factorio 1.1', shortLabel: '1.1' },
-        { value: '1.0', label: 'Factorio 1.0', shortLabel: '1.0' },
-        { value: '0.18', label: 'Factorio 0.18', shortLabel: '0.18' },
-        { value: '0.17', label: 'Factorio 0.17', shortLabel: '0.17' },
-        { value: '0.16', label: 'Factorio 0.16', shortLabel: '0.16' },
-        { value: '0.15', label: 'Factorio 0.15', shortLabel: '0.15' },
-        { value: '0.14', label: 'Factorio 0.14', shortLabel: '0.14' },
-        { value: '0.13', label: 'Factorio 0.13', shortLabel: '0.13' },
-        { value: 'any', label: 'Any Version', shortLabel: 'Any' },
-    ];
-
     const [validFactorioVersions, setValidFactorioVersions] = useState<FactorioVersionOption[]>(DEFAULT_VERSION_OPTIONS);
 
     // Load persisted Factorio target version, valid versions list & saved mods folder from backend on boot
@@ -253,7 +159,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
             if (savedFolder) {
                 setFolderPath(savedFolder);
-                refreshInstalledMods(savedFolder);
+                refreshInstalledModsRef.current(savedFolder);
             }
         });
     }, []);
@@ -366,23 +272,26 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
+    const refreshInstalledModsRef = useRef(refreshInstalledMods);
+    refreshInstalledModsRef.current = refreshInstalledMods;
+
     // Re-check installed mods & updates whenever factorioVersion changes
     useEffect(() => {
         if (folderPath) {
-            refreshInstalledMods(folderPath);
+            refreshInstalledModsRef.current(folderPath);
         }
-    }, [factorioVersion]);
+    }, [factorioVersion, folderPath]);
 
     // Trigger initial scan & update check on mount
     useEffect(() => {
-        refreshInstalledMods();
+        refreshInstalledModsRef.current();
     }, []);
 
     // Trigger refresh when download queue transitions to idle
     const [prevDownloading, setPrevDownloading] = useState(false);
     useEffect(() => {
         if (prevDownloading && !isDownloading) {
-            refreshInstalledMods();
+            refreshInstalledModsRef.current();
         }
         setPrevDownloading(isDownloading);
     }, [isDownloading, prevDownloading]);
@@ -610,7 +519,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         setStatusBadgeText('All Complete');
                     }
                 }
-            } catch (err) {
+            } catch {
                 // Ignore if not in desktop mode
             }
         }, 300);
@@ -658,10 +567,4 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             {children}
         </AppContext.Provider>
     );
-};
-
-export const useAppContext = () => {
-    const context = useContext(AppContext);
-    if (!context) throw new Error("useAppContext must be used within AppProvider");
-    return context;
 };
