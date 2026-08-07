@@ -108,7 +108,6 @@ html.dark body {
    No raw scrollable element ever slips through without a stable gutter. */
 
 .scroller-panel,
-.scroller-dropdown,
 .overflow-y-auto,
 .overflow-auto {
   scrollbar-gutter: stable;
@@ -225,6 +224,7 @@ html.dark body {
 .scroller-dropdown {
   overflow-y: auto;
   overscroll-behavior-y: none;
+  scrollbar-gutter: auto !important;
 }
 
 /* --- Global scroll bar geometry -------------------------------------------- */
