@@ -342,9 +342,12 @@ export const ModAccordionCard: React.FC<ModAccordionCardProps> = ({
 
                 {/* Mod Summary if available */}
                 {mod.summary && (
-                    <p className={`text-xs text-slate-600 dark:text-zinc-400 leading-relaxed ${LAYER.summarySurface} p-2.5 rounded-xl ${BORDER.inner}`}>
-                        {mod.summary}
-                    </p>
+                    <>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed m-0 p-0">
+                            {mod.summary}
+                        </p>
+                        <div className={`border-b ${DIVIDER.inner}`} />
+                    </>
                 )}
 
                 {/* Bottom bar: Version selector + Dep badges + Expand toggle — always visible */}

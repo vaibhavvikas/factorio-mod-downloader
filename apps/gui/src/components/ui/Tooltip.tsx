@@ -303,7 +303,7 @@ export const SummaryTooltip: React.FC<SummaryTooltipProps> = ({ content, childre
             ref={containerRef}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            className={`group relative min-h-12 flex items-center ${LAYER.innerInset} p-2 rounded-xl ${BORDER.inner}`}
+            className="group relative"
         >
             {children}
             {isVisible && content && createPortal(

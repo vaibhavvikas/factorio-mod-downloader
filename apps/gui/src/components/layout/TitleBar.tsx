@@ -67,12 +67,18 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         setIsMaximized(maxed);
     };
 
-    const handleTitleBarDoubleClick = (e: React.MouseEvent) => {
+    const handleTitleBarMouseDown = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
         const target = e.target as HTMLElement;
         if (target.closest('button, input, select, textarea, [role="button"], a, .no-maximize')) {
             return;
         }
-        toggleMaximizeWindow();
+
+        if (e.detail === 2) {
+            toggleMaximizeWindow();
+        } else {
+            appWindow.startDragging();
+        }
     };
 
     const handleMaximizeButtonClick = (e: React.MouseEvent) => {
@@ -169,8 +175,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
     return (
         <div
-            data-tauri-drag-region
-            onDoubleClick={handleTitleBarDoubleClick}
+            onMouseDown={handleTitleBarMouseDown}
             className={`relative h-10 ${LAYER.navBar} backdrop-blur-2xl backdrop-saturate-200 border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
         >
             {/* Left Side: OS controls on Mac, Brand logo on Windows */}

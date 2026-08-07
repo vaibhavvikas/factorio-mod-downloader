@@ -1,7 +1,7 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "Factorio Mod Downloader",
-  "version": "0.3.6",
+  "version": "0.4.0",
   "identifier": "com.vaibhavvikas.factorio-mod-downloader",
   "build": {
     "frontendDist": "../dist",

@@ -4,7 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { formatCategoryLabel, getCategoryBadgeStyle, getCategoryPillStyle } from '../shared/modCategory';
-import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, HOVER_BORDER, TEXT, INTERACTIVE } from '../../../theme/layers';
 import { Tooltip, SummaryTooltip } from '../../ui/Tooltip';
 
 export interface ModSearchResultItem {
@@ -239,6 +239,8 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                 </p>
             </SummaryTooltip>
 
+            <div className={`border-b ${DIVIDER.inner}`} />
+
             <div className="flex min-w-0 items-center justify-between gap-3">
                 <div
                     ref={tagsRowRef}
@@ -274,8 +276,8 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                         </a>
                     </Tooltip>
                     {isAlreadyInQueue ? (
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/40 flex items-center gap-1.5 select-none">
-                            <Check className="w-3.5 h-3.5" />
+                        <span className="panel-pill w-[84px] shrink-0 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center gap-1.5 select-none">
+                            <Check className="w-3.5 h-3.5 shrink-0" />
                             <span>Queued</span>
                         </span>
                     ) : (
@@ -285,11 +287,11 @@ const ModSearchResultCard: React.FC<ModSearchResultCardProps> = ({
                                 onAddQueue(item.name);
                             }}
                             disabled={addingModNames.has(item.name)}
-                            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-md transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60"
+                            className={`panel-pill w-[84px] shrink-0 ${LAYER.pillSurface} ${BORDER.pill} ${INTERACTIVE.pillHover} ${TEXT.emphasis} text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60`}
                         >
                             {addingModNames.has(item.name) ? (
                                 <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                                     <span>Adding...</span>
                                 </>
                             ) : (
