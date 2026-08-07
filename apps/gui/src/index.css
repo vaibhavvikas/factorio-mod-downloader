@@ -3,9 +3,26 @@
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Desktop chrome uses one compact surface radius.  This also normalizes
+     legacy rounded-xl/2xl/3xl utilities without affecting circular icons. */
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.5rem;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* The native compositor supplies the OS shadow/rounded frame where available.
+   The app container uses conditional border-radius based on OS and
+   maximization state (set in MainLayout.tsx) so child-content corners
+   are always properly rounded by the OS window frame. */
+:root {
+  --app-frame-radius: 12px;
+  --card-padding-x: 1rem;
+  --card-padding-y: 1rem;
+  --card-gap: 1rem;
+  --panel-padding: 1rem;
+}
 
 /* 1. Lock the root window frame to prevent the entire app from bouncing */
 html,
@@ -15,6 +32,8 @@ body {
   overscroll-behavior: none !important;
   overscroll-behavior-x: none !important;
   overflow-x: hidden !important;
+  border-radius: var(--app-frame-radius);
+  overflow: hidden;
 }
 
 html.dark,
@@ -23,20 +42,29 @@ html.dark body {
 }
 
 #root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  height: 100vh;
-  width: 100vw;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
+   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+   height: 100vh;
+   width: 100vw;
+   margin: 0;
+   padding: 0;
+   overflow: hidden;
+   border-radius: var(--app-frame-radius);
+   isolation: isolate;
+   user-select: none;
+   -webkit-user-select: none;
+   -moz-user-select: none;
 }
 
 /* 1b. Smooth app entrance – prevents layout shift flash */
 .app-ready {
   opacity: 1;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.app-window-frame {
+  border-radius: inherit;
 }
 
 /* 2. Target your scrollable workspace/sidebar containers to stop internal rubber-banding.
@@ -121,17 +149,35 @@ html.dark body {
 */
 
 /* .card — L=R=T=B=20px visible frame. Used by: Explore grid, Installed list,
-   Resolver queue cards. R=12 matches grid gap-3 for edge-gap = internal-gap. */
+    Resolver queue cards. Horizontal padding matches --card-gap for even edge gaps. */
 .scroller-panel.card {
-  padding: 1.25rem 0.75rem 1.25rem 1.25rem;
-  /* T=20, R=12, B=20, L=20 */
+  padding: var(--card-padding-y) var(--card-padding-x) var(--card-padding-y) var(--card-padding-x);
+  /* T=20, R=12, B=20, L=12 — symmetric horizontal padding to match inter-card gap */
+}
+
+/* .card-grid — grid layout for card panels with consistent gap matching card padding */
+.card-grid {
+  display: grid;
+  gap: var(--card-gap);
+}
+
+/* .card-col — flex column for card grids with consistent gap */
+.card-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+/* .panel-content — consistent 1rem padding on all sides for tab content panels */
+.panel-content {
+  padding: var(--panel-padding);
 }
 
 /* .card-no-pt — header-wrapped variant: header bar occupies the top frame so
    T=0. Bottom still matches L/vis-R = 20px for 3-way symmetry. */
 .scroller-panel.card-no-pt {
-  padding: 0 0.75rem 1.25rem 1.25rem;
-  /* T=0,  R=12, B=20, L=20 */
+  padding: 0 var(--card-padding-x) var(--card-padding-y) var(--card-padding-x);
+  /* T=0, R=12, B=20, L=12 — symmetric horizontal padding */
 }
 
 /* .terminal — intentionally dense vertical padding for scrolling console logs.
@@ -162,40 +208,23 @@ html.dark body {
 }
 
 /* --- Dropdown / transient-popover scroller --------------------------------
-   Same `scrollbar-gutter: stable` zero-shift rule as panel scrollers (see
-   lines 85-89), applied globally via the grouped selector.
+    Same `scrollbar-gutter: stable` zero-shift rule as panel scrollers (see
+    lines 85-89), applied globally via the grouped selector.
 
-   FULL PICTURE-FRAME 4-WAY SYMMETRY RULE (identical formula to panels):
-     • Visible R gap = padding-right + 8px gutter (fixed reserved slot on R)
-     • padding-left  = padding-right + 8   ← offsets the R gutter → L = visible R
-     • padding-top   = padding-left        ← matches the thick left frame
-     • padding-bottom = padding-left       ← matches the thick left frame
-   Result: from the dropdown option's perspective, every edge of content sits
-   exactly X px from the dropdown's chrome border — no more top-compression.
+    SYMMETRIC PADDING RULE:
+      All four sides have equal padding, ensuring even gaps between content
+      and the dropdown's chrome border on all platforms (Windows, macOS, Linux).
+      The `scrollbar-gutter: stable` on the parent reserves space for the
+      scrollbar, preventing layout shifts when the scrollbar appears/disappears.
 
-   Variants:
-   • .dense  — inline-portals inside overflow-hidden popovers (accordion
-               version picker, Installed version picker). Outer chrome already
-               has rounded corners so we use the smallest symmetric frame.
-               Padding: T=12 R=4 B=12 L=12  →  all 4 visible gaps = 12px
-   • .loose  — standalone dropdowns with their own rounded-xl chrome (the
-               Explore Factorio version picker). Needs more air so the pill
-               options don't rub against the dropdown's own rounded corners.
-               Padding: T=14 R=6 B=14 L=14  →  all 4 visible gaps = 14px
+/*
+  Padding is now handled by `p-1` (0.25rem) on the dropdown container itself.
+  The .dense / .loose modifiers are retained only as semantic markers;
+  they no longer set padding directly.
 */
 .scroller-dropdown {
   overflow-y: auto;
   overscroll-behavior-y: none;
-}
-
-.scroller-dropdown.dense {
-  padding: 0.75rem 0.25rem 0.75rem 0.75rem;
-  /* T=12, R=4,  B=12, L=12 */
-}
-
-.scroller-dropdown.loose {
-  padding: 0.875rem 0.375rem 0.875rem 0.875rem;
-  /* T=14, R=6,  B=14, L=14 */
 }
 
 /* --- Global scroll bar geometry -------------------------------------------- */
@@ -347,6 +376,7 @@ html.dark body {
   appearance: none;
   -webkit-appearance: none;
   vertical-align: middle;
+  border-radius: var(--radius-md);
 }
 
 .panel-pill-mono {

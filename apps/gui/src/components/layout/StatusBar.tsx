@@ -85,7 +85,7 @@ export const StatusBar: React.FC = () => {
                 <span className={`${TEXT.dim} opacity-40 select-none`}>|</span>
                 <button
                     onClick={() => toggleDrawer('settings')}
-                    className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 hover:text-blue-700 dark:hover:text-blue-300 transition-all cursor-pointer select-none font-mono text-xs font-bold"
+                    className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-blue-500/10 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 hover:text-blue-700 dark:hover:text-blue-300 transition-all cursor-pointer select-none font-mono text-xs font-bold"
                 >
                     <Gamepad2 className={`w-3.5 h-3.5 ${ACCENT.icon} shrink-0`} />
                     <span>{getFactorioVersionLabel(factorioVersion)}</span>
@@ -102,5 +102,4 @@ export const StatusBar: React.FC = () => {
         </div>
     );
 };
-
 

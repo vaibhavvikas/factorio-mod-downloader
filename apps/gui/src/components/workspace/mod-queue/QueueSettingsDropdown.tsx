@@ -66,7 +66,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
             <button
                 type="button"
                 onClick={() => setOpen(!open)}
-                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors ${open
+                className={`h-9 px-2.5 rounded-md text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center justify-center gap-1.5 transition-colors shadow-2xs ${open
                     ? 'bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400'
                     : `${INTERACTIVE.secondary} text-slate-800 dark:text-zinc-200`
                     }`}
@@ -82,7 +82,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
 
             {open && (
                 <div
-                    className={`absolute right-0 top-full mt-2 z-50 w-[350px] rounded-2xl ${BORDER.dropdown} ${LAYER.floatingPanel} shadow-2xl p-3.5 flex flex-col gap-3 animate-fade-in backdrop-blur-xl`}
+                    className={`absolute right-0 top-full mt-2 z-50 w-[350px] rounded-md ${BORDER.dropdown} ${LAYER.floatingPanel} shadow-2xl p-3.5 flex flex-col gap-3 animate-fade-in backdrop-blur-xl`}
                     onMouseDown={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
@@ -106,7 +106,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
                                 }`}
                         >
                             <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${autoIncludeRecommended
+                                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${autoIncludeRecommended
                                     ? 'bg-blue-500/20 text-blue-500'
                                     : 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-500'
                                     }`}>
@@ -142,7 +142,7 @@ export const QueueSettingsDropdown: React.FC<QueueSettingsDropdownProps> = ({
                                 }`}
                         >
                             <div className="flex items-center gap-2.5 min-w-0">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${autoIncludeOptional
+                                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 transition-colors ${autoIncludeOptional
                                     ? 'bg-purple-500/20 text-purple-500 dark:text-purple-400'
                                     : 'bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-500'
                                     }`}>

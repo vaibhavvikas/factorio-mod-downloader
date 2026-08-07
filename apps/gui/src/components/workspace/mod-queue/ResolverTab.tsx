@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Inbox, Loader2, Search, ChevronDown, Layers, LayoutGrid } from 'lucide-react';
+import { Download, Inbox, Loader2, ChevronDown, Layers, LayoutGrid } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { useAppContext } from '../../../context/AppContext';
 import type { InstalledModItem } from '../../../context/AppContext';
 import { ModAccordionCard } from './ModAccordionCard';
 import type { TargetModItem } from './ModAccordionCard';
 import type { TreeNode, DependencyType } from './DependencyTree';
-import { LAYER, BORDER, TEXT, INTERACTIVE, DEPENDENCY_TYPE, ACCENT, ANIMATION } from '../../../theme/layers';
+import { LAYER, BORDER, DIVIDER, TEXT, DEPENDENCY_TYPE, ACCENT, ANIMATION } from '../../../theme/layers';
 import {
     getInitialSelectedDepIds,
-    getQueueAutoIncludeSettings,
-    QUEUE_AUTO_OPTIONAL_KEY,
-    QUEUE_AUTO_RECOMMENDED_KEY,
 } from './queueAutoSelect';
-import { QueueSettingsDropdown } from './QueueSettingsDropdown';
-import { formatUserFriendlyError } from '../../../utils/errorUtils';
 
 interface BackendDependency {
     id: string;
@@ -142,7 +137,7 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
         <div className="flex flex-col">
             {/* Tree Node Row */}
             <div
-                className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 group cursor-pointer select-none transition-colors"
+                className="flex items-center gap-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800/50 rounded-md px-2 group cursor-pointer select-none transition-colors"
                 onClick={(e) => {
                     e.stopPropagation();
                     if (hasChildren && !isIncompatible) setIsExpanded(!isExpanded);
@@ -181,14 +176,14 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
 
                 {/* Recursion / Cycle warning */}
                 {hasCycle && (
-                    <span className={`text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono`}>
+                    <span className={`text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-md shrink-0 font-mono`}>
                         cycle detected
                     </span>
                 )}
 
                 {/* Incompatible tag */}
                 {isIncompatible && (
-                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-full shrink-0 font-mono">
+                    <span className="text-[9px] bg-rose-500/10 text-rose-500 border border-rose-500/25 px-1.5 py-0.2 rounded-md shrink-0 font-mono">
                         incompatible
                     </span>
                 )}
@@ -223,40 +218,35 @@ const DependencyTreeNode: React.FC<DependencyTreeNodeProps> = ({
 export interface ResolverTabProps {
     targetMods?: TargetModItem[];
     setTargetMods?: React.Dispatch<React.SetStateAction<TargetModItem[]>>;
-    parseAndAddMods?: (text: string) => Promise<void>;
     loading?: boolean;
+    autoIncludeRecommended: boolean;
+    autoIncludeOptional: boolean;
+    onBusyChange?: (busy: boolean) => void;
 }
 
 export const ResolverTab: React.FC<ResolverTabProps> = ({
     targetMods: externalTargetMods,
     setTargetMods: externalSetTargetMods,
-    parseAndAddMods: externalParseAndAddMods,
     loading: externalLoading,
+    autoIncludeRecommended,
+    autoIncludeOptional,
+    onBusyChange,
 }) => {
     const { startDownload, addLog, factorioVersion, folderPath, setInstalledMods } = useAppContext();
     const [localTargetMods, setLocalTargetMods] = useState<TargetModItem[]>([]);
     const targetMods = externalTargetMods !== undefined ? externalTargetMods : localTargetMods;
     const setTargetMods = externalSetTargetMods || setLocalTargetMods;
-    const [localLoading, setLocalLoading] = useState(false);
-    const loading = externalLoading !== undefined ? externalLoading : localLoading;
-    const setLoading = setLocalLoading;
+    const loading = externalLoading;
     const [expandedModIds, setExpandedModIds] = useState<string[]>([]);
     const handleToggleExpandCard = (id: string) => {
         setExpandedModIds(prev =>
             prev.includes(id) ? prev.filter(modId => modId !== id) : [...prev, id]
         );
     };
-    const [inputText, setInputText] = useState('');
     const [isResolvingBatch, setIsResolvingBatch] = useState(false);
     const [viewMode, setViewMode] = useState<'cards' | 'tree'>('cards');
     const [treeCache, setTreeCache] = useState<Record<string, TargetModItem>>({});
     const [isLoadingTree, setIsLoadingTree] = useState(false);
-    const [autoIncludeRecommended, setAutoIncludeRecommended] = useState<boolean>(() => {
-        return getQueueAutoIncludeSettings().recommended;
-    });
-    const [autoIncludeOptional, setAutoIncludeOptional] = useState<boolean>(() => {
-        return getQueueAutoIncludeSettings().optional;
-    });
 
     const lastResolvedKeyRef = useRef<string>('');
 
@@ -292,33 +282,18 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
                 };
             })
         );
-    }, [factorioVersion]);
+    }, [factorioVersion, targetMods, autoIncludeRecommended, autoIncludeOptional, setTargetMods]);
 
     // Sync selectedDepIds on targetMods when autoIncludeRecommended setting changes
-    const handleToggleAutoIncludeRecommended = (enabled: boolean) => {
-        setAutoIncludeRecommended(enabled);
-        localStorage.setItem(QUEUE_AUTO_RECOMMENDED_KEY, String(enabled));
-        const settings = { recommended: enabled, optional: autoIncludeOptional };
+    useEffect(() => {
+        const settings = { recommended: autoIncludeRecommended, optional: autoIncludeOptional };
         setTargetMods((prev: TargetModItem[]) =>
             prev.map(mod => ({
                 ...mod,
                 selectedDepIds: getInitialSelectedDepIds(mod.dependencies, settings),
             }))
         );
-    };
-
-    // Sync selectedDepIds on targetMods when autoIncludeOptional setting changes
-    const handleToggleAutoIncludeOptional = (enabled: boolean) => {
-        setAutoIncludeOptional(enabled);
-        localStorage.setItem(QUEUE_AUTO_OPTIONAL_KEY, String(enabled));
-        const settings = { recommended: autoIncludeRecommended, optional: enabled };
-        setTargetMods((prev: TargetModItem[]) =>
-            prev.map(mod => ({
-                ...mod,
-                selectedDepIds: getInitialSelectedDepIds(mod.dependencies, settings),
-            }))
-        );
-    };
+    }, [autoIncludeRecommended, autoIncludeOptional, setTargetMods]);
 
     // Auto-clear cache when targetMods is cleared
     useEffect(() => {
@@ -331,7 +306,7 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
     // On-demand tree resolving trigger
     useEffect(() => {
         if (viewMode === 'tree') {
-            resolveAndFetchTreeDeps();
+            resolveAndFetchTreeDepsRef.current();
         }
     }, [viewMode, targetMods, factorioVersion]);
 
@@ -448,7 +423,15 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         }
     };
 
-    const isBusy = isResolvingBatch || loading || externalLoading === true;
+    const resolveAndFetchTreeDepsRef = useRef(resolveAndFetchTreeDeps);
+    resolveAndFetchTreeDepsRef.current = resolveAndFetchTreeDeps;
+
+    const isBusy = isResolvingBatch || loading;
+
+    // Notify parent of busy state changes
+    useEffect(() => {
+        onBusyChange?.(!!isBusy);
+    }, [isBusy, onBusyChange]);
 
     // Convert flat backend dependencies to tree nodes
     const convertBackendDepsToTree = (deps: BackendDependencies): TreeNode[] => {
@@ -470,109 +453,6 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
 
         return treeNodes;
     };
-
-    // Extract mod names from URLs or text query and fetch from Backend!
-    const internalParseAndAddMods = async (text: string) => {
-        addLog(`Analyzing query: "${text.slice(0, 50)}${text.length > 50 ? '...' : ''}"`, 'info');
-        const rawEntries = text.split(/[\n\r,]+/);
-        const newModNames: string[] = [];
-
-        rawEntries.forEach(entry => {
-            const trimmed = entry.trim();
-            if (!trimmed) return;
-
-            let modName = trimmed;
-            try {
-                if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-                    const url = new URL(trimmed);
-                    const pathParts = url.pathname.split('/').filter(Boolean);
-                    const modIdx = pathParts.indexOf('mod');
-                    if (modIdx !== -1 && pathParts[modIdx + 1]) {
-                        modName = pathParts[modIdx + 1];
-                    } else {
-                        modName = pathParts[pathParts.length - 1];
-                    }
-                }
-            } catch (e) {
-                // Ignore URL parsing errors
-            }
-
-            modName = modName.split(/[?#]/)[0].trim();
-            if (modName && !newModNames.includes(modName)) {
-                newModNames.push(modName);
-            }
-        });
-
-        if (newModNames.length === 0) {
-            addLog('No valid mod names or URLs identified.', 'warn');
-            return;
-        }
-
-        setLoading(true);
-
-        for (const modId of newModNames) {
-            try {
-                addLog(`Loading mod info for "${modId}"...`, 'info');
-
-                // Call real Tauri Backend command!
-                const details = await invoke<BackendModDetails>('fetch_mod_details', { modId });
-
-                const reversedReleases = details.releases.slice().reverse();
-                const compatibleReleases = reversedReleases.filter(r => {
-                    if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return true;
-                    if (!r.factorio_version) return true;
-                    const cleanRel = r.factorio_version.trim();
-                    const cleanTarget = factorioVersion.trim();
-                    return cleanRel === cleanTarget || cleanRel.startsWith(cleanTarget) || cleanTarget.startsWith(cleanRel);
-                });
-                const latestVersion = compatibleReleases.length > 0 ? compatibleReleases[0].version : (reversedReleases[0]?.version || 'latest');
-                const formattedVer = latestVersion.startsWith('v') ? latestVersion : `v${latestVersion}`;
-
-                addLog(`Loaded mod info for "${details.title || details.name}" (selected ${formattedVer} for Factorio ${factorioVersion === 'all' || factorioVersion === 'any' ? 'Any Version' : factorioVersion})`, 'success');
-
-                const releaseDeps = (compatibleReleases.length > 0 && compatibleReleases[0].dependencies)
-                    ? compatibleReleases[0].dependencies
-                    : (details.default_dependencies || { required: [], recommended: [], optional: [], incompatible: [] });
-                const treeDeps = convertBackendDepsToTree(releaseDeps);
-                const initialSelectedIds = getInitialSelectedDepIds(treeDeps, {
-                    recommended: autoIncludeRecommended,
-                    optional: autoIncludeOptional,
-                });
-
-                const newCard: TargetModItem = {
-                    id: 'mod-' + Date.now() + '-' + Math.random(),
-                    name: details.name,
-                    title: details.title || details.name,
-                    author: details.owner || 'Author',
-                    category: details.category || 'content',
-                    summary: details.summary || '',
-                    thumbnail: details.thumbnail,
-                    updatedAt: details.updated_at,
-                    downloadsCount: details.downloads_count || 0,
-                    selectedVersion: latestVersion,
-                    availableReleases: reversedReleases.map(r => ({
-                        version: r.version,
-                        factorio_version: r.factorio_version,
-                        released_at: r.released_at,
-                        dependencies: r.dependencies,
-                    })),
-                    selectedDepIds: initialSelectedIds,
-                    dependencies: treeDeps
-                };
-
-                setTargetMods((prev: TargetModItem[]) => {
-                    if (prev.some(m => m.name === details.name)) return prev;
-                    return [...prev, newCard];
-                });
-            } catch (err: any) {
-                addLog(`Failed to fetch mod "${modId}": ${formatUserFriendlyError(err, modId)}`, 'error');
-            }
-        }
-
-        setLoading(false);
-    };
-
-    const parseAndAddMods = externalParseAndAddMods || internalParseAndAddMods;
 
     const handleToggleDep = (modId: string, depId: string) => {
         setTargetMods((prev: TargetModItem[]) => prev.map((m: TargetModItem) => {
@@ -634,24 +514,6 @@ export const ResolverTab: React.FC<ResolverTabProps> = ({
         setTargetMods((prev: TargetModItem[]) => prev.filter((m: TargetModItem) => m.id !== id));
     };
 
-    const handleAddClick = () => {
-        if (!inputText.trim()) return;
-        parseAndAddMods(inputText);
-        setInputText('');
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const text = event.target?.result as string;
-            parseAndAddMods(text);
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    };
 
 const isModIncompatible = (mod: TargetModItem): boolean => {
         if (!factorioVersion || factorioVersion === 'all' || factorioVersion === 'any') return false;
@@ -795,7 +657,7 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
     const renderDependencyTreePanel = () => {
         if (isLoadingTree) {
             return (
-                <div className={`flex flex-col ${LAYER.groupPanel} rounded-2xl ${BORDER.card} shadow-xs items-center justify-center p-6 ${TEXT.muted} gap-3 select-none`}>
+                <div className={`flex flex-col ${LAYER.groupPanel} rounded-md ${BORDER.card} shadow-xs items-center justify-center p-6 ${TEXT.muted} gap-3 select-none`}>
                     <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                     <div className="flex flex-col gap-1 text-center max-w-[320px]">
                         <span className={`font-bold ${TEXT.emphasis} text-xs`}>
@@ -812,12 +674,12 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
         const rootMods = getRootMods();
 
         return (
-            <div className={`flex flex-col ${LAYER.groupPanel} ${BORDER.card} shadow-xs overflow-hidden rounded-2xl animate-fade-in`}>
-                <div className={`h-8.5 min-h-8.5 px-3.5 border-b ${BORDER.card} flex items-center justify-between ${LAYER.contentCard} shrink-0 select-none rounded-t-2xl`}>
+            <div className={`flex flex-col ${LAYER.groupPanel} ${BORDER.card} shadow-xs overflow-hidden rounded-md animate-fade-in`}>
+                <div className={`h-9 min-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.contentCard} shrink-0 select-none rounded-t-md`}>
                     <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                         <Layers className="w-3.5 h-3.5 text-blue-500" />
                         <span>Dependency Graph Explorer</span>
-                        <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>
+                        <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-md font-mono font-bold text-slate-700 dark:text-zinc-300`}>
                             {targetMods.length + Object.keys(treeCache).length} resolved
                         </span>
                     </div>
@@ -831,7 +693,7 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                     </div>
                 </div>
 
-                <div className={`flex flex-col gap-1 p-6 pr-4 ${LAYER.innerRecessed}`}>
+                <div className={`flex flex-col gap-1 p-4 ${LAYER.innerRecessed}`}>
                     {[...rootMods].sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name)).map(m => (
                         <DependencyTreeNode
                             key={m.id}
@@ -852,67 +714,15 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
 
     return (
         <div className={`flex h-full min-h-0 flex-col ${LAYER.appCanvas} relative`}>
-            {/* Input Bar Section */}
-            <div className="pt-3 px-3 pb-0 shrink-0 flex flex-col gap-4">
-                <div className={`h-10 pl-3.5 pr-1.5 py-1.5 ${LAYER.toolbar} ${BORDER.toolbar} rounded-xl flex items-center justify-between shadow-xs gap-3 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all`}>
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                        <Search className="w-4 h-4 text-slate-400 shrink-0" />
-                        <input
-                            type="text"
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleAddClick();
-                            }}
-                            placeholder="Paste Factorio Mod URL (e.g. mods.factorio.com/mod/Krastorio2) or type mod name..."
-                            className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <QueueSettingsDropdown
-                            autoIncludeRecommended={autoIncludeRecommended}
-                            autoIncludeOptional={autoIncludeOptional}
-                            onToggleRecommended={handleToggleAutoIncludeRecommended}
-                            onToggleOptional={handleToggleAutoIncludeOptional}
-                        />
-
-                        <button
-                            onClick={() => document.getElementById('file-import')?.click()}
-                            className={`${INTERACTIVE.secondary} px-3 py-1.5 rounded-lg text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors`}
-                        >
-                            <FileText className="w-3.5 h-3.5 text-blue-500" />
-                            <span>Import .txt</span>
-                        </button>
-                        <button
-                            onClick={handleAddClick}
-                            disabled={isBusy}
-                            className="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white px-3.5 py-1.5 rounded-lg text-[11px] font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                        >
-                            {isBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                            <span>{isBusy ? 'Fetching...' : 'Add Mods'}</span>
-                        </button>
-                    </div>
-                    <input
-                        type="file"
-                        id="file-import"
-                        accept=".txt"
-                        style={{ display: 'none' }}
-                        onChange={handleFileChange}
-                    />
-                </div>
-
-
-            </div>
-
             {/* Content view workspace */}
-            <div className="relative flex flex-col flex-1 min-h-0 px-3 pt-3 pb-2">
-                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl ${BORDER.outer} ${LAYER.viewportGlass}`}>
+            <div className="relative flex flex-col flex-1 min-h-0 panel-content">
+                <div className={`relative flex flex-1 min-h-0 flex-col overflow-hidden rounded-md ${BORDER.outer} ${LAYER.viewportGlass}`}>
                     {targetMods.length > 0 && (
-                        <div className={`relative shrink-0 border-b ${BORDER.card} ${LAYER.contentCard} px-4 pt-3.5 pb-0 flex items-start justify-between rounded-t-2xl`}>
-                            <div className="inline-flex gap-6 text-xs font-bold select-none">
+                        <div className={`relative shrink-0 border-b ${DIVIDER.outer} ${LAYER.contentCard} px-4 h-9 flex items-center justify-between rounded-t-md z-10`}>
+                            <div className="inline-flex gap-6 h-full text-xs font-bold select-none">
                                 <button
                                     onClick={() => setViewMode('cards')}
-                                    className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'cards'
+                                    className={`relative h-full flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'cards'
                                         ? ACCENT.text
                                         : `${TEXT.dim} ${TEXT.hoverEmphasis}`
                                         }`}
@@ -920,12 +730,12 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                                     <LayoutGrid className={`w-3.5 h-3.5 ${viewMode === 'cards' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
                                     <span>Target Mods</span>
                                     {viewMode === 'cards' && (
-                                        <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
+                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                     )}
                                 </button>
                                 <button
                                     onClick={() => setViewMode('tree')}
-                                    className={`relative pb-3 flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'tree'
+                                    className={`relative h-full flex items-center gap-1.5 ${ANIMATION.tabButton} cursor-pointer ${viewMode === 'tree'
                                         ? ACCENT.text
                                         : `${TEXT.dim} ${TEXT.hoverEmphasis}`
                                         }`}
@@ -933,16 +743,16 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                                     <Layers className={`w-3.5 h-3.5 ${viewMode === 'tree' ? ACCENT.text : 'text-slate-400 dark:text-zinc-500'}`} />
                                     <span>Dependency Tree</span>
                                     {viewMode === 'tree' && (
-                                        <span className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
+                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full animate-in fade-in zoom-in-95 duration-150" />
                                     )}
                                 </button>
                             </div>
-                            <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400 pb-3">
+                            <span className="text-[11px] font-mono text-slate-500 dark:text-zinc-400">
                                 {targetMods.filter(m => !isModIncompatible(m)).length} Compatible Mods
                             </span>
                         </div>
                     )}
-                    <div className="relative flex-1 min-h-0 flex flex-col items-start overflow-y-auto p-5 pr-3">
+                     <div className="relative flex-1 min-h-0 flex flex-col items-start overflow-y-auto p-4">
                         <div className="w-full flex flex-col">
                             {targetMods.length === 0 ? (
                                 <div className="h-full min-h-[200px] text-center py-20 px-4 text-slate-400 dark:text-zinc-600 text-xs flex flex-col items-center justify-center gap-3">
@@ -980,9 +790,9 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                                          const col2Mods = sortedMods.filter((_, idx) => idx % 2 === 1);
 
                                          return (
-                                             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-                                                 <div className="flex flex-col gap-3 min-w-0">
-                                                     {col1Mods.map((mod: TargetModItem) => (
+                                             <div className="w-full grid grid-cols-1 md:grid-cols-2 card-grid items-start">
+                                          <div className="card-col min-w-0">
+                                                      {col1Mods.map((mod: TargetModItem) => (
                                                          <ModAccordionCard
                                                              key={mod.id}
                                                              mod={mod}
@@ -995,8 +805,8 @@ const isModIncompatible = (mod: TargetModItem): boolean => {
                                                          />
                                                      ))}
                                                  </div>
-                                                 <div className="flex flex-col gap-3 min-w-0">
-                                                     {col2Mods.map((mod: TargetModItem) => (
+                                          <div className="card-col min-w-0">
+                                                      {col2Mods.map((mod: TargetModItem) => (
                                                          <ModAccordionCard
                                                              key={mod.id}
                                                              mod={mod}

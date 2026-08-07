@@ -33,8 +33,17 @@ export const FactorioVersionDropdown: React.FC<FactorioVersionDropdownProps> = (
         if (!open && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
             const width = Math.max(192, Math.round(rect.width));
-            const left = Math.round(rect.right - width);
-            const top = rect.bottom + 6;
+            const MIN_EDGE = 12;
+            const top = Math.round(rect.bottom + 6);
+
+            const preferredLeft = Math.round(rect.left);
+            let left = preferredLeft;
+
+            if (left + width > window.innerWidth - MIN_EDGE) {
+                left = Math.round(window.innerWidth - width - MIN_EDGE);
+            }
+
+            left = Math.max(MIN_EDGE, left);
             setDropdownPos({ top, left, width });
         }
         setOpen(!open);
@@ -68,7 +77,7 @@ export const FactorioVersionDropdown: React.FC<FactorioVersionDropdownProps> = (
                         onMouseDown={(e) => e.stopPropagation()}
                     />
                     <div
-                        className={`fixed z-[101] rounded-xl ${BORDER.dropdown} ${LAYER.dropdownMenu} shadow-xl backdrop-blur-md max-h-60 scroller-dropdown loose overflow-y-auto animate-fade-in p-1`}
+                        className={`fixed z-[101] rounded-xl ${BORDER.dropdown} ${LAYER.dropdownMenu} shadow-xl backdrop-blur-md max-h-60 scroller-dropdown overflow-y-auto animate-fade-in p-2 flex flex-col gap-1`}
                         style={{
                             top: `${dropdownPos.top}px`,
                             left: `${dropdownPos.left}px`,
@@ -86,7 +95,7 @@ export const FactorioVersionDropdown: React.FC<FactorioVersionDropdownProps> = (
                                         onChange(item.value);
                                         setOpen(false);
                                     }}
-                                    className={`flex w-full items-center justify-between px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer text-left ${isSelected
+                                    className={`flex w-full items-center justify-between px-3 py-2 text-xs rounded-md transition-colors cursor-pointer text-left ${isSelected
                                             ? `${ACCENT.menuItemSelected} font-bold`
                                             : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                         }`}

@@ -35,7 +35,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
             try {
                 const maxed = await appWindow.isMaximized();
                 setIsMaximized(maxed);
-            } catch (e) {
+            } catch {
                 // Ignore error if window API not ready
             }
         };
@@ -47,7 +47,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 unlisten = await appWindow.onResized(() => {
                     updateMaximizedState();
                 });
-            } catch (e) {
+            } catch {
                 // Ignore fallback
             }
         };
@@ -67,12 +67,18 @@ export const TitleBar: React.FC<TitleBarProps> = ({
         setIsMaximized(maxed);
     };
 
-    const handleTitleBarDoubleClick = (e: React.MouseEvent) => {
+    const handleTitleBarMouseDown = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
         const target = e.target as HTMLElement;
         if (target.closest('button, input, select, textarea, [role="button"], a, .no-maximize')) {
             return;
         }
-        toggleMaximizeWindow();
+
+        if (e.detail === 2) {
+            toggleMaximizeWindow();
+        } else {
+            appWindow.startDragging();
+        }
     };
 
     const handleMaximizeButtonClick = (e: React.MouseEvent) => {
@@ -169,9 +175,8 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 
     return (
         <div
-            data-tauri-drag-region
-            onDoubleClick={handleTitleBarDoubleClick}
-            className={`relative h-10 ${LAYER.chromeHeavy} border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
+            onMouseDown={handleTitleBarMouseDown}
+            className={`relative h-10 ${LAYER.navBar} backdrop-blur-2xl backdrop-saturate-200 border-b ${DIVIDER.outer} flex items-center justify-between pl-4 shrink-0 transition-colors cursor-default select-none ${isMac ? 'pr-4' : 'pr-0'}`}
         >
             {/* Left Side: OS controls on Mac, Brand logo on Windows */}
             {isMac ? renderMacControls() : (
@@ -202,7 +207,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
                 >
                     <Download className="w-4 h-4" />
                     {queue.length > 0 && (
-                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-full flex items-center justify-center border-2 border-slate-50 dark:border-zinc-900 shadow-sm ${isDownloading
+                        <span className={`absolute -top-1 -right-1 text-[9px] font-bold h-4 min-w-[16px] px-0.5 rounded-md flex items-center justify-center border-2 border-slate-50 dark:border-zinc-900 shadow-sm ${isDownloading
                             ? 'bg-blue-500 text-white animate-pulse'
                             : 'bg-emerald-500 text-white'
                             }`}>

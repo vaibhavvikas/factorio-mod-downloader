@@ -47,7 +47,16 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
 
             const minW = compact ? 176 : 220;
             const width = Math.max(minW, Math.round(rect.width));
-            const left = Math.round(rect.right - width);
+            const MIN_EDGE = 12;
+
+            const preferredLeft = Math.round(rect.left);
+            let left = preferredLeft;
+
+            if (left + width > window.innerWidth - MIN_EDGE) {
+                left = Math.round(window.innerWidth - width - MIN_EDGE);
+            }
+
+            left = Math.max(MIN_EDGE, left);
             setDropdownPos({ top, bottom, left, width });
         }
         setIsOpen(!isOpen);
@@ -87,7 +96,7 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                             minWidth: compact ? '176px' : '220px',
                         }}
                     >
-                        <div className="scroller-dropdown scroller-inner dense max-h-[280px] text-xs font-mono flex flex-col gap-0.5">
+                        <div className="scroller-dropdown scroller-inner max-h-[280px] text-xs font-mono flex flex-col gap-1">
                             {versions.map(ver => {
                                 const isSelected = ver === selectedVersion;
                                 return (
@@ -101,7 +110,7 @@ export const InstalledVersionDropdown: React.FC<VersionDropdownProps> = ({
                                             setIsOpen(false);
                                         }}
                                         onMouseDown={(event) => event.stopPropagation()}
-                                        className={`px-3 py-2 rounded-lg flex items-center justify-start transition-colors cursor-pointer ${isSelected
+                                        className={`px-3 py-2 rounded-md flex items-center justify-start transition-colors cursor-pointer ${isSelected
                                             ? `${ACCENT.menuItemSelected} font-bold`
                                             : `${TEXT.emphasis} ${INTERACTIVE.rowHover}`
                                             }`}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Compass, Package, HardDrive, Terminal, Trash2, X } from 'lucide-react';
+import { Compass, Package, HardDrive, Terminal, Trash2, X, Search as SearchIcon, RefreshCw, FileText, Loader2, FolderOpen, FolderSearch, FolderOutput, Plus } from 'lucide-react';
 import { SearchTab } from './explore/SearchTab';
 import { ResolverTab } from './mod-queue/ResolverTab';
 import { InstalledTab } from './mod-manager/InstalledTab';
@@ -9,15 +9,41 @@ import { invoke } from '@tauri-apps/api/core';
 import { LAYER, BORDER, DIVIDER, TEXT, INTERACTIVE, ANIMATION } from '../../theme/layers';
 import { getInitialSelectedDepIds } from './mod-queue/queueAutoSelect';
 import { formatUserFriendlyError } from '../../utils/errorUtils';
+import { Tooltip } from '../ui/Tooltip';
+import { QueueSettingsDropdown } from './mod-queue/QueueSettingsDropdown';
+import {
+    QUEUE_AUTO_RECOMMENDED_KEY,
+    QUEUE_AUTO_OPTIONAL_KEY,
+    getQueueAutoIncludeSettings,
+} from './mod-queue/queueAutoSelect';
 
 export const Workspace: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'search' | 'queue' | 'installed'>('search');
     const [targetMods, setTargetMods] = useState<TargetModItem[]>([]);
     const [loading, setLoading] = useState(false);
-    const { consoleOpen, setConsoleOpen, logs, clearLogs, addLog, factorioVersion } = useAppContext();
+    const { consoleOpen, setConsoleOpen, logs, clearLogs, addLog, factorioVersion, folderPath, setFolderPath, loadingInstalled, isCheckingUpdates, refreshInstalledMods: loadInstalledMods } = useAppContext();
     const [isClearingLogs, setIsClearingLogs] = useState(false);
     const consoleEndRef = useRef<HTMLDivElement>(null);
     const addingInFlightRef = useRef(0);
+
+    // === Lifted state for SearchTab (Explore) ===
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchReloadTrigger, setSearchReloadTrigger] = useState(0);
+    const [searchLoading, setSearchLoading] = useState(false);
+
+    // === Lifted state for ResolverTab (Mod Queue) ===
+    const [queueInputText, setQueueInputText] = useState('');
+    const [queueBusy, setQueueBusy] = useState(false);
+    const queueFileInputRef = useRef<HTMLInputElement>(null);
+    const [queueAutoIncludeRecommended, setQueueAutoIncludeRecommended] = useState<boolean>(() => {
+        return getQueueAutoIncludeSettings().recommended;
+    });
+    const [queueAutoIncludeOptional, setQueueAutoIncludeOptional] = useState<boolean>(() => {
+        return getQueueAutoIncludeSettings().optional;
+    });
+
+    // === Lifted state for InstalledTab (Mod Manager) ===
+    const isInstalledAnyLoading = loadingInstalled;
 
     const handleClearLogs = () => {
         setIsClearingLogs(true);
@@ -153,7 +179,7 @@ export const Workspace: React.FC = () => {
                         modName = pathParts[pathParts.length - 1];
                     }
                 }
-            } catch (e) {
+            } catch {
                 // Ignore URL parsing errors
             }
 
@@ -183,15 +209,59 @@ export const Workspace: React.FC = () => {
         }
     };
 
+    // Handlers for queue auto-include settings (lifted from ResolverTab)
+    const handleToggleAutoIncludeRecommended = (enabled: boolean) => {
+        setQueueAutoIncludeRecommended(enabled);
+        localStorage.setItem(QUEUE_AUTO_RECOMMENDED_KEY, String(enabled));
+    };
+    const handleToggleAutoIncludeOptional = (enabled: boolean) => {
+        setQueueAutoIncludeOptional(enabled);
+        localStorage.setItem(QUEUE_AUTO_OPTIONAL_KEY, String(enabled));
+    };
+
+    // Handler for queue "Add Mods" click
+    const handleQueueAddClick = () => {
+        if (!queueInputText.trim()) return;
+        handleParseAndAddMods(queueInputText);
+        setQueueInputText('');
+    };
+
+    // Handler for queue file import
+    const handleQueueFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string;
+            handleParseAndAddMods(text);
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    };
+
+    // Handlers for Installed tab browse
+    const handleBrowseFolder = async () => {
+        try {
+            const newPath = await invoke<string | null>('pick_mods_folder_dialog');
+            if (newPath) {
+                setFolderPath(newPath);
+                await invoke('save_mods_folder', { path: newPath });
+                await loadInstalledMods(newPath);
+            }
+        } catch (err) {
+            console.error('Failed to pick folder:', err);
+        }
+    };
+
     return (
         <div className={`flex-1 flex flex-col w-full h-full min-w-0 min-h-0 ${LAYER.appCanvas} transition-colors relative overflow-hidden`}>
             {/* Primary App Navigation Header Bar */}
-            <div className={`h-14 flex items-center justify-between ${LAYER.navBar} border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none relative z-30`}>
-                <nav className="flex items-center gap-2 h-full">
+            <div className={`h-14 flex items-center justify-between ${LAYER.navBar} border-b ${DIVIDER.outer} px-4 shrink-0 transition-colors select-none relative z-30 gap-8`}>
+                <nav className="flex items-center gap-2 h-full shrink-0">
                     {/* Tab 1: Explore */}
                     <button
                         onClick={() => setActiveTab('search')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${activeTab === 'search' ? LAYER.navTabActive : LAYER.navTabInactive
+                        className={`h-9 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'search' ? LAYER.navTabActive : LAYER.navTabInactive
                             }`}
                     >
                         <Compass className={`w-4 h-4 ${activeTab === 'search' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
@@ -201,13 +271,13 @@ export const Workspace: React.FC = () => {
                     {/* Tab 2: Mod Queue */}
                     <button
                         onClick={() => setActiveTab('queue')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${activeTab === 'queue' ? LAYER.navTabActive : LAYER.navTabInactive
+                        className={`h-9 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'queue' ? LAYER.navTabActive : LAYER.navTabInactive
                             }`}
                     >
                         <Package className={`w-4 h-4 ${activeTab === 'queue' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
                         <span>Mod Queue</span>
                         {targetMods.length > 0 && (
-                            <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1.5 text-[9.5px] font-mono font-bold leading-none ${activeTab === 'queue'
+                            <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-md px-1.5 text-[9.5px] font-mono font-bold leading-none ${activeTab === 'queue'
                                     ? 'bg-blue-600 text-white dark:bg-blue-500'
                                     : 'bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-zinc-200'
                                 }`}>
@@ -219,13 +289,171 @@ export const Workspace: React.FC = () => {
                     {/* Tab 3: Mod Manager */}
                     <button
                         onClick={() => setActiveTab('installed')}
-                        className={`h-10 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-xl border ${activeTab === 'installed' ? LAYER.navTabActive : LAYER.navTabInactive
+                        className={`h-9 px-3.5 flex items-center gap-2 text-xs font-bold ${ANIMATION.tabButton} cursor-pointer rounded-md border ${activeTab === 'installed' ? LAYER.navTabActive : LAYER.navTabInactive
                             }`}
                     >
                         <HardDrive className={`w-4 h-4 ${activeTab === 'installed' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-zinc-400'}`} />
                         <span>Mod Manager</span>
                     </button>
                 </nav>
+
+                {/* Contextual Toolbar — changes based on active tab */}
+                <div className="flex-1 min-w-0 flex items-center justify-end h-full">
+                    {/* Explore tab: Search bar */}
+                    {activeTab === 'search' && (
+                        <div className="flex items-center gap-2 w-full max-w-3xl">
+                            <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-2 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
+                                <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search Factorio mods by title, author, or keyword (e.g. Krastorio, Space Exploration, Bob...)"
+                                    className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
+                                />
+                                {searchQuery.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery('')}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+                                        aria-label="Clear search"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setSearchReloadTrigger(prev => prev + 1)}
+                                disabled={searchLoading}
+                                aria-label="Reload mod results"
+                                className={`h-9 px-3 flex items-center justify-center gap-1.5 rounded-md ${INTERACTIVE.secondary} ${BORDER.inner} shadow-2xs transition-colors cursor-pointer shrink-0 disabled:opacity-50 text-xs font-medium`}
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 ${searchLoading ? 'animate-spin text-blue-500' : 'text-slate-500 dark:text-zinc-400'}`} />
+                                <span>Reload</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Mod Queue tab: URL/name input bar */}
+                    {activeTab === 'queue' && (
+                        <div className="flex items-center gap-2 w-full max-w-3xl">
+                            <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-2 py-1 items-center gap-2 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500/30 transition-all shadow-xs`}>
+                                <SearchIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <input
+                                    type="text"
+                                    value={queueInputText}
+                                    onChange={(e) => setQueueInputText(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleQueueAddClick();
+                                    }}
+                                    placeholder="Paste Factorio Mod URL or type mod name..."
+                                    className="bg-transparent border-none text-xs text-slate-800 dark:text-zinc-100 focus:outline-none w-full font-medium placeholder:text-slate-400 dark:placeholder:text-zinc-500"
+                                />
+                                {queueInputText.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setQueueInputText('')}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+                                        aria-label="Clear input"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <QueueSettingsDropdown
+                                    autoIncludeRecommended={queueAutoIncludeRecommended}
+                                    autoIncludeOptional={queueAutoIncludeOptional}
+                                    onToggleRecommended={handleToggleAutoIncludeRecommended}
+                                    onToggleOptional={handleToggleAutoIncludeOptional}
+                                />
+                                <button
+                                    onClick={() => queueFileInputRef.current?.click()}
+                                    className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md text-[11px] font-medium ${BORDER.inner} cursor-pointer flex items-center gap-1.5 transition-colors shadow-2xs`}
+                                >
+                                    <FileText className="w-3.5 h-3.5 text-blue-500" />
+                                    <span>Import</span>
+                                </button>
+                                <button
+                                    onClick={handleQueueAddClick}
+                                    disabled={queueBusy || loading}
+                                    className={`h-9 ${INTERACTIVE.secondary} px-3 rounded-md text-xs font-medium ${BORDER.inner} cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50 shrink-0`}
+                                >
+                                    {(queueBusy || loading) ? <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" /> : <Plus className="w-3.5 h-3.5 text-blue-500" />}
+                                    <span>{(queueBusy || loading) ? 'Fetching...' : 'Add'}</span>
+                                </button>
+                            </div>
+                            <input
+                                type="file"
+                                ref={queueFileInputRef}
+                                accept=".txt"
+                                style={{ display: 'none' }}
+                                onChange={handleQueueFileChange}
+                            />
+                        </div>
+                    )}
+
+                    {/* Mod Manager tab: Folder path bar */}
+                    {activeTab === 'installed' && (
+                        <div className="flex items-center gap-2 w-full max-w-3xl">
+                            <div className={`flex flex-1 h-9 ${LAYER.toolbar} ${BORDER.toolbar} rounded-md pl-3 pr-3 py-1 items-center gap-2 text-xs shadow-xs min-w-0`}>
+                                <FolderOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                <span className="font-semibold text-slate-400 dark:text-zinc-500 shrink-0">Mods Path:</span>
+                                <Tooltip content={folderPath}>
+                                    <span className="font-mono text-[11px] text-slate-900 dark:text-zinc-100 overflow-hidden text-ellipsis whitespace-nowrap min-w-0 flex-1">
+                                        {folderPath || 'Detecting folder...'}
+                                    </span>
+                                </Tooltip>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <Tooltip content="Browse / Change Folder">
+                                    <button
+                                        onClick={(e) => {
+                                            e.currentTarget.blur();
+                                            handleBrowseFolder();
+                                        }}
+                                        className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md ${BORDER.inner} cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-2xs text-xs font-medium`}
+                                    >
+                                        <FolderSearch className="w-3.5 h-3.5 text-blue-500" />
+                                        <span>Browse</span>
+                                    </button>
+                                </Tooltip>
+                                <Tooltip content="Open folder in File Explorer">
+                                    <button
+                                        onClick={async (e) => {
+                                            e.currentTarget.blur();
+                                            if (!folderPath) return;
+                                            try {
+                                                await invoke('open_folder_in_explorer', { path: folderPath });
+                                            } catch (err) {
+                                                console.error('Failed to open folder:', err);
+                                            }
+                                        }}
+                                        className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md ${BORDER.inner} cursor-pointer transition-colors flex items-center justify-center gap-1.5 shadow-2xs text-xs font-medium`}
+                                    >
+                                        <FolderOutput className="w-3.5 h-3.5 text-blue-500" />
+                                        <span>Open Folder</span>
+                                    </button>
+                                </Tooltip>
+                                <Tooltip content={isCheckingUpdates ? 'Checking for online mod updates...' : isInstalledAnyLoading ? 'Scanning local mods folder...' : 'Sync & check for mod updates'}>
+                                    <button
+                                        onClick={(e) => {
+                                            e.currentTarget.blur();
+                                            loadInstalledMods(folderPath);
+                                        }}
+                                        disabled={isInstalledAnyLoading}
+                                        className={`h-9 ${INTERACTIVE.secondary} px-2.5 rounded-md ${BORDER.inner} cursor-pointer transition-colors disabled:opacity-50 select-none flex items-center justify-center gap-1.5 shadow-2xs text-xs font-medium`}
+                                        aria-label="Sync & Check Updates"
+                                    >
+                                        <RefreshCw className={`w-3.5 h-3.5 text-blue-500 ${isInstalledAnyLoading ? 'animate-spin' : ''}`} />
+                                        <span>Sync</span>
+                                    </button>
+                                </Tooltip>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Content Rendering and Console wrapper */}
@@ -235,6 +463,9 @@ export const Workspace: React.FC = () => {
                         <SearchTab
                             existingModNames={targetMods.map(m => m.name)}
                             onAddModToQueue={handleAddModToQueue}
+                            query={searchQuery}
+                            reloadTrigger={searchReloadTrigger}
+                            onSearchLoadingChange={setSearchLoading}
                         />
                     </div>
                     <div className={`h-full overflow-hidden ${ANIMATION.tabPane} ${activeTab === 'queue' ? 'block' : 'hidden'}`}>
@@ -242,7 +473,9 @@ export const Workspace: React.FC = () => {
                             targetMods={targetMods}
                             setTargetMods={setTargetMods}
                             loading={loading}
-                            parseAndAddMods={handleParseAndAddMods}
+                            autoIncludeRecommended={queueAutoIncludeRecommended}
+                            autoIncludeOptional={queueAutoIncludeOptional}
+                            onBusyChange={setQueueBusy}
                         />
                     </div>
                     <div className={`h-full ${ANIMATION.tabPane} ${activeTab === 'installed' ? 'block' : 'hidden'}`}>
@@ -253,13 +486,13 @@ export const Workspace: React.FC = () => {
                 {/* System Console Logs Panel — Bottom Docked Persistent Window pushing content up */}
                 {consoleOpen && (
                     <div className={`h-[206px] shrink-0 w-full px-4 pb-3 pt-2 ${LAYER.appCanvas} transition-all duration-200`}>
-                        <div className={`h-full ${LAYER.groupPanel} backdrop-blur-md rounded-2xl ${BORDER.outer} shadow-xl flex flex-col overflow-hidden`}>
+                        <div className={`h-full ${LAYER.groupPanel} backdrop-blur-md rounded-md ${BORDER.outer} shadow-xl flex flex-col overflow-hidden`}>
                             {/* Console Header */}
                             <div className={`h-9 min-h-9 max-h-9 px-3.5 border-b ${DIVIDER.outer} flex items-center justify-between ${LAYER.viewportHeader} shrink-0 select-none`}>
                                 <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-zinc-200">
                                     <Terminal className="w-3.5 h-3.5 text-blue-500" />
                                     <span>System Console Logs</span>
-                                    <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-full font-mono font-bold text-slate-700 dark:text-zinc-300`}>{logs.length}</span>
+                                    <span className={`${LAYER.pillSurface} ${BORDER.pill} text-[10px] px-2 py-0.5 rounded-md font-mono font-bold text-slate-700 dark:text-zinc-300`}>{logs.length}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
@@ -307,7 +540,7 @@ export const Workspace: React.FC = () => {
                                         <div
                                             key={log.id}
                                             style={animationDelay ? { animationDelay } : undefined}
-                                            className={`flex gap-2.5 items-start py-0.5 px-2 rounded-lg transition-all border border-transparent shrink-0 hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 hover:border-slate-200/60 dark:hover:border-zinc-700/50 ${isClearingLogs ? 'item-dismissing' : ''}`}
+                                            className={`flex gap-2.5 items-start py-0.5 px-2 rounded-md transition-all border border-transparent shrink-0 hover:bg-slate-50/70 dark:hover:bg-zinc-900/50 hover:border-slate-200/60 dark:hover:border-zinc-700/50 ${isClearingLogs ? 'item-dismissing' : ''}`}
                                         >
                                             <span className={`${TEXT.muted} select-none shrink-0 font-medium`}>{log.timestamp}</span>
                                             <span className={`${levelColor} font-bold select-none shrink-0 uppercase text-[10px]`}>[{levelLabel}]</span>
