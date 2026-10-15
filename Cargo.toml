@@ -4,6 +4,8 @@ resolver = "2"
 members = [
     "apps/cli",
     "apps/gui/src-tauri",
+    "apps/gui-v2/src-tauri",
+    "crates/common",
     "crates/factorio",
     "crates/downloader",
     "crates/parser",

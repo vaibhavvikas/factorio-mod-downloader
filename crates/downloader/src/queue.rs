@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::{Mutex, Semaphore};
 
+use common::emit_log_with_tag;
 use factorio::installed::compare_versions;
 use factorio::models::ResolvedDownloadItem;
 use crate::downloader::{download_mod_file, DownloadRequest};
@@ -64,6 +65,7 @@ impl DownloadQueueManager {
     }
 
     pub async fn enqueue_batch(&self, items: Vec<ResolvedDownloadItem>, output_dir: PathBuf) {
+        emit_log_with_tag("queue", "queue", &format!("Queued {} mod(s) for download", items.len()));
         let existing_mods = scan_downloaded_files(&output_dir);
 
         for item in items {
@@ -93,6 +95,7 @@ impl DownloadQueueManager {
                             status: DownloadStatus::AlreadyExists,
                         },
                     );
+                    emit_log_with_tag("info", "mods", &format!("Mod already exists in folder: \"{}\" (v{})", item.title, item.version));
                     continue;
                 } else {
                     is_update_replacement = true;
@@ -161,6 +164,7 @@ impl DownloadQueueManager {
                         task.status = DownloadStatus::Downloading;
                     }
                 }
+                emit_log_with_tag("download", "download", &format!("Downloading \"{}\" (v{})", item.title, item.version));
 
                 let mut attempts = 0;
                 let max_retries = 3;
@@ -239,14 +243,22 @@ impl DownloadQueueManager {
                         }
                         task.status = if is_update_replacement {
                             if is_downgrade {
+                                emit_log_with_tag("warn", "warn", &format!("Downgraded mod \"{}\" to v{}", item.title, item.version));
                                 DownloadStatus::Downgraded
                             } else {
+                                emit_log_with_tag("success", "success", &format!("Updated mod \"{}\" to v{}", item.title, item.version));
                                 DownloadStatus::Updated
                             }
                         } else {
+                            emit_log_with_tag("success", "success", &format!("Downloaded successfully: \"{}\" (v{})", item.title, item.version));
                             DownloadStatus::Completed
                         };
                     } else {
+                        if last_error.contains("Cancelled by user") {
+                            emit_log_with_tag("warn", "cancel", &format!("Cancelled download: \"{}\" (v{})", item.title, item.version));
+                        } else {
+                            emit_log_with_tag("error", "error", &format!("Download failed for \"{}\" (v{}): {}", item.title, item.version, last_error));
+                        }
                         task.status = DownloadStatus::Failed(last_error);
                     }
                 }
@@ -257,9 +269,11 @@ impl DownloadQueueManager {
     pub async fn clear_completed(&self) {
         let mut guard = self.tasks.lock().await;
         guard.retain(|_, task| matches!(task.status, DownloadStatus::Pending | DownloadStatus::Downloading | DownloadStatus::Failed(_)));
+        emit_log_with_tag("info", "queue", "Cleared completed tasks from download queue");
     }
 
     pub async fn retry_task(&self, task_id: &str, output_dir: PathBuf) {
+        emit_log_with_tag("queue", "retry", &format!("Retrying download task \"{}\"", task_id));
         let mut guard = self.tasks.lock().await;
         if let Some(task) = guard.get_mut(task_id) {
             let item = ResolvedDownloadItem {
@@ -277,6 +291,7 @@ impl DownloadQueueManager {
     }
 
     pub async fn cancel_task(&self, task_id: &str) {
+        emit_log_with_tag("warn", "cancel", &format!("Cancelled download task \"{}\"", task_id));
         {
             let flags = self.cancel_flags.lock().await;
             if let Some(flag) = flags.get(task_id) {
@@ -290,6 +305,7 @@ impl DownloadQueueManager {
     }
 
     pub async fn cancel_all(&self) {
+        emit_log_with_tag("warn", "cancel", "Cancelled all active download tasks");
         {
             let flags = self.cancel_flags.lock().await;
             for flag in flags.values() {
