@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Download, ExternalLink, Package, Rocket, User } from "lucide-react"
+import { Download, ExternalLink, Package, Rocket, User, Plus, Check, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { openModPortal } from "@/lib/utils"
+import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import type { ModSearchResultItem } from "../types"
 
 interface ModListItemProps {
@@ -28,9 +29,25 @@ function formatDownloads(count: number): string {
 
 export function ModListItem({ item, onDownload }: ModListItemProps) {
   const [imageError, setImageError] = React.useState(false)
+  const [isAdding, setIsAdding] = React.useState(false)
+
+  const isInQueue = useModQueueStore((s) =>
+    s.targetMods.some((m) => m.name === item.name)
+  )
+
+  const handleQueueClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isInQueue || isAdding) return
+    setIsAdding(true)
+    try {
+      await onDownload?.(item.name)
+    } finally {
+      setIsAdding(false)
+    }
+  }
 
   return (
-    <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-all duration-150 ease-out hover:border-foreground/30 hover:bg-[color-mix(in_oklch,var(--card),white_5%)] hover:shadow-md ring-1 ring-transparent hover:ring-foreground/15">
+    <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-all duration-150 ease-out ring-1 ring-border hover:ring-foreground/20 hover:bg-muted/20 hover:shadow-md dark:ring-transparent dark:hover:ring-foreground/15 dark:hover:bg-[color-mix(in_oklch,var(--card),white_5%)]">
       {/* Left section: Thumbnail + Main Info */}
       <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
         {item.thumbnail && !imageError ? (
@@ -119,15 +136,32 @@ export function ModListItem({ item, onDownload }: ModListItemProps) {
           <TooltipContent>Open on Factorio Mod Portal</TooltipContent>
         </Tooltip>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          className="gap-1.5 h-8 px-3 text-xs font-medium cursor-pointer w-full sm:w-auto"
-          onClick={() => onDownload?.(item.name)}
-        >
-          <Download className="size-3.5" />
-          <span>Download</span>
-        </Button>
+        {isInQueue ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled
+            className="gap-1.5 h-8 px-3 text-xs font-medium cursor-default opacity-100 border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-full sm:w-auto"
+          >
+            <Check className="size-3.5 text-emerald-500" />
+            <span>Added</span>
+          </Button>
+        ) : (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={isAdding}
+            className="gap-1.5 h-8 px-3 text-xs font-medium cursor-pointer w-full sm:w-auto"
+            onClick={handleQueueClick}
+          >
+            {isAdding ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Plus className="size-3.5" />
+            )}
+            <span>{isAdding ? "Adding..." : "Queue"}</span>
+          </Button>
+        )}
       </div>
     </Card>
   )

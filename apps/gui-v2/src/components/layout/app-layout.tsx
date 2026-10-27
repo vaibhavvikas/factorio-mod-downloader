@@ -15,16 +15,36 @@ import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
+import { cn } from "@/lib/utils"
 import { AppSidebar, type TabId } from "@/components/layout/app-sidebar"
 import { StatusBar, type ActiveDownloadInfo } from "@/components/layout/status-bar"
 import { ConsoleDrawer, type LogEntry } from "@/components/layout/console-drawer"
 import { ExploreView } from "@/features/explore"
+import { QueueView } from "@/features/queue"
+import { DownloadsView } from "@/features/downloads"
+import { SettingsView } from "@/features/settings"
+import { useModQueueStore } from "@/stores/use-mod-queue-store"
+import { useDownloadsStore } from "@/stores/use-downloads-store"
+import { useSettingsStore } from "@/stores/use-settings-store"
+import { isFactorioVersionCompatible } from "@/lib/version-utils"
 
 export function AppLayout() {
   const [activeTab, setActiveTab] = React.useState<TabId>("explore")
   const [isConsoleOpen, setIsConsoleOpen] = React.useState(false)
   const [logs, setLogs] = React.useState<LogEntry[]>([])
-  const [activeDownload, setActiveDownload] = React.useState<ActiveDownloadInfo | null>(null)
+  const activeDownload = useDownloadsStore((s) => s.activeDownload)
+  const factorioVersion = useSettingsStore((s) => s.factorioVersion)
+
+  // Load settings on startup (detects mods folder, loads saved Factorio version)
+  React.useEffect(() => {
+    useSettingsStore.getState().loadSettings()
+  }, [])
+
+  // Start background poller for downloads
+  React.useEffect(() => {
+    const stop = useDownloadsStore.getState().startPolling()
+    return stop
+  }, [])
 
   // Listen for real-time backend log events emitted by Rust (Downloader, Resolver, API)
   React.useEffect(() => {
@@ -89,77 +109,75 @@ export function AppLayout() {
     })
   }
 
-  // Handle mod download flow: queue -> resolve -> download -> verify -> success
-  const handleDownloadMod = React.useCallback((modName: string) => {
-    // Open console drawer so user can monitor real-time lifecycle
-    setIsConsoleOpen(true)
+  // Handle adding mod to queue from Explore cards
+  const handleDownloadMod = React.useCallback(async (modName: string) => {
+    appendLog("queue", "queue", `Adding "${modName}" to Mod Queue...`)
 
-    appendLog("queue", "queue", `Queued download request for mod: '${modName}'`)
+    try {
+      const details = await invoke<any>("fetch_mod_details", { modId: modName })
+      const currentFactorioVer = useSettingsStore.getState().factorioVersion
+      const reversedReleases = (details.releases || []).slice().reverse()
 
-    setTimeout(() => {
-      appendLog(
-        "resolve",
-        "resolve",
-        `Querying mod portal API for dependency tree of '${modName}'...`
+      // Filter compatible releases for active factorio version
+      const compatibleReleases = reversedReleases.filter((r: any) =>
+        isFactorioVersionCompatible(r.factorio_version, currentFactorioVer)
       )
-    }, 400)
 
-    setTimeout(() => {
-      appendLog(
-        "resolve",
-        "resolve",
-        `Resolved dependencies for '${modName}': 'base >= 2.0.0' [Satisfied]`
-      )
-      setActiveDownload({
-        modName,
-        progress: 15,
-        statusText: "Connecting...",
+      const bestRelease =
+        compatibleReleases.length > 0 ? compatibleReleases[0] : reversedReleases[0]
+      const latestVersion = bestRelease?.version || "latest"
+      const releaseDeps = bestRelease?.dependencies || details.default_dependencies || {
+        required: [],
+        recommended: [],
+        optional: [],
+        incompatible: [],
+      }
+
+      const treeNodes: any[] = []
+      const mapDep = (dep: any, type: string) => ({
+        id: `dep-${dep.id}-${Math.random()}`,
+        name: String(dep.id),
+        ineq: dep.ineq,
+        version: String(dep.version || ""),
+        type,
       })
-    }, 900)
 
-    setTimeout(() => {
-      appendLog(
-        "download",
-        "download",
-        `Starting streaming download for '${modName}_latest.zip' (18.4 MB)`
-      )
-      setActiveDownload({
-        modName,
-        progress: 45,
-        statusText: "Downloading 45%",
+      ;(releaseDeps.required || []).forEach((d: any) => treeNodes.push(mapDep(d, "required")))
+      ;(releaseDeps.recommended || []).forEach((d: any) => treeNodes.push(mapDep(d, "recommended")))
+      ;(releaseDeps.optional || []).forEach((d: any) => treeNodes.push(mapDep(d, "optional")))
+      ;(releaseDeps.incompatible || []).forEach((d: any) => treeNodes.push(mapDep(d, "incompatible")))
+
+      const { autoIncludeRecommended, autoIncludeOptional, addTargetMod } = useModQueueStore.getState()
+      const initialSelectedIds = treeNodes
+        .filter((d) => {
+          if (d.type === "required") return true
+          if (d.type === "recommended") return autoIncludeRecommended
+          if (d.type === "optional") return autoIncludeOptional
+          return false
+        })
+        .map((d) => d.id)
+
+      addTargetMod({
+        id: `mod-${Date.now()}-${Math.random()}`,
+        name: details.name,
+        title: details.title || details.name,
+        author: details.owner || "Author",
+        category: details.category || "content",
+        summary: details.summary || "",
+        thumbnail: details.thumbnail,
+        updatedAt: details.updated_at,
+        downloadsCount: details.downloads_count || 0,
+        selectedVersion: latestVersion,
+        availableReleases: reversedReleases,
+        selectedDepIds: initialSelectedIds,
+        dependencies: treeNodes,
       })
-    }, 1500)
 
-    setTimeout(() => {
-      setActiveDownload({
-        modName,
-        progress: 85,
-        statusText: "Downloading 85%",
-      })
-    }, 2100)
-
-    setTimeout(() => {
-      appendLog(
-        "verify",
-        "verify",
-        `Download complete. Validating archive checksum (SHA1) & headers...`
-      )
-      setActiveDownload({
-        modName,
-        progress: 100,
-        statusText: "Verifying checksum...",
-      })
-    }, 2600)
-
-    setTimeout(() => {
-      appendLog(
-        "success",
-        "success",
-        `Integrity verified. Installed '${modName}' to ~/Library/Application Support/factorio/mods/`
-      )
-      setActiveDownload(null)
-    }, 3200)
-  }, [])
+      appendLog("success", "queue", `Added "${details.title || details.name}" to Mod Queue`)
+    } catch (err: any) {
+      appendLog("error", "error", `Failed to add "${modName}" to queue: ${String(err)}`)
+    }
+  }, [appendLog])
 
   return (
     <div className="fixed inset-0 flex flex-col h-full w-full min-h-0 overflow-hidden bg-background text-foreground select-none">
@@ -179,7 +197,7 @@ export function AppLayout() {
           />
 
           <SidebarInset className="relative flex flex-col flex-1 min-h-0 overflow-hidden border border-border/50 shadow-sm rounded-xl my-2 mr-2 ml-0 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-0">
-            <header className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border px-4 bg-background">
+            <header data-tauri-drag-region className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border px-4 bg-background select-none">
               <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="h-4 my-auto self-center" />
@@ -191,7 +209,11 @@ export function AppLayout() {
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                       <BreadcrumbPage className="text-xs font-semibold capitalize">
-                        {activeTab}
+                        {activeTab === "queue"
+                          ? "Mod Queue"
+                          : activeTab === "downloads"
+                          ? "Downloads"
+                          : activeTab}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
                   </BreadcrumbList>
@@ -199,10 +221,32 @@ export function AppLayout() {
               </div>
             </header>
 
-            <ScrollArea className="flex-1 min-h-0 h-full">
-              {activeTab === "explore" && (
-                <ExploreView onDownloadMod={handleDownloadMod} />
-              )}
+            {/* Settings View rendered without ScrollArea so no sidebar scrollbar is shown */}
+            <div className={cn("flex-1 min-h-0 h-full overflow-hidden", activeTab === "settings" ? "block" : "hidden")}>
+              <SettingsView />
+            </div>
+
+            {/* Scrollable views */}
+            <ScrollArea className={cn("flex-1 min-h-0 h-full", activeTab === "settings" ? "hidden" : "block")}>
+              <div className={activeTab === "explore" ? "block" : "hidden"}>
+                <ExploreView
+                  selectedVersion={factorioVersion}
+                  onDownloadMod={handleDownloadMod}
+                />
+              </div>
+              <div className={activeTab === "queue" ? "block" : "hidden"}>
+                <QueueView
+                  factorioVersion={factorioVersion}
+                  onNavigateToExplore={() => setActiveTab("explore")}
+                />
+              </div>
+              <div className={activeTab === "downloads" ? "block" : "hidden"}>
+                <DownloadsView
+                  isActive={activeTab === "downloads"}
+                  onNavigateToQueue={() => setActiveTab("queue")}
+                  onNavigateToExplore={() => setActiveTab("explore")}
+                />
+              </div>
             </ScrollArea>
 
             {/* Collapsible Console Drawer (VS Code / Linear style) */}

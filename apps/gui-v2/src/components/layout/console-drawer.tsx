@@ -5,6 +5,7 @@ import {
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Tooltip,
   TooltipContent,
@@ -236,10 +237,13 @@ export function ConsoleDrawer({
       </div>
 
       {/* Console Log Area with streaming window & dynamic older logs loading */}
-      <div
-        ref={logContainerRef}
+      <ScrollArea
+        viewportRef={logContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto font-mono text-[11px] p-2.5 space-y-1 select-text bg-zinc-950 text-zinc-300"
+        className="flex-1 min-h-0 bg-zinc-950 text-zinc-300 select-text"
+        viewportClassName="p-2.5 font-mono text-[11px] space-y-1 select-text"
+        scrollBarClassName="bg-zinc-900/30"
+        thumbClassName="bg-zinc-700/60 hover:bg-zinc-500"
       >
         {/* Dynamic loader banner when logs exceed window */}
         {olderCount > 0 && (
@@ -269,7 +273,7 @@ export function ConsoleDrawer({
         )}
 
         {displayedLogs.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-zinc-500 italic select-none">
+          <div className="h-full flex items-center justify-center text-zinc-500 italic select-none py-8">
             No console output for filter '{activeFilter}'.
           </div>
         ) : (
@@ -295,7 +299,7 @@ export function ConsoleDrawer({
             </div>
           ))
         )}
-      </div>
+      </ScrollArea>
     </div>
   )
 }

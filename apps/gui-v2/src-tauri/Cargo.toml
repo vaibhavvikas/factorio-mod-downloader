@@ -26,8 +26,14 @@ chrono = "0.4"
 factorio = { path = "../../../crates/factorio" }
 downloader = { path = "../../../crates/downloader" }
 common = { path = "../../../crates/common" }
+parser = { path = "../../../crates/parser" }
 tokio = { version = "1", features = ["time"] }
+dirs = "6.0"
+rfd = "0.15"
 
+
+[target."cfg(target_os = \"windows\")".dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Graphics_Dwm", "Win32_Foundation"] }
 
 [target."cfg(target_os = \"macos\")".dependencies]
 objc2-app-kit = { version = "0.3.2", features = ["NSColor", "NSWindow", "objc2-core-foundation"] }

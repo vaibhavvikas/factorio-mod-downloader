@@ -16,6 +16,7 @@ pub const DEFAULT_MAX_CONCURRENT_DOWNLOADS: usize = 5;
 pub struct DownloadQueueManager {
     tasks: Arc<Mutex<HashMap<String, DownloadTask>>>,
     cancel_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    pause_flags: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     semaphore: Arc<Semaphore>,
     client: reqwest::Client,
 }
@@ -59,6 +60,7 @@ impl DownloadQueueManager {
         Self {
             tasks: Arc::new(Mutex::new(HashMap::new())),
             cancel_flags: Arc::new(Mutex::new(HashMap::new())),
+            pause_flags: Arc::new(Mutex::new(HashMap::new())),
             semaphore: Arc::new(Semaphore::new(max_concurrent)),
             client: reqwest::Client::new(),
         }
@@ -105,6 +107,7 @@ impl DownloadQueueManager {
             }
 
             let cancel_flag = Arc::new(AtomicBool::new(false));
+            let pause_flag = Arc::new(AtomicBool::new(false));
 
             {
                 let mut guard = self.tasks.lock().await;
@@ -112,7 +115,8 @@ impl DownloadQueueManager {
                     && (existing.status == DownloadStatus::Completed
                         || existing.status == DownloadStatus::AlreadyExists
                         || existing.status == DownloadStatus::Updated
-                        || existing.status == DownloadStatus::Downloading)
+                        || existing.status == DownloadStatus::Downloading
+                        || existing.status == DownloadStatus::Paused)
                 {
                     continue;
                 }
@@ -133,11 +137,15 @@ impl DownloadQueueManager {
 
                 let mut flags = self.cancel_flags.lock().await;
                 flags.insert(task_id.clone(), cancel_flag.clone());
+
+                let mut pflags = self.pause_flags.lock().await;
+                pflags.insert(task_id.clone(), pause_flag.clone());
             }
 
             let manager = self.clone();
             let output_dir_clone = output_dir.clone();
             let cancel_flag_clone = cancel_flag.clone();
+            let pause_flag_clone = pause_flag.clone();
 
             tokio::spawn(async move {
                 if cancel_flag_clone.load(Ordering::Relaxed) {
@@ -180,7 +188,9 @@ impl DownloadQueueManager {
                     attempts += 1;
 
                     let task_id_clone = task_id.clone();
+                    let task_id_status = task_id.clone();
                     let manager_progress = manager.clone();
+                    let manager_status = manager.clone();
 
                     let request = DownloadRequest {
                         mod_id: item.id.clone(),
@@ -194,6 +204,7 @@ impl DownloadQueueManager {
                         &request,
                         &output_dir_clone,
                         cancel_flag_clone.clone(),
+                        pause_flag_clone.clone(),
                         move |downloaded, total| {
                             let manager_inner = manager_progress.clone();
                             let tid = task_id_clone.clone();
@@ -202,6 +213,16 @@ impl DownloadQueueManager {
                                 if let Some(task) = guard.get_mut(&tid) {
                                     task.downloaded_bytes = downloaded;
                                     task.total_bytes = total;
+                                }
+                            });
+                        },
+                        move |status| {
+                            let manager_inner = manager_status.clone();
+                            let tid = task_id_status.clone();
+                            tokio::spawn(async move {
+                                let mut guard = manager_inner.tasks.lock().await;
+                                if let Some(task) = guard.get_mut(&tid) {
+                                    task.status = status;
                                 }
                             });
                         },
@@ -266,41 +287,137 @@ impl DownloadQueueManager {
         }
     }
 
+    async fn find_task_key(&self, task_id: &str) -> Option<String> {
+        let guard = self.tasks.lock().await;
+        if guard.contains_key(task_id) {
+            Some(task_id.to_string())
+        } else {
+            guard
+                .iter()
+                .find(|(k, v)| v.id == task_id || k.starts_with(&format!("{}_", task_id)))
+                .map(|(k, _)| k.clone())
+        }
+    }
+
     pub async fn clear_completed(&self) {
         let mut guard = self.tasks.lock().await;
-        guard.retain(|_, task| matches!(task.status, DownloadStatus::Pending | DownloadStatus::Downloading | DownloadStatus::Failed(_)));
+        guard.retain(|_, task| {
+            matches!(
+                task.status,
+                DownloadStatus::Pending
+                    | DownloadStatus::Downloading
+                    | DownloadStatus::Paused
+                    | DownloadStatus::Failed(_)
+            )
+        });
         emit_log_with_tag("info", "queue", "Cleared completed tasks from download queue");
     }
 
     pub async fn retry_task(&self, task_id: &str, output_dir: PathBuf) {
         emit_log_with_tag("queue", "retry", &format!("Retrying download task \"{}\"", task_id));
-        let mut guard = self.tasks.lock().await;
-        if let Some(task) = guard.get_mut(task_id) {
-            let item = ResolvedDownloadItem {
-                id: task.id.clone(),
-                title: task.title.clone(),
-                version: task.version.clone(),
-                file_name: task.file_name.clone(),
-                sha1: task.sha1.clone(),
-            };
-            guard.remove(task_id);
-            drop(guard);
+        let resolved_key = self.find_task_key(task_id).await;
+        if let Some(key) = resolved_key {
+            let mut guard = self.tasks.lock().await;
+            if let Some(task) = guard.remove(&key) {
+                let item = ResolvedDownloadItem {
+                    id: task.id.clone(),
+                    title: task.title.clone(),
+                    version: task.version.clone(),
+                    file_name: task.file_name.clone(),
+                    sha1: task.sha1.clone(),
+                };
+                drop(guard);
 
-            self.enqueue_batch(vec![item], output_dir).await;
+                self.enqueue_batch(vec![item], output_dir).await;
+            }
+        }
+    }
+
+    pub async fn pause_task(&self, task_id: &str) {
+        if let Some(key) = self.find_task_key(task_id).await {
+            {
+                let flags = self.pause_flags.lock().await;
+                if let Some(flag) = flags.get(&key) {
+                    flag.store(true, Ordering::Relaxed);
+                }
+            }
+            let mut guard = self.tasks.lock().await;
+            if let Some(task) = guard.get_mut(&key) {
+                task.status = DownloadStatus::Paused;
+            }
+            emit_log_with_tag("warn", "pause", &format!("Paused download task \"{}\"", key));
+        }
+    }
+
+    pub async fn resume_task(&self, task_id: &str) {
+        if let Some(key) = self.find_task_key(task_id).await {
+            {
+                let flags = self.pause_flags.lock().await;
+                if let Some(flag) = flags.get(&key) {
+                    flag.store(false, Ordering::Relaxed);
+                }
+            }
+            let mut guard = self.tasks.lock().await;
+            if let Some(task) = guard.get_mut(&key) {
+                task.status = DownloadStatus::Downloading;
+            }
+            emit_log_with_tag("info", "resume", &format!("Resumed download task \"{}\"", key));
+        }
+    }
+
+    pub async fn toggle_pause_task(&self, task_id: &str) -> bool {
+        if let Some(key) = self.find_task_key(task_id).await {
+            let is_now_paused = {
+                let flags = self.pause_flags.lock().await;
+                if let Some(flag) = flags.get(&key) {
+                    let prev = flag.load(Ordering::Relaxed);
+                    flag.store(!prev, Ordering::Relaxed);
+                    !prev
+                } else {
+                    false
+                }
+            };
+
+            let mut guard = self.tasks.lock().await;
+            if let Some(task) = guard.get_mut(&key) {
+                task.status = if is_now_paused {
+                    DownloadStatus::Paused
+                } else {
+                    DownloadStatus::Downloading
+                };
+            }
+
+            if is_now_paused {
+                emit_log_with_tag("warn", "pause", &format!("Paused download task \"{}\"", key));
+            } else {
+                emit_log_with_tag("info", "resume", &format!("Resumed download task \"{}\"", key));
+            }
+
+            is_now_paused
+        } else {
+            false
         }
     }
 
     pub async fn cancel_task(&self, task_id: &str) {
         emit_log_with_tag("warn", "cancel", &format!("Cancelled download task \"{}\"", task_id));
-        {
-            let flags = self.cancel_flags.lock().await;
-            if let Some(flag) = flags.get(task_id) {
-                flag.store(true, Ordering::Relaxed);
+        if let Some(key) = self.find_task_key(task_id).await {
+            {
+                let flags = self.cancel_flags.lock().await;
+                if let Some(flag) = flags.get(&key) {
+                    flag.store(true, Ordering::Relaxed);
+                }
             }
-        }
-        let mut guard = self.tasks.lock().await;
-        if let Some(task) = guard.get_mut(task_id) {
-            task.status = DownloadStatus::Failed("Cancelled by user".to_string());
+            {
+                let pflags = self.pause_flags.lock().await;
+                if let Some(pflag) = pflags.get(&key) {
+                    pflag.store(false, Ordering::Relaxed);
+                }
+            }
+            let mut guard = self.tasks.lock().await;
+            if let Some(task) = guard.get_mut(&key) {
+                task.status = DownloadStatus::Failed("Cancelled by user".to_string());
+            }
         }
     }
 
@@ -312,9 +429,18 @@ impl DownloadQueueManager {
                 flag.store(true, Ordering::Relaxed);
             }
         }
+        {
+            let pflags = self.pause_flags.lock().await;
+            for pflag in pflags.values() {
+                pflag.store(false, Ordering::Relaxed);
+            }
+        }
         let mut guard = self.tasks.lock().await;
         for task in guard.values_mut() {
-            if matches!(task.status, DownloadStatus::Pending | DownloadStatus::Downloading) {
+            if matches!(
+                task.status,
+                DownloadStatus::Pending | DownloadStatus::Downloading | DownloadStatus::Paused
+            ) {
                 task.status = DownloadStatus::Failed("Cancelled by user".to_string());
             }
         }

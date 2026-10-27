@@ -71,3 +71,32 @@ pub async fn cancel_all_download_tasks(
     state.manager.cancel_all().await;
     Ok(())
 }
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn pause_download_task(
+    state: State<'_, DownloaderState>,
+    taskId: String,
+) -> Result<(), String> {
+    state.manager.pause_task(&taskId).await;
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn resume_download_task(
+    state: State<'_, DownloaderState>,
+    taskId: String,
+) -> Result<(), String> {
+    state.manager.resume_task(&taskId).await;
+    Ok(())
+}
+
+#[tauri::command]
+#[allow(non_snake_case)]
+pub async fn toggle_pause_download_task(
+    state: State<'_, DownloaderState>,
+    taskId: String,
+) -> Result<bool, String> {
+    Ok(state.manager.toggle_pause_task(&taskId).await)
+}

@@ -2,17 +2,13 @@ import * as React from "react"
 import {
   Terminal,
   Gamepad2,
-  CheckCircle2,
   Folder,
   Check,
-  Loader2,
-  FolderCheck,
   ChevronUp,
   Download,
 } from "lucide-react"
 import { getVersion } from "@tauri-apps/api/app"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -26,6 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn, getShortcutLabel } from "@/lib/utils"
+import { useSettingsStore, DEFAULT_FACTORIO_VERSIONS } from "@/stores/use-settings-store"
 import type { LogEntry } from "./console-drawer"
 
 export interface ActiveDownloadInfo {
@@ -43,7 +40,6 @@ export interface StatusBarProps {
   apiConnected?: boolean
   factorioVersion?: string
   onVersionChange?: (version: string) => void
-  installationPath?: string
 }
 
 export function StatusBar({
@@ -51,16 +47,18 @@ export function StatusBar({
   isConsoleOpen = false,
   latestLog = null,
   activeDownload = null,
-  modDirectoryPath = "~/Library/Application Support/factorio/mods",
+  modDirectoryPath,
   apiConnected = true,
-  factorioVersion = "2.0",
+  factorioVersion,
   onVersionChange,
-  installationPath = "~/Library/Application Support/factorio",
 }: StatusBarProps) {
+  const storeVersion = useSettingsStore((s) => s.factorioVersion)
+  const setStoreVersion = useSettingsStore((s) => s.setFactorioVersion)
+  const storeModsFolder = useSettingsStore((s) => s.modsFolder)
+
   const [appVersion, setAppVersion] = React.useState("0.1.0")
-  const [currentVersion, setCurrentVersion] = React.useState(factorioVersion)
-  const [isVerifying, setIsVerifying] = React.useState(false)
-  const [isVerified, setIsVerified] = React.useState(true)
+  const currentVersion = factorioVersion ?? storeVersion
+  const activeModsPath = modDirectoryPath || storeModsFolder || "Factorio Mods"
 
   React.useEffect(() => {
     getVersion()
@@ -68,21 +66,9 @@ export function StatusBar({
       .catch(() => setAppVersion("0.1.0"))
   }, [])
 
-  React.useEffect(() => {
-    setCurrentVersion(factorioVersion)
-  }, [factorioVersion])
-
   const handleVersionSelect = (v: string) => {
-    setCurrentVersion(v)
+    setStoreVersion(v)
     onVersionChange?.(v)
-  }
-
-  const handleVerifyPath = () => {
-    setIsVerifying(true)
-    setTimeout(() => {
-      setIsVerifying(false)
-      setIsVerified(true)
-    }, 600)
   }
 
   const dotColorClass = React.useMemo(() => {
@@ -207,13 +193,13 @@ export function StatusBar({
               <div className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-default max-w-[180px] sm:max-w-[240px] truncate">
                 <Folder className="size-3 text-muted-foreground shrink-0" />
                 <span className="font-mono text-[11px] truncate">
-                  {modDirectoryPath}
+                  {activeModsPath}
                 </span>
               </div>
             }
           />
           <TooltipContent side="top" className="max-w-md text-xs">
-            Active Mods Directory: {modDirectoryPath}
+            Active Mods Directory: {activeModsPath}
           </TooltipContent>
         </Tooltip>
 
@@ -229,7 +215,7 @@ export function StatusBar({
                 aria-label="Factorio Game Version and Path Settings"
               >
                 <Gamepad2 className="size-3 text-primary shrink-0" />
-                <span>Factorio {currentVersion}</span>
+                <span>Factorio {currentVersion === "any" ? "Any" : `v${currentVersion.replace(/^v/, "")}`}</span>
                 <ChevronUp className="size-2.5 opacity-60" />
               </Button>
             }
@@ -238,92 +224,34 @@ export function StatusBar({
             align="end"
             side="top"
             sideOffset={8}
-            className="w-80 p-3 text-xs"
+            className="w-64 p-3 text-xs"
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {/* Header */}
               <div className="flex items-center justify-between border-b border-border pb-2">
                 <div className="flex items-center gap-1.5 font-semibold text-foreground">
                   <Gamepad2 className="size-3.5 text-primary" />
-                  <span>Factorio Configuration</span>
+                  <span>Target Factorio Version</span>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] h-4 px-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                >
-                  Detected
-                </Badge>
               </div>
 
               {/* Target Game Version Selector */}
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  Target Game Version
-                </span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { id: "2.0", label: "2.0 (Space Age)" },
-                    { id: "1.1", label: "1.1 (Stable)" },
-                  ].map((v) => (
-                    <Button
-                      key={v.id}
-                      type="button"
-                      variant={currentVersion === v.id ? "secondary" : "outline"}
-                      size="xs"
-                      className="justify-between text-xs font-mono h-7 cursor-pointer"
-                      onClick={() => handleVersionSelect(v.id)}
-                    >
-                      <span>{v.label}</span>
-                      {currentVersion === v.id && (
-                        <Check className="size-3 text-primary" />
-                      )}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Installation Path */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    Installation Path
-                  </span>
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-mono">
-                    <CheckCircle2 className="size-3" /> Validated
-                  </span>
-                </div>
-                <div className="rounded-md border border-border/60 bg-muted/50 p-2 font-mono text-[10px] text-muted-foreground break-all select-text">
-                  {installationPath}
-                </div>
-              </div>
-
-              {/* Verify Installation Path Action */}
-              <div className="pt-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  className="w-full text-xs h-7 cursor-pointer"
-                  onClick={handleVerifyPath}
-                  disabled={isVerifying}
-                >
-                  {isVerifying ? (
-                    <>
-                      <Loader2 className="size-3 animate-spin mr-1.5" />
-                      Verifying Installation...
-                    </>
-                  ) : isVerified ? (
-                    <>
-                      <FolderCheck className="size-3 text-emerald-500 mr-1.5" />
-                      Installation Verified
-                    </>
-                  ) : (
-                    <>
-                      <FolderCheck className="size-3 mr-1.5" />
-                      Verify Installation Path
-                    </>
-                  )}
-                </Button>
+              <div className="grid grid-cols-2 gap-1.5">
+                {DEFAULT_FACTORIO_VERSIONS.map((v) => (
+                  <Button
+                    key={v.value}
+                    type="button"
+                    variant={currentVersion === v.value ? "secondary" : "outline"}
+                    size="xs"
+                    className="justify-between text-xs font-mono h-7 cursor-pointer"
+                    onClick={() => handleVersionSelect(v.value)}
+                  >
+                    <span>{v.label.replace("Factorio ", "")}</span>
+                    {currentVersion === v.value && (
+                      <Check className="size-3 text-primary" />
+                    )}
+                  </Button>
+                ))}
               </div>
             </div>
           </PopoverContent>

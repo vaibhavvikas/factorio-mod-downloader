@@ -1668,15 +1668,19 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "common",
+ "dirs",
  "downloader",
  "factorio",
  "objc2-app-kit",
+ "parser",
+ "rfd",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
  "tokio",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
