@@ -416,7 +416,7 @@ export function ExploreView({
             placeholder="Search mods by name, author, or keyword..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-8 w-72 sm:w-96 md:w-[440px] text-xs"
+            className="h-8 w-50 sm:w-[269px] md:w-[308px] text-xs"
           />
           <Button
             type="submit"

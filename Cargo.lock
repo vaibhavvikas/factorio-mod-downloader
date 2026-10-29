@@ -66,7 +66,7 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
 name = "app"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "dirs 6.0.0",
  "downloader",
@@ -625,7 +625,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "chrono",
  "serde",
@@ -987,7 +987,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "downloader"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "common",
  "factorio",
@@ -1153,7 +1153,7 @@ dependencies = [
 
 [[package]]
 name = "factorio"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "base64 0.22.1",
  "parser",
@@ -1168,7 +1168,7 @@ dependencies = [
 
 [[package]]
 name = "factorio-mod-downloader-cli"
-version = "0.4.0"
+version = "0.5.0"
 
 [[package]]
 name = "fastrand"
@@ -1656,7 +1656,7 @@ dependencies = [
 
 [[package]]
 name = "gui-v2"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "chrono",
  "common",
@@ -2345,7 +2345,7 @@ dependencies = [
 
 [[package]]
 name = "mod_manager"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -2784,7 +2784,7 @@ dependencies = [
 
 [[package]]
 name = "parser"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "regex",
  "serde",

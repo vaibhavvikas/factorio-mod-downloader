@@ -202,8 +202,8 @@ export function AppLayout() {
             setActiveTab={setActiveTab}
           />
 
-          <SidebarInset className="relative flex flex-col flex-1 min-h-0 overflow-hidden border border-border/50 shadow-sm rounded-xl my-2 mr-2 ml-0 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-0">
-            <header data-tauri-drag-region className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border px-4 bg-background select-none">
+          <SidebarInset className="relative flex flex-col flex-1 min-h-0 overflow-hidden border border-border/50 shadow-sm rounded-xl my-2 mr-2 ml-0 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-0 bg-background/80 backdrop-blur-sm">
+            <header data-tauri-drag-region className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border px-4 bg-background/70 backdrop-blur-md select-none">
               <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="h-4 my-auto self-center" />

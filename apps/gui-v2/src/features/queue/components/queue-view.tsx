@@ -308,7 +308,7 @@ export function QueueView({
       <div>
         <div className="flex items-center gap-2.5">
           <Package className="size-6 text-primary shrink-0" />
-          <h2 className="text-xl font-bold tracking-tight text-foreground uppercase font-sans">
+          <h2 className="text-xl font-bold tracking-tight text-foreground uppercase">
             Mod Queue Manager
           </h2>
         </div>
@@ -327,7 +327,7 @@ export function QueueView({
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             disabled={isAdding}
-            className="h-8 w-72 sm:w-96 md:w-[440px] text-xs"
+            className="h-8 w-50 sm:w-[269px] md:w-[308px] text-xs"
           />
           <Button
             type="submit"

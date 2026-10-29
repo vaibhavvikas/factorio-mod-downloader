@@ -51,7 +51,7 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(1 0 0 / 78%);
   --foreground: oklch(0.148 0.004 228.8);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.148 0.004 228.8);
@@ -75,7 +75,7 @@
   --chart-4: oklch(0.378 0.015 216);
   --chart-5: oklch(0.275 0.011 216.9);
   --radius: 0.625rem;
-  --sidebar: oklch(0.987 0.002 197.1);
+  --sidebar: oklch(0.987 0.002 197.1 / 68%);
   --sidebar-foreground: oklch(0.148 0.004 228.8);
   --sidebar-primary: oklch(0.218 0.008 223.9);
   --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
@@ -86,7 +86,7 @@
 }
 
 .dark {
-  --background: oklch(0.148 0.004 228.8);
+  --background: oklch(0.148 0.004 228.8 / 78%);
   --foreground: oklch(0.987 0.002 197.1);
   --card: oklch(0.218 0.008 223.9);
   --card-foreground: oklch(0.987 0.002 197.1);
@@ -109,7 +109,7 @@
   --chart-3: oklch(0.45 0.017 213.2);
   --chart-4: oklch(0.378 0.015 216);
   --chart-5: oklch(0.275 0.011 216.9);
-  --sidebar: oklch(0.218 0.008 223.9);
+  --sidebar: oklch(0.218 0.008 223.9 / 68%);
   --sidebar-foreground: oklch(0.987 0.002 197.1);
   --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
@@ -138,8 +138,15 @@
     -webkit-overflow-scrolling: auto;
   }
 
+  html,
+  body,
+  #root {
+    background-color: transparent !important;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: transparent !important;
     -webkit-user-select: none;
     user-select: none;
   }

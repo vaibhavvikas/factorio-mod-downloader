@@ -145,6 +145,30 @@ jobs:
           node -e "
             const fs = require('fs');
 
+            // apps/gui-v2/package.json
+            const pkgV2Path = 'apps/gui-v2/package.json';
+            if (fs.existsSync(pkgV2Path)) {
+              const pkgV2 = JSON.parse(fs.readFileSync(pkgV2Path, 'utf8'));
+              pkgV2.version = process.env.RAW_VERSION;
+              fs.writeFileSync(pkgV2Path, JSON.stringify(pkgV2, null, 2) + '\n');
+            }
+
+            // apps/gui-v2/src-tauri/tauri.conf.json
+            const tauriV2Path = 'apps/gui-v2/src-tauri/tauri.conf.json';
+            if (fs.existsSync(tauriV2Path)) {
+              const tauriV2Conf = JSON.parse(fs.readFileSync(tauriV2Path, 'utf8'));
+              tauriV2Conf.version = process.env.RAW_VERSION;
+              fs.writeFileSync(tauriV2Path, JSON.stringify(tauriV2Conf, null, 2) + '\n');
+            }
+
+            // apps/gui-v2/src-tauri/Cargo.toml
+            const cargoTauriV2Path = 'apps/gui-v2/src-tauri/Cargo.toml';
+            if (fs.existsSync(cargoTauriV2Path)) {
+              let cargoTauriV2 = fs.readFileSync(cargoTauriV2Path, 'utf8');
+              cargoTauriV2 = cargoTauriV2.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(cargoTauriV2Path, cargoTauriV2);
+            }
+
             // apps/gui/package.json
             const pkgPath = 'apps/gui/package.json';
             if (fs.existsSync(pkgPath)) {

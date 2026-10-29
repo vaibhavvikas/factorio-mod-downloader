@@ -113,7 +113,8 @@ pub fn run() {
         .setup(|app| {
             let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
                 .title("Factorio Mod Downloader")
-                .background_color(tauri::window::Color(24, 24, 27, 255))
+                .transparent(true)
+                .shadow(true)
                 .inner_size(1280.0, 720.0)
                 .min_inner_size(800.0, 600.0)
                 .visible(false);
@@ -135,18 +136,18 @@ pub fn run() {
                 let _ = window_fallback.show();
             });
 
-            // Set native title bar theming on Windows (DWM dark mode & matching background)
+            // Set native title bar theming and Mica backdrop on Windows
             #[cfg(target_os = "windows")]
             {
                 use windows_sys::Win32::Graphics::Dwm::{
-                    DwmSetWindowAttribute, DWMWA_CAPTION_COLOR, DWMWA_TEXT_COLOR,
-                    DWMWA_USE_IMMERSIVE_DARK_MODE,
+                    DwmSetWindowAttribute, DWMSBT_MAINWINDOW, DWMWA_SYSTEMBACKDROP_TYPE,
+                    DWMWA_TEXT_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE,
                 };
 
                 if let Ok(hwnd) = window.hwnd() {
                     let hwnd = hwnd.0 as _;
                     unsafe {
-                        // Enable Windows 11 immersive dark mode (dark min/max/close controls)
+                        // 1. Enable Windows 11 immersive dark mode (dark min/max/close controls)
                         let dark_mode: i32 = 1;
                         let _ = DwmSetWindowAttribute(
                             hwnd,
@@ -155,16 +156,27 @@ pub fn run() {
                             std::mem::size_of::<i32>() as u32,
                         );
 
-                        // Set caption bar color to match app dark background #18181b (COLORREF 0x001B1818)
-                        let caption_color: u32 = 0x001B1818;
-                        let _ = DwmSetWindowAttribute(
+                        // 2. Enable Mica System Backdrop (Windows 11 22H2+ / DWMSBT_MAINWINDOW)
+                        let backdrop: u32 = DWMSBT_MAINWINDOW as u32;
+                        let hr = DwmSetWindowAttribute(
                             hwnd,
-                            DWMWA_CAPTION_COLOR as u32,
-                            &caption_color as *const _ as _,
+                            DWMWA_SYSTEMBACKDROP_TYPE as u32,
+                            &backdrop as *const _ as _,
                             std::mem::size_of::<u32>() as u32,
                         );
 
-                        // Set caption text color to clean white/zinc #f4f4f5 (COLORREF 0x00F5F4F4)
+                        // Fallback for Windows 11 21H2 (build 22000 legacy DWMWA_MICA_EFFECT)
+                        if hr != 0 {
+                            let mica_legacy: i32 = 1;
+                            let _ = DwmSetWindowAttribute(
+                                hwnd,
+                                1029, // DWMWA_MICA_EFFECT
+                                &mica_legacy as *const _ as _,
+                                std::mem::size_of::<i32>() as u32,
+                            );
+                        }
+
+                        // 3. Set caption text color to clean white/zinc #f4f4f5 (COLORREF 0x00F5F4F4)
                         let text_color: u32 = 0x00F5F4F4;
                         let _ = DwmSetWindowAttribute(
                             hwnd,
@@ -176,19 +188,14 @@ pub fn run() {
                 }
             }
 
-            // set background color only when building for macOS
+            // set transparent background on macOS for vibrancy
             #[cfg(target_os = "macos")]
             {
                 use objc2_app_kit::{NSColor, NSWindow};
 
                 let ns_window_ptr = window.ns_window().unwrap() as *mut NSWindow;
                 let ns_window = unsafe { &*ns_window_ptr };
-                let bg_color = NSColor::colorWithRed_green_blue_alpha(
-                    24.0 / 255.0,
-                    24.0 / 255.0,
-                    27.0 / 255.0,
-                    1.0,
-                );
+                let bg_color = NSColor::clearColor();
                 ns_window.setBackgroundColor(Some(&bg_color));
             }
 

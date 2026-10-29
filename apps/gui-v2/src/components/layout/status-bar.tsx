@@ -56,14 +56,14 @@ export function StatusBar({
   const setStoreVersion = useSettingsStore((s) => s.setFactorioVersion)
   const storeModsFolder = useSettingsStore((s) => s.modsFolder)
 
-  const [appVersion, setAppVersion] = React.useState("0.1.0")
+  const [appVersion, setAppVersion] = React.useState("0.5.0")
   const currentVersion = factorioVersion ?? storeVersion
   const activeModsPath = modDirectoryPath || storeModsFolder || "Factorio Mods"
 
   React.useEffect(() => {
     getVersion()
       .then((v) => setAppVersion(v))
-      .catch(() => setAppVersion("0.1.0"))
+      .catch(() => setAppVersion("0.5.0"))
   }, [])
 
   const handleVersionSelect = (v: string) => {

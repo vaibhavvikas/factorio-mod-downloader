@@ -120,7 +120,7 @@ export function SettingsView() {
   const [copied, setCopied] = React.useState(false)
 
   // Application update checking state
-  const [appVersion, setAppVersion] = React.useState<string>("0.4.0")
+  const [appVersion, setAppVersion] = React.useState<string>("0.5.0")
   const [updateState, setUpdateState] = React.useState<{
     checking: boolean
     hasUpdate: boolean
@@ -150,7 +150,7 @@ export function SettingsView() {
   const checkForAppUpdates = React.useCallback(async () => {
     setUpdateState((prev) => ({ ...prev, checking: true }))
     try {
-      let currentVer = "0.4.0"
+      let currentVer = "0.5.0"
       try {
         const { getVersion } = await import("@tauri-apps/api/app")
         currentVer = await getVersion()

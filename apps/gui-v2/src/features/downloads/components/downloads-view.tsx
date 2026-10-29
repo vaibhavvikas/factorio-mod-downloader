@@ -355,7 +355,7 @@ export function DownloadsView({
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <Download className="size-6 text-primary shrink-0" />
-            <h2 className="text-xl font-bold tracking-tight text-foreground uppercase font-sans">
+            <h2 className="text-xl font-bold tracking-tight text-foreground uppercase">
               Download Manager
             </h2>
           </div>

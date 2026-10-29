@@ -150,121 +150,123 @@ export function CollectionCard({ profile, onInspect, onApplyRequest, onDeleteReq
         )}
       </CardHeader>
 
-      <CardContent className="text-xs">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant="outline">
-              {enabledCount} {enabledCount === 1 ? "mod" : "mods"}
-            </Badge>
-            {profile.factorioVersion && (
-              <Badge variant="secondary">
-                <Gamepad2 data-icon="inline-start" />
-                <span>{profile.factorioVersion}</span>
-              </Badge>
-            )}
-            {profile.hasSettingsSnapshot && (
-              <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-900">
-                <Settings data-icon="inline-start" />
-                <span>Settings Snapshot</span>
-              </Badge>
-            )}
-          </div>
+              <CardContent className="text-xs space-y-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline">
+                    {enabledCount} {enabledCount === 1 ? "mod" : "mods"}
+                  </Badge>
+                  {(profile.factorioVersion || profile.factorio_version) && (
+                    <Badge variant="secondary">
+                      <Gamepad2 data-icon="inline-start" />
+                      <span>
+                        {profile.factorioVersion?.startsWith("v") || profile.factorio_version?.startsWith("v")
+                          ? (profile.factorioVersion || profile.factorio_version)
+                          : `v${profile.factorioVersion || profile.factorio_version}`}
+                      </span>
+                    </Badge>
+          )}
+                {(profile.hasSettingsSnapshot || profile.has_settings_snapshot) && (
+                  <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-900">
+                    <Settings data-icon="inline-start" />
+                    <span>Settings Snapshot</span>
+                  </Badge>
+                )}
+              </div>
 
-          <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono shrink-0 ml-auto">
-            <Calendar className="size-3" />
-            <span>Updated {formattedDate}</span>
-          </div>
-        </div>
-      </CardContent>
+              <div className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
+                <Calendar className="size-3 shrink-0" />
+                <span>Updated {formattedDate}</span>
+              </div>
+            </CardContent>
 
-      <CardFooter className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
-        {isDirty ? (
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <Button
-              size="sm"
-              variant="default"
-              className="h-7 text-xs gap-1 cursor-pointer flex-1"
-              disabled={isFactorioRunning}
-              onClick={handleSaveChanges}
-              aria-label="Save current mod state to profile"
-            >
-              <Save className="size-3" />
-              <span>Save Changes</span>
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1 cursor-pointer"
-              disabled={isFactorioRunning}
-              onClick={handleApply}
-              aria-label="Revert to profile state"
-            >
-              <Undo2 className="size-3" />
-              <span>Revert</span>
-            </Button>
-          </div>
-        ) : (
-          <Button
-            size="sm"
-            variant={isActive ? "secondary" : "default"}
-            className="h-7 text-xs gap-1.5 cursor-pointer flex-1"
-            disabled={isFactorioRunning}
-            onClick={handleApply}
-            aria-label={isActive ? "Re-apply Profile" : "Apply Profile"}
-          >
-            <Play className="size-3" />
-            <span>{isActive ? "Re-Apply" : "Apply Profile"}</span>
-          </Button>
-        )}
-
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-                onClick={handleExport}
-                aria-label="Export Profile"
-              >
-                <Share2 className="size-3.5" />
-              </Button>
-            }
-          />
-          <TooltipContent>Export to JSON file</TooltipContent>
-        </Tooltip>
-
-        {!isDefault && (
-          <Tooltip>
-            <TooltipTrigger
-              render={
+            <CardFooter className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+              {isDirty ? (
+                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-7 text-xs gap-1 cursor-pointer flex-1"
+                    disabled={isFactorioRunning}
+                    onClick={handleSaveChanges}
+                    aria-label="Save current mod state to profile"
+                  >
+                    <Save className="size-3" />
+                    <span>Save Changes</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs gap-1 cursor-pointer"
+                    disabled={isFactorioRunning}
+                    onClick={handleApply}
+                    aria-label="Revert to profile state"
+                  >
+                    <Undo2 className="size-3" />
+                    <span>Revert</span>
+                  </Button>
+                </div>
+              ) : (
                 <Button
-                  size="icon"
-                  variant="ghost"
-                  className="size-7 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
-                  onClick={handleDelete}
-                  aria-label="Delete Profile"
+                  size="sm"
+                  variant={isActive ? "secondary" : "default"}
+                  className="h-7 text-xs gap-1.5 cursor-pointer flex-1"
+                  disabled={isFactorioRunning}
+                  onClick={handleApply}
+                  aria-label={isActive ? "Re-apply Profile" : "Apply Profile"}
                 >
-                  <Trash2 className="size-3.5" />
+                  <Play className="size-3" />
+                  <span>{isActive ? "Re-Apply" : "Apply Profile"}</span>
                 </Button>
-              }
-            />
-            <TooltipContent>Delete profile</TooltipContent>
-          </Tooltip>
-        )}
-      </CardFooter>
+              )}
 
-      {/* Fallback confirmation dialog when card is used standalone */}
-      <ConfirmDialog
-        open={isConfirmDeleteOpen}
-        onOpenChange={setIsConfirmDeleteOpen}
-        title="Delete Profile"
-        description={`Are you sure you want to delete profile "${profile.name}"? This action cannot be undone.`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        variant="destructive"
-        onConfirm={handleConfirmDelete}
-      />
-    </Card>
-  )
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="size-7 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                      onClick={handleExport}
+                      aria-label="Export Profile"
+                    >
+                      <Share2 className="size-3.5" />
+                    </Button>
+                  }
+                />
+                <TooltipContent>Export to JSON file</TooltipContent>
+              </Tooltip>
+
+              {!isDefault && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="size-7 text-muted-foreground hover:text-destructive cursor-pointer shrink-0"
+                        onClick={handleDelete}
+                        aria-label="Delete Profile"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    }
+                  />
+                  <TooltipContent>Delete profile</TooltipContent>
+                </Tooltip>
+              )}
+            </CardFooter>
+
+            {/* Fallback confirmation dialog when card is used standalone */}
+            <ConfirmDialog
+              open={isConfirmDeleteOpen}
+              onOpenChange={setIsConfirmDeleteOpen}
+              title="Delete Profile"
+              description={`Are you sure you want to delete profile "${profile.name}"? This action cannot be undone.`}
+              confirmText="Delete"
+              cancelText="Cancel"
+              variant="destructive"
+              onConfirm={handleConfirmDelete}
+            />
+          </Card>
+          )
 }
