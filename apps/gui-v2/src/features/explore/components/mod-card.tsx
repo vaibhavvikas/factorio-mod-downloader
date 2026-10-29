@@ -71,7 +71,7 @@ export function ModCard({ item, onDownload }: ModCardProps) {
           )}
 
           <div className="min-w-0 flex-1">
-            <CardTitle className="truncate text-sm font-semibold" title={item.title}>
+            <CardTitle className="truncate text-sm font-semibold" aria-label={item.title}>
               {item.title}
             </CardTitle>
             <CardDescription className="flex items-center gap-2 text-xs truncate mt-0.5 text-muted-foreground">
@@ -92,20 +92,23 @@ export function ModCard({ item, onDownload }: ModCardProps) {
           {/* Metadata Badges */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
             {item.category && (
-              <Badge variant="outline" className="capitalize text-xs font-normal">
+              <Badge variant="outline" className="h-5 capitalize text-xs">
                 {item.category}
               </Badge>
             )}
 
             {item.requires_space_age && (
-              <Badge variant="outline" className="text-xs gap-1 font-normal text-amber-600 dark:text-amber-400 border-amber-500/30">
-                <Rocket className="size-3 text-amber-500" />
-                Space Age
+              <Badge
+                variant="outline"
+                className="h-5 border-amber-500/40 text-amber-600 dark:text-amber-400 gap-1 text-xs"
+              >
+                <Rocket className="size-3 shrink-0" />
+                <span>Space Age</span>
               </Badge>
             )}
 
             {item.latest_version && (
-              <Badge variant="outline" className="font-mono text-xs font-normal text-muted-foreground">
+              <Badge variant="outline" className="h-5 text-muted-foreground text-xs">
                 v{item.latest_version}
               </Badge>
             )}

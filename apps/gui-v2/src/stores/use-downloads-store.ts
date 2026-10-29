@@ -1,10 +1,20 @@
 import { create } from "zustand"
 import { invoke } from "@tauri-apps/api/core"
-import type { BackendDownloadTask, FormattedDownloadTask, DownloadStatusType } from "@/features/downloads/types"
+import type { BackendDownloadTask, FormattedDownloadTask, DownloadStatusType, DownloadBatch } from "@/features/downloads/types"
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
+import { useModManagerStore } from "@/stores/use-mod-manager-store"
+
+const CORE_MODS = new Set(["base", "space-age", "quality", "elevated-rails", "recycler"])
+const enabledGroupKeys = new Set<string>()
+
+export interface RegisteredDownloadGroup {
+  parent: string
+  dependencies: string[]
+}
 
 interface DownloadsState {
   tasks: FormattedDownloadTask[]
+  batches: DownloadBatch[]
   activeCount: number
   totalSpeed: string
   overallProgress: number
@@ -13,6 +23,10 @@ interface DownloadsState {
   pausedTaskIds: string[]
   completedTimestamps: Record<string, number>
   lastCompletedTask: FormattedDownloadTask | null
+  registeredGroups: RegisteredDownloadGroup[]
+  dismissedTaskIds: string[]
+
+  registerDownloadGroups: (groups: RegisteredDownloadGroup[]) => void
 
   fetchTasks: () => Promise<void>
   togglePauseTask: (rawId: string) => Promise<void> | void
@@ -20,7 +34,11 @@ interface DownloadsState {
   cancelAllTasks: () => Promise<void>
   retryTask: (rawId: string) => Promise<void>
   clearCompletedTasks: () => Promise<void>
-  removeTask: (rawId: string) => void
+  removeTask: (rawId: string) => Promise<void> | void
+  pauseBatch: (batchId: string) => Promise<void>
+  resumeBatch: (batchId: string) => Promise<void>
+  cancelBatch: (batchId: string) => Promise<void>
+  retryBatch: (batchId: string, outputDir: string) => Promise<void>
   startPolling: () => () => void
 }
 
@@ -36,6 +54,7 @@ function getOrdinal(n: number): string {
 
 export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   tasks: [],
+  batches: [],
   activeCount: 0,
   totalSpeed: "0.0",
   overallProgress: 0,
@@ -44,13 +63,32 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
   pausedTaskIds: [],
   completedTimestamps: {},
   lastCompletedTask: null,
+  registeredGroups: [],
+  dismissedTaskIds: [],
+
+  registerDownloadGroups: (newGroups: RegisteredDownloadGroup[]) => {
+    set((state) => {
+      const existing = state.registeredGroups.filter(
+        (g) => !newGroups.some((ng) => ng.parent === g.parent)
+      )
+      return { registeredGroups: [...existing, ...newGroups] }
+    })
+  },
 
   fetchTasks: async () => {
     try {
-      const backendTasks = await invoke<BackendDownloadTask[]>("get_download_tasks")
+      const [backendTasks, backendBatches] = await Promise.all([
+        invoke<BackendDownloadTask[]>("get_download_tasks"),
+        invoke<DownloadBatch[]>("get_download_batches").catch(() => []),
+      ])
       if (!backendTasks) return
 
       const state = get()
+      const dismissed = new Set(state.dismissedTaskIds)
+      const validBackendTasks = backendTasks.filter(
+        (bt) => !dismissed.has(bt.id) && !dismissed.has(`${bt.id}_${bt.version}`)
+      )
+
       const prevTasks = state.tasks
       const prevMap = new Map(prevTasks.map((t) => [t.rawId, t]))
       const targetMods = useModQueueStore.getState().targetMods
@@ -63,7 +101,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       let totalSpeedNum = 0
       let newlyCompleted: FormattedDownloadTask | null = null
 
-      const formatted: FormattedDownloadTask[] = backendTasks.map((bt) => {
+      const formatted: FormattedDownloadTask[] = validBackendTasks.map((bt) => {
         let statusStr = typeof bt.status === "string" ? bt.status : (bt.status?.status || "pending")
         const errorMsg = typeof bt.status === "object" ? bt.status.message : undefined
 
@@ -219,8 +257,13 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       const overallProgress = Math.round(overallExact)
       const overallProgressPercent = parseFloat(overallExact.toFixed(2))
 
+      // Prune dismissed IDs that are no longer returned by the backend
+      const backendIdSet = new Set(backendTasks.flatMap((bt) => [bt.id, `${bt.id}_${bt.version}`]))
+      const updatedDismissed = state.dismissedTaskIds.filter((id) => backendIdSet.has(id))
+
       set({
         tasks: formatted,
+        batches: backendBatches || [],
         activeCount: activeTasks.length,
         totalSpeed: totalSpeedNum.toFixed(1),
         overallProgress,
@@ -228,7 +271,108 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
         activeDownload: currentActiveDownload,
         completedTimestamps: newCompletedTimestamps,
         lastCompletedTask: newlyCompleted || state.lastCompletedTask,
+        dismissedTaskIds: updatedDismissed,
       })
+
+      // Reset enabled status for any tasks that are currently actively downloading or pending
+      formatted.forEach((t) => {
+        if (t.statusType === "downloading" || t.statusType === "pending") {
+          for (const key of Array.from(enabledGroupKeys)) {
+            if (key.includes(t.rawId)) {
+              enabledGroupKeys.delete(key)
+            }
+          }
+        }
+      })
+
+      // Auto-enable completed download groups and standalone mods
+      const isTaskDone = (status: DownloadStatusType) =>
+        ["completed", "alreadyExists", "updated", "downgraded"].includes(status)
+
+      // Collect all groups from registeredGroups + targetMods
+      const allGroupsMap = new Map<string, string[]>()
+      state.registeredGroups.forEach((g) => {
+        allGroupsMap.set(g.parent, g.dependencies)
+      })
+      targetMods.forEach((m) => {
+        if (!allGroupsMap.has(m.name)) {
+          const deps = m.dependencies
+            .filter(
+              (d) =>
+                (d.type === "required" || m.selectedDepIds.includes(d.id)) &&
+                !CORE_MODS.has(d.name)
+            )
+            .map((d) => d.name)
+          allGroupsMap.set(m.name, deps)
+        }
+      })
+
+      let didEnableAny = false
+
+      // 1. Check all multi-mod groups
+      for (const [parent, deps] of allGroupsMap.entries()) {
+        const groupKey = `${parent}:${[...deps].sort().join(",")}`
+        if (enabledGroupKeys.has(groupKey)) continue
+
+        const allNames = [parent, ...deps]
+        // Every mod in this group must have a task present and completed
+        const allPresentAndDone = allNames.every((name) => {
+          const t = formatted.find((item) => item.rawId === name)
+          return t && isTaskDone(t.statusType)
+        })
+
+        // None of the mods in this group can still be running/pending
+        const anyStillRunning = allNames.some((name) => {
+          const t = formatted.find((item) => item.rawId === name)
+          return !t || t.statusType === "downloading" || t.statusType === "pending"
+        })
+
+        if (allPresentAndDone && !anyStillRunning) {
+          enabledGroupKeys.add(groupKey)
+          try {
+            await invoke("register_and_enable_mod_group", {
+              parentName: parent,
+              dependencies: deps,
+            })
+            didEnableAny = true
+          } catch (err) {
+            console.error(`Failed to register & enable mod group for ${parent}:`, err)
+          }
+        }
+      }
+
+      // 2. Check standalone downloads that are not part of any group
+      for (const task of formatted) {
+        if (!isTaskDone(task.statusType)) continue
+
+        let isPartOfGroup = false
+        for (const [parent, deps] of allGroupsMap.entries()) {
+          if (parent === task.rawId || deps.includes(task.rawId)) {
+            isPartOfGroup = true
+            break
+          }
+        }
+
+        if (!isPartOfGroup) {
+          const standaloneKey = `standalone:${task.rawId}`
+          if (!enabledGroupKeys.has(standaloneKey)) {
+            enabledGroupKeys.add(standaloneKey)
+            try {
+              await invoke("register_and_enable_mod_group", {
+                parentName: task.rawId,
+                dependencies: [],
+              })
+              didEnableAny = true
+            } catch (err) {
+              console.error(`Failed to register standalone mod ${task.rawId}:`, err)
+            }
+          }
+        }
+      }
+
+      if (didEnableAny) {
+        await useModManagerStore.getState().loadMods()
+      }
     } catch {
       // Ignore background poll errors during teardown
     }
@@ -295,11 +439,56 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
     }
   },
 
-  removeTask: (rawId: string) => {
+  removeTask: async (rawId: string) => {
     set((state) => ({
-      tasks: state.tasks.filter((t) => t.rawId !== rawId),
+      tasks: state.tasks.filter((t) => t.rawId !== rawId && t.id !== rawId),
       pausedTaskIds: state.pausedTaskIds.filter((id) => id !== rawId),
+      dismissedTaskIds: state.dismissedTaskIds.includes(rawId)
+        ? state.dismissedTaskIds
+        : [...state.dismissedTaskIds, rawId],
     }))
+
+    try {
+      await invoke("remove_download_task", { taskId: rawId })
+    } catch (err) {
+      console.error("Failed to remove download task:", err)
+    }
+  },
+
+  pauseBatch: async (batchId: string) => {
+    try {
+      await invoke("pause_download_batch", { batchId })
+      await get().fetchTasks()
+    } catch (err) {
+      console.error("Failed to pause batch:", err)
+    }
+  },
+
+  resumeBatch: async (batchId: string) => {
+    try {
+      await invoke("resume_download_batch", { batchId })
+      await get().fetchTasks()
+    } catch (err) {
+      console.error("Failed to resume batch:", err)
+    }
+  },
+
+  cancelBatch: async (batchId: string) => {
+    try {
+      await invoke("cancel_download_batch", { batchId })
+      await get().fetchTasks()
+    } catch (err) {
+      console.error("Failed to cancel batch:", err)
+    }
+  },
+
+  retryBatch: async (batchId: string, outputDir: string) => {
+    try {
+      await invoke("retry_download_batch", { batchId, outputDir })
+      await get().fetchTasks()
+    } catch (err) {
+      console.error("Failed to retry batch:", err)
+    }
   },
 
   startPolling: () => {

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 
 interface ScrollAreaProps extends ScrollAreaPrimitive.Root.Props {
   viewportRef?: React.Ref<HTMLDivElement>
@@ -31,7 +31,7 @@ function ScrollArea({
         onScroll={onScroll}
         data-slot="scroll-area-viewport"
         className={cn(
-          "size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1",
+          "size-full max-h-[inherit] rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1",
           viewportClassName
         )}
       >
@@ -63,7 +63,7 @@ function ScrollBar({
       <ScrollAreaPrimitive.Thumb
         data-slot="scroll-area-thumb"
         className={cn(
-          "relative flex-1 rounded-full bg-border hover:bg-muted-foreground/40 transition-colors",
+          "relative flex-1 rounded-full bg-muted-foreground/30 hover:bg-muted-foreground/50 transition-colors",
           thumbClassName
         )}
       />
@@ -72,3 +72,4 @@ function ScrollBar({
 }
 
 export { ScrollArea, ScrollBar }
+

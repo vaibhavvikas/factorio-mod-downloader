@@ -47,7 +47,7 @@ export function ModListItem({ item, onDownload }: ModListItemProps) {
   }
 
   return (
-    <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 transition-all duration-150 ease-out ring-1 ring-border hover:ring-foreground/20 hover:bg-muted/20 hover:shadow-md dark:ring-transparent dark:hover:ring-foreground/15 dark:hover:bg-[color-mix(in_oklch,var(--card),white_5%)]">
+    <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-(--card-spacing) [--card-spacing:--spacing(4)] transition-all duration-150 ease-out ring-1 ring-border hover:ring-foreground/20 hover:bg-muted/20 hover:shadow-md dark:ring-transparent dark:hover:ring-foreground/15 dark:hover:bg-[color-mix(in_oklch,var(--card),white_5%)]">
       {/* Left section: Thumbnail + Main Info */}
       <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
         {item.thumbnail && !imageError ? (
@@ -66,23 +66,26 @@ export function ModListItem({ item, onDownload }: ModListItemProps) {
         <div className="min-w-0 flex-1 space-y-1.5">
           {/* Header Row: Title + Badges */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-foreground truncate" title={item.title}>
+            <span className="text-sm font-semibold text-foreground truncate" aria-label={item.title}>
               {item.title}
             </span>
             <div className="flex flex-wrap items-center gap-1.5">
               {item.category && (
-                <Badge variant="outline" className="text-xs font-normal capitalize">
+                <Badge variant="outline" className="h-5 capitalize text-xs">
                   {item.category}
                 </Badge>
               )}
               {item.requires_space_age && (
-                <Badge variant="outline" className="text-xs font-normal gap-1 text-amber-600 dark:text-amber-400 border-amber-500/30">
-                  <Rocket className="size-3 text-amber-500" />
-                  Space Age
+                <Badge
+                  variant="outline"
+                  className="h-5 border-amber-500/40 text-amber-600 dark:text-amber-400 gap-1 text-xs"
+                >
+                  <Rocket className="size-3 shrink-0" />
+                  <span>Space Age</span>
                 </Badge>
               )}
               {item.latest_version && (
-                <Badge variant="outline" className="font-mono text-xs font-normal text-muted-foreground">
+                <Badge variant="outline" className="h-5 text-muted-foreground text-xs">
                   v{item.latest_version}
                 </Badge>
               )}

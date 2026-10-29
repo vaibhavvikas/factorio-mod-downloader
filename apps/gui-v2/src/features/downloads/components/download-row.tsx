@@ -108,7 +108,7 @@ export function DownloadRow({
         <div className="flex items-center gap-1.5 min-w-0 w-full">
           <span
             className="font-semibold text-xs text-foreground truncate font-sans min-w-0"
-            title={task.title}
+            aria-label={task.title}
           >
             {task.title}
           </span>
@@ -120,14 +120,14 @@ export function DownloadRow({
         {isFailed ? (
           <p
             className="text-[11px] text-destructive truncate font-sans min-w-0"
-            title={task.errorMessage || "Download interrupted"}
+            aria-label={task.errorMessage || "Download interrupted"}
           >
             {task.errorMessage || "Download interrupted"}
           </p>
         ) : task.reason ? (
           <p
             className="text-[11px] text-muted-foreground truncate font-sans min-w-0"
-            title={task.reason}
+            aria-label={task.reason}
           >
             {task.reason}
           </p>
@@ -141,8 +141,25 @@ export function DownloadRow({
     <div className="w-full max-w-[140px] flex items-center download-col-progress pr-3">
       {isDone ? (
         <div className="flex items-center gap-1.5 text-xs font-sans text-muted-foreground">
-          <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-          <span className="font-medium text-foreground">Completed</span>
+          <CheckCircle2
+            className={cn(
+              "size-3.5 shrink-0",
+              task.statusType === "downgraded"
+                ? "text-amber-500"
+                : task.statusType === "updated"
+                ? "text-blue-500"
+                : "text-emerald-500"
+            )}
+          />
+          <span className="font-medium text-foreground">
+            {task.statusType === "alreadyExists"
+              ? "Already Installed"
+              : task.statusType === "downgraded"
+              ? "Downgraded"
+              : task.statusType === "updated"
+              ? "Updated"
+              : "Completed"}
+          </span>
         </div>
       ) : isFailed ? (
         <div className="flex items-center gap-1.5 text-xs font-sans text-destructive">
@@ -558,7 +575,7 @@ export function DownloadRow({
         isCompletedRow
           ? "h-11 min-h-[44px] hover:bg-muted/40 focus-visible:bg-muted/40 outline-none"
           : cn(
-              "rounded-lg border bg-card transition-all duration-200 min-h-[52px]",
+              "rounded-lg border bg-card transition-colors duration-150 min-h-[52px]",
               isFailed
                 ? "border-destructive/40 bg-destructive/5"
                 : isPaused

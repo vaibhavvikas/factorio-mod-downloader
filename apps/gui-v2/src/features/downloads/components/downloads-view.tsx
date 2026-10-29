@@ -124,10 +124,6 @@ export function DownloadsView({
   const [heldFinishedTasks, setHeldFinishedTasks] = React.useState<Record<string, number>>({})
   const prevStatusesRef = React.useRef<Map<string, DownloadStatusType>>(new Map())
 
-  // FLIP animation tracking
-  const listContainerRef = React.useRef<HTMLDivElement | null>(null)
-  const previousPositionsRef = React.useRef<Map<string, number>>(new Map())
-
   // Start real-time polling
   React.useEffect(() => {
     const stop = startPolling()
@@ -152,9 +148,23 @@ export function DownloadsView({
         prevStatus === "pending" ||
         prevStatus === "paused"
 
+      const isNewlyArrivedDone =
+        prevStatus === undefined &&
+        isNowDone &&
+        task.completedAt !== undefined &&
+        now - task.completedAt < 2000
+
       // Newly completed download
-      if (wasActive && isNowDone) {
-        setAnnouncement(`Download completed: ${task.title}`)
+      if ((wasActive || isNewlyArrivedDone) && isNowDone) {
+        const actionLabel =
+          task.statusType === "alreadyExists"
+            ? "Already installed"
+            : task.statusType === "downgraded"
+              ? "Downgraded"
+              : task.statusType === "updated"
+                ? "Updated"
+                : "Download completed"
+        setAnnouncement(`${actionLabel}: ${task.title}`)
         setHeldFinishedTasks((prev) => ({
           ...prev,
           [task.rawId]: now,
@@ -217,48 +227,18 @@ export function DownloadsView({
     }
   }, [checkHeldTasks])
 
-  // FLIP layout animation for smooth transitions when rows move
-  React.useLayoutEffect(() => {
-    if (!listContainerRef.current) return
-    const isReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-
-    const rowElements = listContainerRef.current.querySelectorAll<HTMLElement>("[data-task-id]")
-    const newPositions = new Map<string, number>()
-
-    rowElements.forEach((el) => {
-      const id = el.getAttribute("data-task-id")
-      if (!id) return
-      const rect = el.getBoundingClientRect()
-      newPositions.set(id, rect.top)
-
-      if (!isReducedMotion) {
-        const oldTop = previousPositionsRef.current.get(id)
-        if (oldTop !== undefined) {
-          const deltaY = oldTop - rect.top
-          if (Math.abs(deltaY) > 2) {
-            el.style.transform = `translateY(${deltaY}px)`
-            el.style.transition = "none"
-
-            requestAnimationFrame(() => {
-              el.style.transition = "transform 350ms cubic-bezier(0.16, 1, 0.3, 1)"
-              el.style.transform = "translateY(0)"
-            })
-
-            const cleanUp = () => {
-              el.style.transform = ""
-              el.style.transition = ""
-              el.removeEventListener("transitionend", cleanUp)
-            }
-            el.addEventListener("transitionend", cleanUp)
-          }
-        }
-      }
-    })
-
-    previousPositionsRef.current = newPositions
-  })
+  const handleRemoveTask = React.useCallback(
+    (rawId: string) => {
+      setHeldFinishedTasks((prev) => {
+        if (!prev[rawId]) return prev
+        const next = { ...prev }
+        delete next[rawId]
+        return next
+      })
+      removeTask(rawId)
+    },
+    [removeTask]
+  )
 
   // Categorize tasks
   // Active items include downloading, paused, queued, plus any currently held finished tasks
@@ -375,7 +355,7 @@ export function DownloadsView({
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
             <Download className="size-6 text-primary shrink-0" />
-            <h2 className="text-xl font-bold tracking-tight text-foreground font-sans">
+            <h2 className="text-xl font-bold tracking-tight text-foreground uppercase font-sans">
               Download Manager
             </h2>
           </div>
@@ -538,7 +518,7 @@ export function DownloadsView({
             </CardHeader>
           </Card>
         ) : (
-          <div ref={listContainerRef} className="space-y-6">
+          <div className="space-y-6">
             {/* 1. In Progress Section */}
             {(filter === "all" || filter === "active") && inProgressItems.length > 0 && (
               <div className="space-y-2.5">
@@ -560,7 +540,7 @@ export function DownloadsView({
                       onResume={togglePauseTask}
                       onCancel={cancelTask}
                       onRetry={retryTask}
-                      onRemove={removeTask}
+                      onRemove={handleRemoveTask}
                       onOpenFolder={handleOpenModsFolder}
                       onHoverChange={handleHoverChange}
                       onPopoverOpenChange={handlePopoverOpenChange}
@@ -587,7 +567,7 @@ export function DownloadsView({
                       task={task}
                       modsFolder={modsFolder}
                       onRetry={retryTask}
-                      onRemove={removeTask}
+                      onRemove={handleRemoveTask}
                       onOpenFolder={handleOpenModsFolder}
                       onHoverChange={handleHoverChange}
                       onPopoverOpenChange={handlePopoverOpenChange}
@@ -629,7 +609,7 @@ export function DownloadsView({
                             task={singleItem}
                             isCompletedStyle={true}
                             modsFolder={modsFolder}
-                            onRemove={removeTask}
+                            onRemove={handleRemoveTask}
                             onOpenFolder={handleOpenModsFolder}
                             onHoverChange={handleHoverChange}
                             onPopoverOpenChange={handlePopoverOpenChange}
@@ -685,7 +665,7 @@ export function DownloadsView({
                                 task={item}
                                 isCompletedStyle={true}
                                 modsFolder={modsFolder}
-                                onRemove={removeTask}
+                                onRemove={handleRemoveTask}
                                 onOpenFolder={handleOpenModsFolder}
                                 onHoverChange={handleHoverChange}
                                 onPopoverOpenChange={handlePopoverOpenChange}

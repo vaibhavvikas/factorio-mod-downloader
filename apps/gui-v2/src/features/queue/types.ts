@@ -49,6 +49,10 @@ export interface BackendResolvedDownloadItem {
   version: string
   file_name: string
   sha1: string
+  reason?: string
+  batch_id?: string
+  batch_name?: string
+  requested_by?: string[]
 }
 
 export interface BackendModDetails {

@@ -27,8 +27,14 @@ impl Default for DownloadQueueManager {
     }
 }
 
-fn scan_downloaded_files(output_dir: &std::path::Path) -> HashMap<String, (String, PathBuf)> {
-    let mut installed = HashMap::new();
+struct ScannedInstalledMods {
+    exact_files: HashMap<(String, String), PathBuf>,
+    latest_by_name: HashMap<String, (String, PathBuf)>,
+}
+
+fn scan_downloaded_files(output_dir: &std::path::Path) -> ScannedInstalledMods {
+    let mut exact_files = HashMap::new();
+    let mut by_name: HashMap<String, Vec<(String, PathBuf)>> = HashMap::new();
 
     // Purge orphaned .tmp folder from previous ungraceful exit/crash
     let tmp_dir = output_dir.join(".tmp");
@@ -47,12 +53,25 @@ fn scan_downloaded_files(output_dir: &std::path::Path) -> HashMap<String, (Strin
                     && let Some(stem) = path.file_stem().and_then(|s| s.to_str())
                     && let Some((name, ver)) = stem.rsplit_once('_')
                 {
-                    installed.insert(name.to_string(), (ver.to_string(), path.clone()));
+                    exact_files.insert((name.to_string(), ver.to_string()), path.clone());
+                    by_name.entry(name.to_string()).or_default().push((ver.to_string(), path.clone()));
                 }
             }
         }
     }
-    installed
+
+    let mut latest_by_name = HashMap::new();
+    for (name, mut list) in by_name {
+        list.sort_by(|a, b| compare_versions(&b.0, &a.0));
+        if let Some(highest) = list.into_iter().next() {
+            latest_by_name.insert(name, highest);
+        }
+    }
+
+    ScannedInstalledMods {
+        exact_files,
+        latest_by_name,
+    }
 }
 
 impl DownloadQueueManager {
@@ -68,42 +87,51 @@ impl DownloadQueueManager {
 
     pub async fn enqueue_batch(&self, items: Vec<ResolvedDownloadItem>, output_dir: PathBuf) {
         emit_log_with_tag("queue", "queue", &format!("Queued {} mod(s) for download", items.len()));
-        let existing_mods = scan_downloaded_files(&output_dir);
+        let scanned = scan_downloaded_files(&output_dir);
 
         for item in items {
             let task_id = format!("{}_{}", item.id, item.version);
             let mut is_update_replacement = false;
             let mut is_downgrade = false;
             let mut old_installed_path: Option<PathBuf> = None;
+            let mut old_installed_version: Option<String> = None;
 
-            // Check if matching mod version is already installed in target folder
-            if let Some((installed_ver, installed_path)) = existing_mods.get(&item.id) {
-                if installed_ver == &item.version {
-                    let actual_size_bytes = std::fs::metadata(installed_path)
-                        .map(|m| m.len())
-                        .unwrap_or(0);
+            // 1. Check if EXACT matching mod version is already installed in target root folder
+            if let Some(installed_path) = scanned.exact_files.get(&(item.id.clone(), item.version.clone())) {
+                let actual_size_bytes = std::fs::metadata(installed_path)
+                    .map(|m| m.len())
+                    .unwrap_or(0);
 
-                    let mut guard = self.tasks.lock().await;
-                    guard.insert(
-                        task_id.clone(),
-                        DownloadTask {
-                            id: item.id.clone(),
-                            title: item.title.clone(),
-                            version: item.version.clone(),
-                            file_name: item.file_name.clone(),
-                            sha1: item.sha1.clone(),
-                            downloaded_bytes: actual_size_bytes,
-                            total_bytes: actual_size_bytes,
-                            status: DownloadStatus::AlreadyExists,
-                        },
-                    );
-                    emit_log_with_tag("info", "mods", &format!("Mod already exists in folder: \"{}\" (v{})", item.title, item.version));
-                    continue;
-                } else {
-                    is_update_replacement = true;
-                    is_downgrade = compare_versions(installed_ver, &item.version).is_gt();
-                    old_installed_path = Some(installed_path.clone());
-                }
+                let mut guard = self.tasks.lock().await;
+                let now_ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+                guard.insert(
+                    task_id.clone(),
+                    DownloadTask {
+                        id: item.id.clone(),
+                        title: item.title.clone(),
+                        version: item.version.clone(),
+                        file_name: item.file_name.clone(),
+                        sha1: item.sha1.clone(),
+                        downloaded_bytes: actual_size_bytes,
+                        total_bytes: actual_size_bytes,
+                        status: DownloadStatus::AlreadyExists,
+                        batch_id: item.batch_id.clone(),
+                        batch_name: item.batch_name.clone(),
+                        reason: item.reason.clone(),
+                        requested_by: item.requested_by.clone(),
+                        enqueued_at: Some(now_ms),
+                    },
+                );
+                emit_log_with_tag("info", "mods", &format!("Mod already exists in folder: \"{}\" (v{})", item.title, item.version));
+                continue;
+            }
+
+            // 2. If a DIFFERENT version of this mod is currently installed in root, mark for update/downgrade replacement
+            if let Some((installed_ver, installed_path)) = scanned.latest_by_name.get(&item.id) {
+                is_update_replacement = true;
+                is_downgrade = compare_versions(installed_ver, &item.version).is_gt();
+                old_installed_path = Some(installed_path.clone());
+                old_installed_version = Some(installed_ver.clone());
             }
 
             let cancel_flag = Arc::new(AtomicBool::new(false));
@@ -111,16 +139,15 @@ impl DownloadQueueManager {
 
             {
                 let mut guard = self.tasks.lock().await;
+                // Only skip if the task is actively downloading or paused
                 if let Some(existing) = guard.get(&task_id)
-                    && (existing.status == DownloadStatus::Completed
-                        || existing.status == DownloadStatus::AlreadyExists
-                        || existing.status == DownloadStatus::Updated
-                        || existing.status == DownloadStatus::Downloading
+                    && (existing.status == DownloadStatus::Downloading
                         || existing.status == DownloadStatus::Paused)
                 {
                     continue;
                 }
 
+                let now_ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
                 guard.insert(
                     task_id.clone(),
                     DownloadTask {
@@ -132,6 +159,11 @@ impl DownloadQueueManager {
                         downloaded_bytes: 0,
                         total_bytes: 0,
                         status: DownloadStatus::Pending,
+                        batch_id: item.batch_id.clone(),
+                        batch_name: item.batch_name.clone(),
+                        reason: item.reason.clone(),
+                        requested_by: item.requested_by.clone(),
+                        enqueued_at: Some(now_ms),
                     },
                 );
 
@@ -259,8 +291,21 @@ impl DownloadQueueManager {
                 let mut guard = manager.tasks.lock().await;
                 if let Some(task) = guard.get_mut(&task_id) {
                     if download_success {
-                        if let Some(ref old_path) = old_installed_path {
-                            let _ = std::fs::remove_file(old_path);
+                        if let (Some(old_path), Some(old_ver)) = (&old_installed_path, &old_installed_version) {
+                            // Safely stash the previously active version instead of permanently deleting it
+                            let stash_ver_dir = output_dir_clone
+                                .join(".factorio-mod-downloader")
+                                .join("versions")
+                                .join(&item.id)
+                                .join(old_ver);
+                            let _ = std::fs::create_dir_all(&stash_ver_dir);
+                            if let Some(fname) = old_path.file_name() {
+                                let dest = stash_ver_dir.join(fname);
+                                let _ = std::fs::rename(old_path, &dest);
+                            }
+                            if old_path.exists() {
+                                let _ = std::fs::remove_file(old_path);
+                            }
                         }
                         task.status = if is_update_replacement {
                             if is_downgrade {
@@ -313,6 +358,43 @@ impl DownloadQueueManager {
         emit_log_with_tag("info", "queue", "Cleared completed tasks from download queue");
     }
 
+    pub async fn remove_task(&self, task_id: &str) {
+        let resolved_key = self.find_task_key(task_id).await;
+        let key_to_clean = resolved_key.clone();
+
+        if let Some(ref key) = key_to_clean {
+            {
+                let flags = self.cancel_flags.lock().await;
+                if let Some(flag) = flags.get(key) {
+                    flag.store(true, Ordering::Relaxed);
+                }
+            }
+            {
+                let pflags = self.pause_flags.lock().await;
+                if let Some(pflag) = pflags.get(key) {
+                    pflag.store(false, Ordering::Relaxed);
+                }
+            }
+        }
+
+        {
+            let mut guard = self.tasks.lock().await;
+            if let Some(ref key) = key_to_clean {
+                guard.remove(key);
+            }
+            guard.retain(|k, v| k != task_id && v.id != task_id && !k.starts_with(&format!("{}_", task_id)));
+        }
+
+        if let Some(ref key) = key_to_clean {
+            let mut cflags = self.cancel_flags.lock().await;
+            cflags.remove(key);
+            let mut pflags = self.pause_flags.lock().await;
+            pflags.remove(key);
+        }
+
+        emit_log_with_tag("info", "queue", &format!("Removed download task \"{}\"", task_id));
+    }
+
     pub async fn retry_task(&self, task_id: &str, output_dir: PathBuf) {
         emit_log_with_tag("queue", "retry", &format!("Retrying download task \"{}\"", task_id));
         let resolved_key = self.find_task_key(task_id).await;
@@ -325,6 +407,10 @@ impl DownloadQueueManager {
                     version: task.version.clone(),
                     file_name: task.file_name.clone(),
                     sha1: task.sha1.clone(),
+                    batch_id: task.batch_id.clone(),
+                    batch_name: task.batch_name.clone(),
+                    reason: task.reason.clone(),
+                    requested_by: task.requested_by.clone(),
                 };
                 drop(guard);
 
@@ -449,5 +535,44 @@ impl DownloadQueueManager {
     pub async fn get_all_tasks(&self) -> Vec<DownloadTask> {
         let guard = self.tasks.lock().await;
         guard.values().cloned().collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_remove_task() {
+        let manager = DownloadQueueManager::new(2);
+        let task_id = "test_mod_1.0.0".to_string();
+
+        {
+            let mut guard = manager.tasks.lock().await;
+            guard.insert(
+                task_id.clone(),
+                DownloadTask {
+                    id: "test_mod".to_string(),
+                    title: "Test Mod".to_string(),
+                    version: "1.0.0".to_string(),
+                    file_name: "test_mod_1.0.0.zip".to_string(),
+                    sha1: "abc".to_string(),
+                    downloaded_bytes: 0,
+                    total_bytes: 100,
+                    status: DownloadStatus::Failed("Cancelled by user".to_string()),
+                    batch_id: None,
+                    batch_name: None,
+                    reason: None,
+                    requested_by: vec![],
+                    enqueued_at: None,
+                },
+            );
+        }
+
+        assert_eq!(manager.get_all_tasks().await.len(), 1);
+
+        // Remove by raw id "test_mod"
+        manager.remove_task("test_mod").await;
+        assert_eq!(manager.get_all_tasks().await.len(), 0);
     }
 }

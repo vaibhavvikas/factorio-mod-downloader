@@ -16,6 +16,7 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -216,7 +217,7 @@ export function ModAccordionCard({
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className="text-sm font-semibold text-foreground truncate max-w-[260px] sm:max-w-[340px]"
-                  title={mod.title}
+                  aria-label={mod.title}
                 >
                   {mod.title}
                 </span>
@@ -224,7 +225,7 @@ export function ModAccordionCard({
                 {mod.category && (
                   <Badge
                     variant="outline"
-                    className="capitalize text-xs font-normal"
+                    className="capitalize"
                   >
                     {mod.category}
                   </Badge>
@@ -233,9 +234,8 @@ export function ModAccordionCard({
                 {isModIncompatible && (
                   <Badge
                     variant="destructive"
-                    className="text-xs font-medium gap-1 select-none"
                   >
-                    <AlertTriangle className="size-3" />
+                    <AlertTriangle data-icon="inline-start" />
                     Incompatible
                   </Badge>
                 )}
@@ -343,34 +343,22 @@ export function ModAccordionCard({
 
             {/* Dependency Badges */}
             {requiredDeps.length > 0 && (
-              <Badge
-                variant="outline"
-                className="text-xs font-normal border-sky-500/40 text-sky-600 dark:text-sky-400 bg-sky-500/5"
-              >
+              <Badge variant="outline" className="text-blue-600 dark:text-blue-400 border-blue-500/30">
                 {requiredDeps.length} Required
               </Badge>
             )}
             {recommendedDeps.length > 0 && (
-              <Badge
-                variant="outline"
-                className="text-xs font-normal border-amber-500/40 text-amber-600 dark:text-amber-400 bg-amber-500/5"
-              >
+              <Badge variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/30">
                 {recommendedSelected}/{recommendedDeps.length} Recommended
               </Badge>
             )}
             {optionalDeps.length > 0 && (
-              <Badge
-                variant="outline"
-                className="text-xs font-normal border-blue-500/40 text-blue-600 dark:text-blue-400 bg-blue-500/5"
-              >
+              <Badge variant="outline">
                 {optionalSelected}/{optionalDeps.length} Optional
               </Badge>
             )}
             {incompatibleDeps.length > 0 && (
-              <Badge
-                variant="outline"
-                className="text-xs font-normal border-border text-muted-foreground bg-muted/40"
-              >
+              <Badge variant="outline" className="text-destructive border-destructive/30">
                 {incompatibleDeps.length} Incompatible
               </Badge>
             )}
@@ -394,16 +382,14 @@ export function ModAccordionCard({
         <AccordionContent className="px-4 pb-4 pt-1 space-y-3 border-t border-border/40 bg-muted/5">
           {/* Factorio Version Incompatibility Warning Banner */}
           {isModIncompatible && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-xs">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold">Factorio Version Incompatibility</p>
-                <p className="text-destructive/80 mt-0.5">
-                  None of the available releases for this mod specify support for
-                  Factorio {factorioVersion}. This mod will be skipped during download batch resolution.
-                </p>
-              </div>
-            </div>
+            <Alert variant="destructive">
+              <AlertTriangle className="size-4 shrink-0" />
+              <AlertTitle>Factorio Version Incompatibility</AlertTitle>
+              <AlertDescription>
+                None of the available releases for this mod specify support for
+                Factorio {factorioVersion}. This mod will be skipped during download batch resolution.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* 4 Tabs: Required, Recommended, Optional, Incompatible */}
@@ -415,9 +401,9 @@ export function ModAccordionCard({
               >
                 <CheckCircle2 className="size-3 text-emerald-500 shrink-0" />
                 <span className="truncate">Required</span>
-                <span className="text-[10px] font-mono px-1 rounded-sm bg-muted text-muted-foreground shrink-0">
+                <Badge variant="secondary">
                   {requiredDeps.length}
-                </span>
+                </Badge>
               </TabsTrigger>
 
               <TabsTrigger
@@ -426,9 +412,9 @@ export function ModAccordionCard({
               >
                 <ThumbsUp className="size-3 text-amber-500 shrink-0" />
                 <span className="truncate">Recommended</span>
-                <span className="text-[10px] font-mono px-1 rounded-sm bg-muted text-muted-foreground shrink-0">
+                <Badge variant="secondary">
                   {recommendedSelected}/{recommendedDeps.length}
-                </span>
+                </Badge>
               </TabsTrigger>
 
               <TabsTrigger
@@ -437,9 +423,9 @@ export function ModAccordionCard({
               >
                 <Sparkles className="size-3 text-blue-500 shrink-0" />
                 <span className="truncate">Optional</span>
-                <span className="text-[10px] font-mono px-1 rounded-sm bg-muted text-muted-foreground shrink-0">
+                <Badge variant="secondary">
                   {optionalSelected}/{optionalDeps.length}
-                </span>
+                </Badge>
               </TabsTrigger>
 
               <TabsTrigger
@@ -448,9 +434,9 @@ export function ModAccordionCard({
               >
                 <Ban className="size-3 text-muted-foreground shrink-0" />
                 <span className="truncate">Incompatible</span>
-                <span className="text-[10px] font-mono px-1 rounded-sm bg-muted text-muted-foreground shrink-0">
+                <Badge variant="secondary">
                   {incompatibleDeps.length}
-                </span>
+                </Badge>
               </TabsTrigger>
             </TabsList>
 
@@ -475,7 +461,7 @@ export function ModAccordionCard({
                           key={dep.id}
                           className="flex items-center justify-between gap-2 text-xs py-1.5 px-2.5 rounded-md bg-muted/40 font-mono text-[11px]"
                         >
-                          <span className="truncate text-foreground font-medium" title={dep.name}>
+                          <span className="truncate text-foreground font-medium" aria-label={dep.name}>
                             {dep.name}
                           </span>
                           {dep.version && (
@@ -536,7 +522,7 @@ export function ModAccordionCard({
                                   toggleTargetModDep(mod.id, dep.id)
                                 }
                               />
-                              <span className="truncate text-foreground" title={dep.name}>
+                              <span className="truncate text-foreground" aria-label={dep.name}>
                                 {dep.name}
                               </span>
                             </div>
@@ -599,7 +585,7 @@ export function ModAccordionCard({
                                   toggleTargetModDep(mod.id, dep.id)
                                 }
                               />
-                              <span className="truncate text-foreground" title={dep.name}>
+                              <span className="truncate text-foreground" aria-label={dep.name}>
                                 {dep.name}
                               </span>
                             </div>
@@ -640,7 +626,7 @@ export function ModAccordionCard({
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <Ban className="size-3 text-muted-foreground/70 shrink-0" />
-                            <span className="truncate text-foreground" title={dep.name}>
+                            <span className="truncate text-foreground" aria-label={dep.name}>
                               {dep.name}
                             </span>
                           </div>

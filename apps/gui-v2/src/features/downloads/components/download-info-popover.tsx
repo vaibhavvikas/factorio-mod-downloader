@@ -116,7 +116,7 @@ export function DownloadInfoPopover({
                 type="button"
                 onClick={() => copyToClipboard(task.fileName, "fileName")}
                 className="hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
-                title="Copy filename"
+                aria-label="Copy filename"
               >
                 {copiedField === "fileName" ? (
                   <Check className="size-2.5 text-emerald-500" />
@@ -140,7 +140,7 @@ export function DownloadInfoPopover({
                   type="button"
                   onClick={() => copyToClipboard(sourceUrl, "sourceUrl")}
                   className="hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
-                  title="Copy URL"
+                  aria-label="Copy URL"
                 >
                   {copiedField === "sourceUrl" ? (
                     <Check className="size-2.5 text-emerald-500" />
@@ -153,7 +153,7 @@ export function DownloadInfoPopover({
                   type="button"
                   onClick={() => openModPortal(task.rawId)}
                   className="hover:text-primary inline-flex items-center gap-0.5 cursor-pointer text-muted-foreground"
-                  title="Open in portal"
+                  aria-label="Open in portal"
                 >
                   <ExternalLink className="size-2.5" />
                   <span>Portal</span>
@@ -174,7 +174,7 @@ export function DownloadInfoPopover({
                   type="button"
                   onClick={() => copyToClipboard(task.sha1!, "sha1")}
                   className="hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
-                  title="Copy SHA-1"
+                  aria-label="Copy SHA-1"
                 >
                   {copiedField === "sha1" ? (
                     <Check className="size-2.5 text-emerald-500" />
@@ -204,7 +204,7 @@ export function DownloadInfoPopover({
                   type="button"
                   onClick={() => copyToClipboard(destinationPath, "destPath")}
                   className="hover:text-foreground inline-flex items-center gap-1 cursor-pointer"
-                  title="Copy destination path"
+                  aria-label="Copy destination path"
                 >
                   {copiedField === "destPath" ? (
                     <Check className="size-2.5 text-emerald-500" />
@@ -217,7 +217,7 @@ export function DownloadInfoPopover({
                   type="button"
                   onClick={handleOpenDirectory}
                   className="hover:text-foreground inline-flex items-center gap-0.5 cursor-pointer text-muted-foreground"
-                  title="Open destination folder"
+                  aria-label="Open destination folder"
                 >
                   <Folder className="size-2.5" />
                   <span>Folder</span>

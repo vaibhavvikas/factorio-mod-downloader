@@ -52,12 +52,14 @@ export interface QueuedModItem {
 interface ModQueueState {
   // Staged Target Mods in the Queue Manager
   targetMods: TargetModItem[]
+  expandedCardIds: string[]
   autoIncludeRecommended: boolean
   autoIncludeOptional: boolean
   
   // Actions for Target Mods
   addTargetMod: (mod: TargetModItem) => void
   removeTargetMod: (id: string) => void
+  setExpandedCardIds: (ids: string[]) => void
   updateTargetModVersion: (
     id: string,
     version: string,
@@ -92,8 +94,11 @@ export const useModQueueStore = create<ModQueueState>()(
   persist(
     (set) => ({
       targetMods: [],
+      expandedCardIds: [],
       autoIncludeRecommended: true,
       autoIncludeOptional: false,
+
+      setExpandedCardIds: (ids) => set({ expandedCardIds: ids }),
 
       addTargetMod: (mod) =>
         set((state) => {
@@ -106,6 +111,7 @@ export const useModQueueStore = create<ModQueueState>()(
       removeTargetMod: (id) =>
         set((state) => ({
           targetMods: state.targetMods.filter((m) => m.id !== id && m.name !== id),
+          expandedCardIds: state.expandedCardIds.filter((cardId) => cardId !== id),
         })),
 
       updateTargetModVersion: (id, version, dependencies, selectedDepIds) =>
@@ -195,7 +201,7 @@ export const useModQueueStore = create<ModQueueState>()(
           }),
         })),
 
-      clearTargetMods: () => set({ targetMods: [] }),
+      clearTargetMods: () => set({ targetMods: [], expandedCardIds: [] }),
 
       setAutoIncludeRecommended: (enabled) =>
         set({ autoIncludeRecommended: enabled }),

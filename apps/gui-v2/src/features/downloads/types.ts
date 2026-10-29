@@ -46,3 +46,41 @@ export interface FormattedDownloadTask {
   queuePosition?: number
   installGroup?: string
 }
+
+export type DownloadBatchKind = "single" | "queue" | "update" | "collection_apply" | "import"
+export type DownloadBatchPhase = "downloading" | "verifying" | "installing" | "done" | "failed" | "cancelled" | "paused"
+export type DownloadItemState = "queued" | "connecting" | "downloading" | "paused" | "verifying" | "downloaded" | "installed" | "failed" | "cancelled"
+
+export interface DownloadItemNode {
+  id: string
+  batchId: string
+  name: string
+  version: string
+  title: string
+  reason: "direct" | "dependency" | string
+  requestedBy: string[]
+  position: number
+  state: DownloadItemState
+  bytesTotal: number
+  bytesDone: number
+  speed: string
+  error?: string | null
+  startedAt?: number | null
+  finishedAt?: number | null
+  sha1: string
+  depth: number
+  via?: string | null
+  isRoot: boolean
+  subtitle?: string | null
+  thumbnail?: string | null
+}
+
+export interface DownloadBatch {
+  id: string
+  kind: DownloadBatchKind
+  label: string
+  createdAt: number
+  phase: DownloadBatchPhase
+  error?: string | null
+  items: DownloadItemNode[]
+}

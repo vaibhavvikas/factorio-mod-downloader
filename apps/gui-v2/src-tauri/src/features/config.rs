@@ -3,12 +3,27 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WindowState {
+    pub width: f64,
+    pub height: f64,
+    pub is_maximized: bool,
+    pub is_fullscreen: bool,
+    pub x: Option<i32>,
+    pub y: Option<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     pub mods_folder: Option<String>,
     pub factorio_version: Option<String>,
     pub theme_mode: Option<String>,
     pub max_concurrency: Option<usize>,
     pub auto_retry: Option<bool>,
+    pub auto_check_updates: Option<bool>,
+    pub timeout_guard: Option<bool>,
+    pub window_state: Option<WindowState>,
+    #[serde(default)]
+    pub setup_completed: Option<bool>,
 }
 
 impl Default for AppConfig {
@@ -19,11 +34,15 @@ impl Default for AppConfig {
             theme_mode: Some("system".to_string()),
             max_concurrency: Some(5),
             auto_retry: Some(true),
+            auto_check_updates: Some(true),
+            timeout_guard: Some(true),
+            window_state: None,
+            setup_completed: Some(false),
         }
     }
 }
 
-fn get_config_dir() -> Result<PathBuf, String> {
+pub fn get_config_dir() -> Result<PathBuf, String> {
     let data_dir = dirs::config_dir()
         .or_else(dirs::data_dir)
         .ok_or_else(|| "Could not determine system configuration directory".to_string())?;
@@ -157,5 +176,30 @@ pub fn get_factorio_version() -> Result<String, String> {
 pub fn save_factorio_version(version: String) -> Result<(), String> {
     let mut config = get_app_config().unwrap_or_default();
     config.factorio_version = Some(version);
+    save_app_config(config)
+}
+
+#[tauri::command]
+pub fn get_config_path() -> Result<String, String> {
+    Ok(get_config_file_path()?.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn open_config_folder() -> Result<(), String> {
+    let dir = get_config_dir()?;
+    open_folder_in_explorer(dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn reset_app_config() -> Result<AppConfig, String> {
+    let default_config = AppConfig::default();
+    save_app_config(default_config.clone())?;
+    Ok(default_config)
+}
+
+#[tauri::command]
+pub fn save_window_state(state: WindowState) -> Result<(), String> {
+    let mut config = get_app_config().unwrap_or_default();
+    config.window_state = Some(state);
     save_app_config(config)
 }

@@ -19,6 +19,7 @@ import {
   Settings,
   Heart,
   MessageSquare,
+  FolderArchive,
 } from "lucide-react"
 
 import { cn, openExternalUrl } from "@/lib/utils"
@@ -28,6 +29,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+
 import {
   Select,
   SelectContent,
@@ -40,6 +43,7 @@ import {
   useSettingsStore,
   DEFAULT_FACTORIO_VERSIONS,
 } from "@/stores/use-settings-store"
+import { useModManagerStore } from "@/stores/use-mod-manager-store"
 import { isVersionNewer } from "@/lib/version-utils"
 
 type SectionId = "appearance" | "folder" | "general" | "downloads" | "about"
@@ -94,17 +98,26 @@ export function SettingsView() {
     modsFolder,
     detectedFolder,
     setModsFolder,
+    setThemeMode,
+    maxConcurrency,
+    setMaxConcurrency,
+    autoRetry,
+    setAutoRetry,
+    autoCheckUpdates,
+    setAutoCheckUpdates,
+    timeoutGuard,
+    setTimeoutGuard,
+    configPath,
+    openConfigFolder,
+    resetToDefaults,
     loadSettings,
   } = useSettingsStore()
 
+  const autoCascadeDependencies = useModManagerStore((s) => s.autoCascadeDependencies)
+  const setAutoCascadeDependencies = useModManagerStore((s) => s.setAutoCascadeDependencies)
+
   const [folderStatus, setFolderStatus] = React.useState<"idle" | "saving" | "detecting">("idle")
   const [copied, setCopied] = React.useState(false)
-
-  // General & Download preferences
-  const [autoCheckUpdates, setAutoCheckUpdates] = React.useState(true)
-  const [maxConcurrency, setMaxConcurrency] = React.useState("5")
-  const [autoRetry, setAutoRetry] = React.useState(true)
-  const [timeoutGuard, setTimeoutGuard] = React.useState(true)
 
   // Application update checking state
   const [appVersion, setAppVersion] = React.useState<string>("0.4.0")
@@ -218,6 +231,18 @@ export function SettingsView() {
     }
   }
 
+  // Action: Open Versions Cache Folder in Explorer / Finder
+  const handleOpenVersionsFolder = async () => {
+    if (!modsFolder) return
+    try {
+      await invoke("open_folder_in_explorer", {
+        path: `${modsFolder}/.factorio-mod-downloader/versions`,
+      })
+    } catch (err) {
+      console.error("Failed to open versions cache folder:", err)
+    }
+  }
+
   // Action: Copy folder path to clipboard
   const handleCopyPath = () => {
     if (!modsFolder) return
@@ -227,12 +252,12 @@ export function SettingsView() {
   }
 
   return (
-    <div className="@container p-6 w-full max-w-[1100px] mx-auto space-y-6 font-sans">
+    <div className="@container p-6 w-full max-w-6xl mx-auto space-y-6 font-sans">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">
           <Settings className="size-6 text-primary shrink-0" />
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
+          <h2 className="text-xl font-bold tracking-tight text-foreground uppercase">Settings</h2>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           Configure application preferences, theme appearance, and game folder paths.
@@ -295,7 +320,10 @@ export function SettingsView() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setTheme(item.id as any)}
+                      onClick={() => {
+                        setTheme(item.id as any)
+                        setThemeMode(item.id as any)
+                      }}
                       className={cn(
                         "flex flex-col items-start p-3.5 rounded-xl border text-left transition-all cursor-pointer select-none",
                         isSelected
@@ -315,7 +343,7 @@ export function SettingsView() {
                           <ItemIcon className="size-4" />
                         </div>
                         {isSelected && (
-                          <Badge variant="default" className="text-[10px] h-4 px-1.5 font-bold">
+                          <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900">
                             Active
                           </Badge>
                         )}
@@ -347,11 +375,11 @@ export function SettingsView() {
                   </span>
                   {modsFolder && (
                     isDefaultFolder ? (
-                      <Badge className="text-[10px] h-4 px-1.5 font-bold bg-emerald-600 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:text-white border-none select-none">
+                      <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 select-none">
                         Detected
                       </Badge>
                     ) : (
-                      <Badge className="text-[10px] h-4 px-1.5 font-bold bg-amber-600 text-white hover:bg-amber-600 dark:bg-amber-600 dark:text-white border-none select-none">
+                      <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border-amber-200 dark:border-amber-900 select-none">
                         Custom
                       </Badge>
                     )
@@ -370,7 +398,7 @@ export function SettingsView() {
                     size="sm"
                     onClick={handleCopyPath}
                     className="h-9 px-2.5 shrink-0 cursor-pointer"
-                    title="Copy path"
+                    aria-label="Copy path"
                   >
                     {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
                   </Button>
@@ -406,9 +434,22 @@ export function SettingsView() {
                     onClick={handleOpenExplorer}
                     disabled={!modsFolder}
                     className="h-8 gap-1.5 text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground"
+                    aria-label="Show active mods folder in file explorer"
                   >
                     <ExternalLink className="size-3.5" />
                     <span>Show in Folder</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleOpenVersionsFolder}
+                    disabled={!modsFolder}
+                    className="h-8 gap-1.5 text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground"
+                    aria-label="Open inactive versions cache folder in file explorer"
+                  >
+                    <FolderArchive className="size-3.5" />
+                    <span>Open Inactive Versions Cache</span>
                   </Button>
                 </div>
               </div>
@@ -439,9 +480,9 @@ export function SettingsView() {
                 {/* Factorio version select (Exact options as original GUI, wide popup without clipping) */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-0.5">
-                    <label className="text-sm font-medium text-foreground">
+                    <Label className="text-sm font-medium text-foreground">
                       Target Factorio Version
-                    </label>
+                    </Label>
                     <p className="text-xs text-muted-foreground">
                       Filter portal releases and automatically restrict dependency versions in the queue.
                     </p>
@@ -468,17 +509,81 @@ export function SettingsView() {
                 {/* Auto check updates */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-0.5">
-                    <label className="text-sm font-medium text-foreground">
+                    <Label className="text-sm font-medium text-foreground">
                       Automatic Update Checking
-                    </label>
+                    </Label>
                     <p className="text-xs text-muted-foreground">
                       Check for newer mod versions when opening the explore view.
                     </p>
                   </div>
+
                   <Switch
                     checked={autoCheckUpdates}
                     onCheckedChange={setAutoCheckUpdates}
                   />
+                </div>
+
+                <Separator />
+
+                {/* Auto Cascade Dependencies */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium text-foreground">
+                      Auto-manage Mod Dependencies
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Automatically enable sub-dependencies when enabling a mod, and disable unneeded required dependencies when disabling.
+                    </p>
+                  </div>
+
+                  <Switch
+                    checked={autoCascadeDependencies}
+                    onCheckedChange={setAutoCascadeDependencies}
+                  />
+                </div>
+
+                <Separator />
+
+                {/* Configuration File & Storage */}
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <span className="text-sm font-medium text-foreground block">
+                      Configuration File & Storage
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      All preferences and window dimensions are persisted to your operating system profile.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg border border-border/80 bg-muted/30 font-mono text-xs">
+                    <span className="truncate flex-1 text-muted-foreground select-all">
+                      {configPath || "%APPDATA%\\factorio-mod-downloader\\config.json"}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openConfigFolder}
+                      className="h-8 text-xs gap-1.5 cursor-pointer font-sans"
+                    >
+                      <FolderOpen className="size-3.5" />
+                      <span>Open Config Folder</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        await resetToDefaults()
+                        setTheme("system")
+                        setThemeMode("system")
+                      }}
+                      className="h-8 text-xs text-muted-foreground hover:text-foreground cursor-pointer font-sans"
+                    >
+                      <span>Reset to Defaults</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -498,9 +603,9 @@ export function SettingsView() {
                 {/* Concurrency limit */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-0.5">
-                    <label className="text-sm font-medium text-foreground">
+                    <Label className="text-sm font-medium text-foreground">
                       Maximum Concurrent Downloads
-                    </label>
+                    </Label>
                     <p className="text-xs text-muted-foreground">
                       Number of parallel threads executing simultaneous mod downloads.
                     </p>
@@ -523,9 +628,9 @@ export function SettingsView() {
                 {/* Auto-retry */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-0.5">
-                    <label className="text-sm font-medium text-foreground">
+                    <Label className="text-sm font-medium text-foreground">
                       Automatic 3-Attempt Network Retry
-                    </label>
+                    </Label>
                     <p className="text-xs text-muted-foreground">
                       Automatically retry interrupted downloads up to 3 times before failing.
                     </p>
@@ -541,13 +646,14 @@ export function SettingsView() {
                 {/* Timeout guard */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="space-y-0.5">
-                    <label className="text-sm font-medium text-foreground">
+                    <Label className="text-sm font-medium text-foreground">
                       Mirror Inactivity Timeout Guard
-                    </label>
+                    </Label>
                     <p className="text-xs text-muted-foreground">
                       Cancel and recycle requests stalled for more than 30 seconds.
                     </p>
                   </div>
+
                   <Switch
                     checked={timeoutGuard}
                     onCheckedChange={setTimeoutGuard}
@@ -585,7 +691,7 @@ export function SettingsView() {
                         <h4 className="font-semibold text-sm text-foreground">
                           Vaibhav Vikas
                         </h4>
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-medium">
+                        <Badge variant="secondary">
                           Creator
                         </Badge>
                       </div>
@@ -612,16 +718,6 @@ export function SettingsView() {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/40">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1.5 border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                    onClick={() => openExternalUrl("https://github.com/sponsors/vaibhavvikas")}
-                  >
-                    <Heart className="size-3 fill-rose-500 text-rose-500" />
-                    <span>Sponsor</span>
-                    <ExternalLink className="size-2.5 opacity-60" />
-                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"

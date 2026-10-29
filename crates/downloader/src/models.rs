@@ -24,4 +24,14 @@ pub struct DownloadTask {
     pub downloaded_bytes: u64,
     pub total_bytes: u64,
     pub status: DownloadStatus,
+    #[serde(default)]
+    pub batch_id: Option<String>,
+    #[serde(default)]
+    pub batch_name: Option<String>,
+    #[serde(default)]
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub requested_by: Vec<String>,
+    #[serde(default)]
+    pub enqueued_at: Option<u64>,
 }

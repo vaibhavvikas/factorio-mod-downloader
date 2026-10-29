@@ -31,7 +31,6 @@ export function QueueSettingsPopover() {
             className="h-8 gap-1.5 text-xs font-medium cursor-pointer"
           >
             <Settings2 className="size-3.5 text-muted-foreground" />
-            <span>Dependencies</span>
           </Button>
         }
       />

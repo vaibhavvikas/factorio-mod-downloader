@@ -13,6 +13,7 @@ import {
   Gamepad2,
 } from "lucide-react"
 import { invoke } from "@tauri-apps/api/core"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +26,8 @@ import {
 } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion } from "@/components/ui/accordion"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import { useDownloadsStore } from "@/stores/use-downloads-store"
 import { useSettingsStore, DEFAULT_FACTORIO_VERSIONS } from "@/stores/use-settings-store"
@@ -60,13 +63,14 @@ export function QueueView({
   )
   const autoIncludeOptional = useModQueueStore((s) => s.autoIncludeOptional)
   const addToQueue = useModQueueStore((s) => s.addToQueue)
+  const expandedCardIds = useModQueueStore((s) => s.expandedCardIds)
+  const setExpandedCardIds = useModQueueStore((s) => s.setExpandedCardIds)
 
   const [inputQuery, setInputQuery] = React.useState("")
   const [isAdding, setIsAdding] = React.useState(false)
   const [isResolving, setIsResolving] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [viewMode, setViewMode] = React.useState<"cards" | "tree">("cards")
-  const [expandedCardIds, setExpandedCardIds] = React.useState<string[]>([])
 
   // When global factorioVersion changes, ensure all already-added mods in the queue update their selected version
   React.useEffect(() => {
@@ -120,11 +124,11 @@ export function QueueView({
 
       const releaseDeps = bestRelease?.dependencies ||
         details.default_dependencies || {
-          required: [],
-          recommended: [],
-          optional: [],
-          incompatible: [],
-        }
+        required: [],
+        recommended: [],
+        optional: [],
+        incompatible: [],
+      }
 
       const treeNodes: TreeNode[] = []
       const mapDep = (dep: BackendDependency, type: DependencyType): TreeNode => ({
@@ -135,18 +139,18 @@ export function QueueView({
         type,
       })
 
-      ;(releaseDeps.required || []).forEach((d) =>
-        treeNodes.push(mapDep(d, "required"))
-      )
-      ;(releaseDeps.recommended || []).forEach((d) =>
-        treeNodes.push(mapDep(d, "recommended"))
-      )
-      ;(releaseDeps.optional || []).forEach((d) =>
-        treeNodes.push(mapDep(d, "optional"))
-      )
-      ;(releaseDeps.incompatible || []).forEach((d) =>
-        treeNodes.push(mapDep(d, "incompatible"))
-      )
+        ; (releaseDeps.required || []).forEach((d) =>
+          treeNodes.push(mapDep(d, "required"))
+        )
+        ; (releaseDeps.recommended || []).forEach((d) =>
+          treeNodes.push(mapDep(d, "recommended"))
+        )
+        ; (releaseDeps.optional || []).forEach((d) =>
+          treeNodes.push(mapDep(d, "optional"))
+        )
+        ; (releaseDeps.incompatible || []).forEach((d) =>
+          treeNodes.push(mapDep(d, "incompatible"))
+        )
 
       const initialSelectedIds = treeNodes
         .filter((d) => {
@@ -224,6 +228,7 @@ export function QueueView({
         version: t.selectedVersion,
         file_name: `${t.name}_${t.selectedVersion}.zip`,
         sha1: "",
+        reason: "direct",
       }))
 
       const directDeps: BackendDependency[] = []
@@ -259,6 +264,19 @@ export function QueueView({
         modsFolder = await invoke<string>("detect_default_mods_folder")
       }
 
+      // Register download groups with useDownloadsStore so parent-child relationships are preserved
+      const groupsToRegister = targetMods.map((m) => ({
+        parent: m.name,
+        dependencies: m.dependencies
+          .filter(
+            (d) =>
+              (d.type === "required" || m.selectedDepIds.includes(d.id)) &&
+              !["base", "space-age", "quality", "elevated-rails", "recycler"].includes(d.name)
+          )
+          .map((d) => d.name),
+      }))
+      useDownloadsStore.getState().registerDownloadGroups(groupsToRegister)
+
       await invoke("start_download_batch", {
         items: resolvedBatch,
         outputDir: modsFolder,
@@ -285,12 +303,12 @@ export function QueueView({
   }
 
   return (
-    <div className="@container p-6 w-full max-w-[1600px] mx-auto space-y-6">
+    <div className="@container p-6 w-full max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">
           <Package className="size-6 text-primary shrink-0" />
-          <h2 className="text-xl font-bold tracking-tight text-foreground font-sans">
+          <h2 className="text-xl font-bold tracking-tight text-foreground uppercase font-sans">
             Mod Queue Manager
           </h2>
         </div>
@@ -338,8 +356,17 @@ export function QueueView({
             }}
           >
             <SelectTrigger className="h-8 text-xs font-medium border-border/80 px-2.5 gap-2 cursor-pointer">
-              <Gamepad2 className="size-3.5 shrink-0" />
-              <SelectValue placeholder="Factorio Version" />
+              <SelectValue>
+                {(value: string) => {
+                  const opt = DEFAULT_FACTORIO_VERSIONS.find((v) => v.value === value)
+                  return (
+                    <span className="flex items-center gap-1.5">
+                      <Gamepad2 className="size-3.5 shrink-0 text-primary" />
+                      <span className="truncate">{opt?.label ?? (value === "any" ? "Any Version" : value)}</span>
+                    </span>
+                  )
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent align="end" className="font-mono text-xs min-w-(--anchor-width) w-auto">
               {DEFAULT_FACTORIO_VERSIONS.map((opt) => (
@@ -355,29 +382,31 @@ export function QueueView({
 
           {/* View Mode Switcher */}
           {targetMods.length > 0 && (
-            <div className="flex items-center rounded-lg border border-border p-0.5 bg-muted/40">
-              <Button
-                variant={viewMode === "cards" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-7 w-7 p-0 cursor-pointer"
-                onClick={() => setViewMode("cards")}
-                title="Card View"
-                aria-label="Card View"
-              >
-                <LayoutGrid className="size-3.5" />
-              </Button>
-              <Button
-                variant={viewMode === "tree" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-7 w-7 p-0 cursor-pointer"
-                onClick={() => setViewMode("tree")}
-                title="Dependency Tree View"
-                aria-label="Dependency Tree View"
-              >
-                <Layers className="size-3.5" />
-              </Button>
-            </div>
+            <Tabs
+              value={viewMode}
+              onValueChange={(val) => setViewMode(val as "cards" | "tree")}
+            >
+              <TabsList className="h-8 p-0.5 bg-muted/60 text-xs gap-1 select-none font-sans">
+                <TabsTrigger
+                  value="cards"
+                  className="text-xs h-7 w-7 p-0 cursor-pointer"
+
+                  aria-label="Card View"
+                >
+                  <LayoutGrid className="size-3.5" />
+                </TabsTrigger>
+                <TabsTrigger
+                  value="tree"
+                  className="text-xs h-7 w-7 p-0 cursor-pointer"
+
+                  aria-label="Dependency Tree View"
+                >
+                  <Layers className="size-3.5" />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           )}
+
 
           {/* Download All Primary Action */}
           {targetMods.length > 0 && (
@@ -409,7 +438,7 @@ export function QueueView({
               size="sm"
               className="h-8 text-xs text-muted-foreground hover:text-destructive cursor-pointer px-2"
               onClick={clearTargetMods}
-              title="Clear all mods from queue"
+              aria-label="Clear all mods from queue"
             >
               <Trash2 className="size-3.5" />
             </Button>
@@ -419,10 +448,10 @@ export function QueueView({
 
       {/* Error banner if resolution fails */}
       {errorMessage && (
-        <div className="flex items-center gap-2 py-1.5 px-3 rounded-lg border border-destructive/30 bg-destructive/10 text-xs text-destructive animate-in fade-in">
-          <AlertCircle className="size-3.5 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
+        <Alert variant="destructive" className="py-2 animate-in fade-in">
+          <AlertCircle className="size-4 shrink-0" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
       )}
 
       {/* Main Body */}

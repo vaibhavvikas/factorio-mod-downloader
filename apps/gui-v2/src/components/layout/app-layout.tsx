@@ -23,6 +23,10 @@ import { ExploreView } from "@/features/explore"
 import { QueueView } from "@/features/queue"
 import { DownloadsView } from "@/features/downloads"
 import { SettingsView } from "@/features/settings"
+import { ModManagerView } from "@/features/mod-manager"
+import { CollectionsView } from "@/features/collections"
+import { SetupDialog } from "@/components/layout/setup-dialog"
+import { useCollectionsStore } from "@/stores/use-collections-store"
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import { useDownloadsStore } from "@/stores/use-downloads-store"
 import { useSettingsStore } from "@/stores/use-settings-store"
@@ -37,7 +41,9 @@ export function AppLayout() {
 
   // Load settings on startup (detects mods folder, loads saved Factorio version)
   React.useEffect(() => {
-    useSettingsStore.getState().loadSettings()
+    useSettingsStore.getState().loadSettings().then(() => {
+      useCollectionsStore.getState().loadCollections()
+    })
   }, [])
 
   // Start background poller for downloads
@@ -211,6 +217,10 @@ export function AppLayout() {
                       <BreadcrumbPage className="text-xs font-semibold capitalize">
                         {activeTab === "queue"
                           ? "Mod Queue"
+                          : activeTab === "mods"
+                          ? "Installed Mods"
+                          : activeTab === "collections"
+                          ? "Collections"
                           : activeTab === "downloads"
                           ? "Downloads"
                           : activeTab}
@@ -240,6 +250,12 @@ export function AppLayout() {
                   onNavigateToExplore={() => setActiveTab("explore")}
                 />
               </div>
+              <div className={activeTab === "mods" ? "block" : "hidden"}>
+                <ModManagerView isActive={activeTab === "mods"} />
+              </div>
+              <div className={activeTab === "collections" ? "block" : "hidden"}>
+                <CollectionsView />
+              </div>
               <div className={activeTab === "downloads" ? "block" : "hidden"}>
                 <DownloadsView
                   isActive={activeTab === "downloads"}
@@ -267,6 +283,7 @@ export function AppLayout() {
         latestLog={logs.length > 0 ? logs[logs.length - 1] : null}
         activeDownload={activeDownload}
       />
+      <SetupDialog />
     </div>
   )
 }

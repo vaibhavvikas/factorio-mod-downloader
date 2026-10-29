@@ -1,5 +1,4 @@
-import * as React from "react"
-import { Compass, Package, Download, Settings } from "lucide-react"
+import { Compass, Package, Download, Settings, Boxes, Layers } from "lucide-react"
 import appIcon from "@/assets/app_icon.png"
 import downloaderBanner from "@/assets/downloader_banner.png"
 
@@ -17,8 +16,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import { useDownloadsStore } from "@/stores/use-downloads-store"
+import { useModManagerStore } from "@/stores/use-mod-manager-store"
 
-export type TabId = "explore" | "queue" | "downloads" | "settings"
+export type TabId = "explore" | "queue" | "mods" | "collections" | "downloads" | "settings"
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   activeTab: TabId
@@ -32,6 +32,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const targetModsCount = useModQueueStore((s) => s.targetMods.length)
   const activeDownloadsCount = useDownloadsStore((s) => s.activeCount)
+  const updatesCount = useModManagerStore((s) => s.mods.filter((m) => m.hasUpdate).length)
 
   return (
     <Sidebar
@@ -56,7 +57,7 @@ export function AppSidebar({
                   draggable={false}
                 />
               </div>
-              <div className="flex-1 min-w-0 flex items-center overflow-hidden">
+              <div className="flex-1 min-w-0 flex items-center overflow-hidden group-data-[collapsible=icon]:hidden">
                 <img
                   src={downloaderBanner}
                   alt="Factorio Mod Downloader"
@@ -79,8 +80,8 @@ export function AppSidebar({
                 isActive={activeTab === "explore"}
                 onClick={() => setActiveTab("explore")}
               >
-                <Compass className="size-4" />
-                <span>Explore</span>
+                <Compass className="size-4 shrink-0" />
+                <span className="truncate uppercase tracking-wide font-semibold">Explore</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
@@ -90,16 +91,51 @@ export function AppSidebar({
                 isActive={activeTab === "queue"}
                 onClick={() => setActiveTab("queue")}
               >
-                <Package className="size-4" />
-                <span>Mod Queue</span>
+                <Package className="size-4 shrink-0" />
+                <span className="truncate uppercase tracking-wide font-semibold">Mod Queue</span>
                 {targetModsCount > 0 && (
                   <Badge
                     variant="secondary"
-                    className="ml-auto text-[10px] font-mono h-4 px-1.5 font-bold"
+                    className="ml-auto text-[10px] font-mono h-4 px-1.5 font-bold shrink-0 group-data-[collapsible=icon]:hidden"
                   >
                     {targetModsCount}
                   </Badge>
                 )}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarMenu className="gap-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Installed Mods"
+                isActive={activeTab === "mods"}
+                onClick={() => setActiveTab("mods")}
+              >
+                <Boxes className="size-4 shrink-0" />
+                <span className="truncate uppercase tracking-wide font-semibold">Installed Mods</span>
+                {updatesCount > 0 && (
+                  <Badge
+                    variant="default"
+                    className="ml-auto text-[10px] font-mono h-4 px-1.5 font-bold bg-blue-600 shrink-0 group-data-[collapsible=icon]:hidden"
+                  >
+                    {updatesCount}
+                  </Badge>
+                )}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Collections"
+                isActive={activeTab === "collections"}
+                onClick={() => setActiveTab("collections")}
+              >
+                <Layers className="size-4 shrink-0" />
+                <span className="truncate uppercase tracking-wide font-semibold">Collections</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -114,12 +150,12 @@ export function AppSidebar({
               isActive={activeTab === "downloads"}
               onClick={() => setActiveTab("downloads")}
             >
-              <Download className="size-4" />
-              <span>Downloads</span>
+              <Download className="size-4 shrink-0" />
+              <span className="truncate uppercase tracking-wide font-semibold">Downloads</span>
               {activeDownloadsCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="ml-auto text-[10px] font-mono h-4 px-1.5 font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                  className="ml-auto text-[10px] font-mono h-4 px-1.5 font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 shrink-0 group-data-[collapsible=icon]:hidden"
                 >
                   {activeDownloadsCount}
                 </Badge>
@@ -133,8 +169,8 @@ export function AppSidebar({
               isActive={activeTab === "settings"}
               onClick={() => setActiveTab("settings")}
             >
-              <Settings className="size-4" />
-              <span>Settings</span>
+              <Settings className="size-4 shrink-0" />
+              <span className="truncate uppercase tracking-wide font-semibold">Settings</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

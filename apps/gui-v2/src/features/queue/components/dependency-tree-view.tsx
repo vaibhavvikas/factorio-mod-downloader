@@ -94,7 +94,7 @@ function DependencyTreeNodeItem({
 
         <Badge
           variant="outline"
-          className="ml-auto text-[10px] h-4.5 px-1.5 capitalize font-normal font-sans"
+          className="ml-auto capitalize"
         >
           {type}
         </Badge>
@@ -147,7 +147,7 @@ export function DependencyTreeView({ targetMods }: DependencyTreeViewProps) {
           <h3 className="text-sm font-semibold text-foreground">
             Dependency Graph Explorer
           </h3>
-          <Badge variant="secondary" className="text-[10px] font-mono font-bold h-5 px-1.5">
+          <Badge variant="secondary">
             {targetMods.length} root target mods
           </Badge>
         </div>

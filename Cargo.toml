@@ -9,6 +9,7 @@ members = [
     "crates/factorio",
     "crates/downloader",
     "crates/parser",
+    "crates/mod_manager",
 ]
 
 [workspace.package]

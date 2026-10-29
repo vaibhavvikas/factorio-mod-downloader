@@ -23,6 +23,9 @@ import { Badge } from "@/components/ui/badge"
 import { Field } from "@/components/ui/field"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+
 import {
   Popover,
   PopoverContent,
@@ -53,7 +56,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { ModCard } from "./mod-card"
 import { ModListItem } from "./mod-list-item"
 import type { ModSearchResponse, ModSearchResultItem } from "../types"
@@ -393,10 +396,10 @@ export function ExploreView({
   const digits = String(totalPages).length;
 
   return (
-    <div ref={containerRef} className="@container p-6 w-full max-w-[1600px] mx-auto space-y-6">
+    <div ref={containerRef} className="@container p-6 w-full max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+        <h2 className="text-xl font-bold tracking-tight text-foreground flex uppercase items-center gap-2.5">
           <Compass className="size-6 text-primary shrink-0" />
           Explore Factorio Mods
         </h2>
@@ -491,8 +494,17 @@ export function ExploreView({
             }}
           >
             <SelectTrigger className="h-8 text-xs font-medium border-border/80 px-2.5 gap-2 cursor-pointer">
-              <Gamepad2 className="size-3.5 shrink-0" />
-              <SelectValue placeholder="Factorio Version" />
+              <SelectValue>
+                {(value: string) => {
+                  const opt = DEFAULT_FACTORIO_VERSIONS.find((v) => v.value === value)
+                  return (
+                    <span className="flex items-center gap-1.5">
+                      <Gamepad2 className="size-3.5 shrink-0 text-primary" />
+                      <span className="truncate">{opt?.label ?? (value === "any" ? "Any Version" : value)}</span>
+                    </span>
+                  )
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent align="end" className="font-mono text-xs min-w-(--anchor-width) w-auto">
               {DEFAULT_FACTORIO_VERSIONS.map((opt) => (
@@ -513,12 +525,8 @@ export function ExploreView({
                   className="h-8 gap-1.5 text-xs font-medium cursor-pointer"
                 >
                   <Filter className="size-3.5 text-muted-foreground" />
-                  <span>Categories</span>
                   {(selectedCategories.length > 0 || spaceAgeFilter) && (
-                    <Badge
-                      variant="secondary"
-                      className="h-4 min-w-4 px-1 text-[10px] font-semibold rounded-full ml-0.5"
-                    >
+                    <Badge variant="secondary">
                       {selectedCategories.length + (spaceAgeFilter ? 1 : 0)}
                     </Badge>
                   )}
@@ -545,14 +553,14 @@ export function ExploreView({
                 <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1 mb-1">
                   Expansion
                 </div>
-                <label className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-muted/50 cursor-pointer text-xs select-none transition-colors">
+                <Label className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-muted/50 cursor-pointer text-xs select-none transition-colors font-normal">
                   <Checkbox
                     checked={spaceAgeFilter}
                     onCheckedChange={toggleSpaceAge}
                   />
                   <Rocket className="size-3.5 text-amber-500 shrink-0" />
                   <span className="flex-1">Space Age</span>
-                </label>
+                </Label>
               </div>
 
               {/* Categories Section */}
@@ -561,46 +569,49 @@ export function ExploreView({
                   {CATEGORIES.map((cat) => {
                     const isChecked = selectedCategories.includes(cat.id);
                     return (
-                      <label
+                      <Label
                         key={cat.id}
-                        className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-muted/50 cursor-pointer text-xs select-none transition-colors"
+                        className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-muted/50 cursor-pointer text-xs select-none transition-colors font-normal"
                       >
                         <Checkbox
                           checked={isChecked}
                           onCheckedChange={() => toggleCategory(cat.id)}
                         />
                         <span className="flex-1 truncate">{cat.label}</span>
-                      </label>
+                      </Label>
                     );
                   })}
                 </div>
+
               </ScrollArea>
             </PopoverContent>
           </Popover>
 
           {/* View Mode Switcher */}
-          <div className="flex items-center rounded-lg border border-border p-0.5 bg-muted/40">
-            <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 w-7 p-0 cursor-pointer"
-              onClick={() => setViewMode("grid")}
-              title="Card View"
-              aria-label="Card View"
-            >
-              <LayoutGrid className="size-3.5" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 w-7 p-0 cursor-pointer"
-              onClick={() => setViewMode("list")}
-              title="List View"
-              aria-label="List View"
-            >
-              <List className="size-3.5" />
-            </Button>
-          </div>
+          <Tabs
+            value={viewMode}
+            onValueChange={(val) => setViewMode(val as "grid" | "list")}
+          >
+            <TabsList className="h-8 p-0.5 bg-muted/60 text-xs gap-1 select-none font-sans">
+              <TabsTrigger
+                value="grid"
+                className="text-xs h-7 w-7 p-0 cursor-pointer"
+
+                aria-label="Card View"
+              >
+                <LayoutGrid className="size-3.5" />
+              </TabsTrigger>
+              <TabsTrigger
+                value="list"
+                className="text-xs h-7 w-7 p-0 cursor-pointer"
+
+                aria-label="List View"
+              >
+                <List className="size-3.5" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+
         </div>
       </div>
 
@@ -610,13 +621,13 @@ export function ExploreView({
           <span className="text-xs text-muted-foreground mr-1">Active filters:</span>
           {spaceAgeFilter && (
             <Badge
-              variant="secondary"
-              className="text-xs gap-1 font-normal cursor-pointer hover:bg-secondary/80 pl-2 pr-1.5 py-0.5 text-amber-500"
+              variant="outline"
+              className="h-5 border-amber-500/40 text-amber-600 dark:text-amber-400 cursor-pointer hover:bg-amber-500/10 gap-1 text-xs"
               onClick={toggleSpaceAge}
             >
-              <Rocket className="size-3 text-amber-500" />
+              <Rocket className="size-3 shrink-0" />
               <span>Space Age</span>
-              <X className="size-3 text-muted-foreground hover:text-foreground" />
+              <X className="size-3 shrink-0" />
             </Badge>
           )}
           {selectedCategories.map((catId) => {
@@ -625,11 +636,11 @@ export function ExploreView({
               <Badge
                 key={catId}
                 variant="secondary"
-                className="text-xs gap-1 font-normal cursor-pointer hover:bg-secondary/80 pl-2 pr-1.5 py-0.5"
+                className="h-5 cursor-pointer hover:bg-secondary/80 gap-1 text-xs"
                 onClick={() => toggleCategory(catId)}
               >
                 <span>{cat?.label || catId}</span>
-                <X className="size-3 text-muted-foreground hover:text-foreground" />
+                <X className="size-3 shrink-0" />
               </Badge>
             );
           })}
@@ -658,7 +669,7 @@ export function ExploreView({
         viewMode === "grid" ? (
           <div className={gridClasses}>
             {Array.from({ length: initialSkeletonCount }).map((_, i) => (
-              <Card key={i} className="p-4 space-y-3">
+              <Card key={i} className="p-(--card-spacing) space-y-3 [--card-spacing:--spacing(4)]">
                 <div className="flex gap-3">
                   <Skeleton className="size-12 rounded-lg shrink-0" />
                   <div className="space-y-2 flex-1">
@@ -677,7 +688,7 @@ export function ExploreView({
         ) : (
           <div className="flex flex-col gap-2.5">
             {Array.from({ length: initialSkeletonCount }).map((_, i) => (
-              <Card key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4">
+              <Card key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-(--card-spacing) [--card-spacing:--spacing(4)]">
                 <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
                   <Skeleton className="size-12 rounded-lg shrink-0" />
                   <div className="space-y-2 flex-1">

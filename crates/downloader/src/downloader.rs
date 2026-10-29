@@ -173,10 +173,10 @@ where
             let chunk = chunk_result.map_err(|e| format!("Stream read error for {}: {}", mod_id, e))?;
             downloaded += chunk.len() as u64;
 
-            if let Some(ref mut file) = file_opt {
-                if let Err(e) = file.write_all(&chunk).await {
-                    return Err(format!("Disk write error for {}: {}", mod_id, e));
-                }
+            if let Some(ref mut file) = file_opt
+                && let Err(e) = file.write_all(&chunk).await
+            {
+                return Err(format!("Disk write error for {}: {}", mod_id, e));
             }
 
             on_progress(downloaded, total_size);
