@@ -28,9 +28,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Accordion } from "@/components/ui/accordion"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+import { FactorioVersionConfirmDialog } from "@/components/layout/factorio-version-confirm-dialog"
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import { useDownloadsStore } from "@/stores/use-downloads-store"
 import { useSettingsStore, DEFAULT_FACTORIO_VERSIONS } from "@/stores/use-settings-store"
+import { useModManagerStore } from "@/stores/use-mod-manager-store"
 import { isFactorioVersionCompatible } from "@/lib/version-utils"
 import { ModAccordionCard } from "./mod-accordion-card"
 import { DependencyTreeView } from "./dependency-tree-view"
@@ -54,6 +56,8 @@ export function QueueView({
   factorioVersion: propFactorioVersion = null,
 }: QueueViewProps) {
   const storeFactorioVersion = useSettingsStore((s) => s.factorioVersion)
+  const setStoreFactorioVersion = useSettingsStore((s) => s.setFactorioVersion)
+  const handleFactorioVersionChange = useModManagerStore((s) => s.handleFactorioVersionChange)
   const factorioVersion = propFactorioVersion ?? storeFactorioVersion
   const targetMods = useModQueueStore((s) => s.targetMods)
   const addTargetMod = useModQueueStore((s) => s.addTargetMod)
@@ -65,6 +69,23 @@ export function QueueView({
   const addToQueue = useModQueueStore((s) => s.addToQueue)
   const expandedCardIds = useModQueueStore((s) => s.expandedCardIds)
   const setExpandedCardIds = useModQueueStore((s) => s.setExpandedCardIds)
+
+  // Version change confirmation dialog state
+  const [pendingVersion, setPendingVersion] = React.useState<string | null>(null)
+  const [isConfirmingVersion, setIsConfirmingVersion] = React.useState(false)
+
+  const handleConfirmVersionChange = async () => {
+    const target = pendingVersion
+    if (!target) return
+    setIsConfirmingVersion(false)
+    setPendingVersion(null)
+    try {
+      await setStoreFactorioVersion(target)
+      await handleFactorioVersionChange(target)
+    } catch (e) {
+      console.error("Failed to change Factorio version:", e)
+    }
+  }
 
   const [inputQuery, setInputQuery] = React.useState("")
   const [isAdding, setIsAdding] = React.useState(false)
@@ -323,7 +344,7 @@ export function QueueView({
         <form onSubmit={handleFormSubmit} className="flex items-center gap-2">
           <Input
             type="text"
-            placeholder="Add mod by name, portal URL, or comma-separated list..."
+            placeholder="Add mod by name, portal URL, or list"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             disabled={isAdding}
@@ -351,7 +372,8 @@ export function QueueView({
             value={factorioVersion || "2.1"}
             onValueChange={(val) => {
               if (val) {
-                useSettingsStore.getState().setFactorioVersion(val)
+                setPendingVersion(val)
+                setIsConfirmingVersion(true)
               }
             }}
           >
@@ -510,6 +532,18 @@ export function QueueView({
           </div>
         </>
       )}
+      {/* Version Change Confirmation Dialog */}
+      <FactorioVersionConfirmDialog
+        open={isConfirmingVersion}
+        onOpenChange={(open) => {
+          if (!open) setPendingVersion(null)
+          setIsConfirmingVersion(open)
+        }}
+        fromVersion={storeFactorioVersion}
+        toVersion={pendingVersion || ""}
+        onConfirm={handleConfirmVersionChange}
+        isProcessing={isConfirmingVersion}
+      />
     </div>
   )
 }

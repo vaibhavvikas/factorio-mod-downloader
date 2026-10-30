@@ -333,7 +333,12 @@ pub async fn check_updates_for_installed_mods(
 
                 let mut newer = Vec::new();
                 for ver in &compatible_versions {
-                    if compare_versions(ver, &mod_item.version).is_gt() {
+                    let ver_clean = ver.trim();
+                    let installed_clean = mod_item.version.trim();
+                    if !ver_clean.is_empty()
+                        && !installed_clean.is_empty()
+                        && compare_versions(ver_clean, installed_clean).is_gt()
+                    {
                         newer.push(ver.clone());
                     }
                 }
@@ -345,20 +350,25 @@ pub async fn check_updates_for_installed_mods(
 
                 if is_explicit_target && newer.is_empty()
                     && let Some(latest_compat) = compatible_versions.first()
-                    && latest_compat != &mod_item.version
+                    && latest_compat.trim() != mod_item.version.trim()
                 {
                     newer.push(latest_compat.clone());
                 }
 
                 let latest_ver = newer.first().cloned().or_else(|| compatible_versions.first().cloned());
 
-                if !newer.is_empty() {
+                // Only flag an update if the latest version is actually different from installed.
+                // Guards against version-string formatting issues (whitespace, etc.) that could
+                // make compare_versions report a false positive.
+                let has_real_update = newer.iter().any(|v| v.trim() != mod_item.version.trim());
+
+                if has_real_update {
                     mod_item.has_update = true;
-                    mod_item.latest_version = latest_ver;
+                    mod_item.latest_version = latest_ver.map(|v| v.trim().to_string());
                     mod_item.newer_versions = newer;
                 } else {
                     mod_item.has_update = false;
-                    mod_item.latest_version = latest_ver;
+                    mod_item.latest_version = latest_ver.map(|v| v.trim().to_string());
                     mod_item.newer_versions = compatible_versions;
                 }
             }

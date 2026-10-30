@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTheme } from "@/components/layout/theme-provider"
+import { FactorioVersionConfirmDialog } from "@/components/layout/factorio-version-confirm-dialog"
 import {
   useSettingsStore,
   DEFAULT_FACTORIO_VERSIONS,
@@ -115,9 +116,14 @@ export function SettingsView() {
 
   const autoCascadeDependencies = useModManagerStore((s) => s.autoCascadeDependencies)
   const setAutoCascadeDependencies = useModManagerStore((s) => s.setAutoCascadeDependencies)
+  const handleFactorioVersionChange = useModManagerStore((s) => s.handleFactorioVersionChange)
 
   const [folderStatus, setFolderStatus] = React.useState<"idle" | "saving" | "detecting">("idle")
   const [copied, setCopied] = React.useState(false)
+
+  // Version change confirmation dialog state
+  const [pendingVersion, setPendingVersion] = React.useState<string | null>(null)
+  const [isConfirmingVersion, setIsConfirmingVersion] = React.useState(false)
 
   // Application update checking state
   const [appVersion, setAppVersion] = React.useState<string>("0.5.0")
@@ -249,6 +255,19 @@ export function SettingsView() {
     navigator.clipboard.writeText(modsFolder)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleConfirmVersionChange = async () => {
+    const target = pendingVersion
+    if (!target) return
+    setIsConfirmingVersion(false)
+    setPendingVersion(null)
+    try {
+      await setFactorioVersion(target)
+      await handleFactorioVersionChange(target)
+    } catch (e) {
+      console.error("Failed to change Factorio version:", e)
+    }
   }
 
   return (
@@ -489,7 +508,11 @@ export function SettingsView() {
                   </div>
                   <Select
                     value={factorioVersion}
-                    onValueChange={(val) => val && setFactorioVersion(val)}
+                    onValueChange={(val) => {
+                      if (!val || val === factorioVersion) return
+                      setPendingVersion(val)
+                      setIsConfirmingVersion(true)
+                    }}
                   >
                     <SelectTrigger className="w-56 h-8 text-xs">
                       <SelectValue placeholder="Version" />
@@ -827,6 +850,19 @@ export function SettingsView() {
           )}
         </div>
       </div>
+
+      {/* Version Change Confirmation Dialog */}
+      <FactorioVersionConfirmDialog
+        open={isConfirmingVersion}
+        onOpenChange={(open) => {
+          if (!open) setPendingVersion(null)
+          setIsConfirmingVersion(open)
+        }}
+        fromVersion={factorioVersion}
+        toVersion={pendingVersion || ""}
+        onConfirm={handleConfirmVersionChange}
+        isProcessing={isConfirmingVersion}
+      />
     </div>
   )
 }

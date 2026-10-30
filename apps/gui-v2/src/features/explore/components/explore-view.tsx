@@ -14,8 +14,10 @@ import {
   Rocket,
   Gamepad2,
 } from "lucide-react"
+import { FactorioVersionConfirmDialog } from "@/components/layout/factorio-version-confirm-dialog"
 import { useExploreStore } from "@/stores/use-explore-store"
 import { useSettingsStore, DEFAULT_FACTORIO_VERSIONS } from "@/stores/use-settings-store"
+import { useModManagerStore } from "@/stores/use-mod-manager-store"
 import { useModsQuery } from "../api/use-mods-query"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -102,7 +104,6 @@ export interface ExploreViewProps {
   selectedExpansion?: string | null
   onExpansionChange?: (expansion: string | null) => void
   selectedVersion?: string | null
-  onVersionChange?: (version: string | null) => void
   onDownloadMod?: (modName: string) => void
 }
 
@@ -120,7 +121,6 @@ export function ExploreView({
   selectedExpansion = null,
   selectedVersion = null,
   onExpansionChange,
-  onVersionChange,
   onDownloadMod,
 }: ExploreViewProps) {
   // Global persisted state via Zustand
@@ -139,11 +139,30 @@ export function ExploreView({
 
   // Global Factorio version filter from settings store
   const storeFactorioVersion = useSettingsStore((s) => s.factorioVersion);
+  const setStoreFactorioVersion = useSettingsStore((s) => s.setFactorioVersion);
+  const handleFactorioVersionChange = useModManagerStore((s) => s.handleFactorioVersionChange);
   const effectiveVersion =
     selectedVersion ??
     (storeFactorioVersion === "any" || storeFactorioVersion === "all"
       ? null
       : storeFactorioVersion);
+
+  // Version change confirmation dialog state
+  const [pendingVersion, setPendingVersion] = React.useState<string | null>(null);
+  const [isConfirmingVersion, setIsConfirmingVersion] = React.useState(false);
+
+  const handleConfirmVersionChange = async () => {
+    const target = pendingVersion;
+    if (!target) return;
+    setIsConfirmingVersion(false);
+    setPendingVersion(null);
+    try {
+      await setStoreFactorioVersion(target);
+      await handleFactorioVersionChange(target);
+    } catch (e) {
+      console.error("Failed to change Factorio version:", e);
+    }
+  };
 
   // Reset page when Factorio version filter changes
   React.useEffect(() => {
@@ -488,8 +507,8 @@ export function ExploreView({
             value={storeFactorioVersion || "2.1"}
             onValueChange={(val) => {
               if (val) {
-                useSettingsStore.getState().setFactorioVersion(val);
-                onVersionChange?.(val === "any" ? null : val);
+                setPendingVersion(val);
+                setIsConfirmingVersion(true);
               }
             }}
           >
@@ -826,6 +845,18 @@ export function ExploreView({
           </Pagination>
         </div>
       )}
+      {/* Version Change Confirmation Dialog */}
+      <FactorioVersionConfirmDialog
+        open={isConfirmingVersion}
+        onOpenChange={(open) => {
+          if (!open) setPendingVersion(null);
+          setIsConfirmingVersion(open);
+        }}
+        fromVersion={storeFactorioVersion}
+        toVersion={pendingVersion || ""}
+        onConfirm={handleConfirmVersionChange}
+        isProcessing={isConfirmingVersion}
+      />
     </div>
   );
 }

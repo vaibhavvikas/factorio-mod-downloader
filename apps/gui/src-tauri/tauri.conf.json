@@ -25,8 +25,7 @@
         "shadow": true,
         "windowEffects": {
           "effects": [
-            "sidebar",
-            "mica"
+            "sidebar"
           ],
           "state": "followsWindowActiveState",
           "radius": 12

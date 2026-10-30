@@ -6,10 +6,11 @@ use features::config::{
     reset_app_config, save_app_config, save_factorio_version, save_mods_folder, save_window_state,
 };
 use features::downloader::{
-    cancel_all_download_tasks, cancel_download_batch, cancel_download_task, clear_completed_download_tasks,
-    get_download_batches, get_download_tasks, pause_download_batch, pause_download_task,
-    remove_download_task, resume_download_batch, resume_download_task, retry_download_batch, retry_download_task,
-    start_download_batch, toggle_pause_download_task, DownloaderState,
+    cancel_all_download_tasks, cancel_download_batch, cancel_download_task, check_api_health,
+    clear_completed_download_tasks, get_download_batches, get_download_tasks, pause_download_batch,
+    pause_download_task, remove_download_task, resume_download_batch, resume_download_task,
+    retry_download_batch, retry_download_task, start_download_batch, toggle_pause_download_task,
+    DownloaderState,
 };
 use features::explore::browse_mods;
 use features::logger::log_message;
@@ -60,6 +61,7 @@ pub fn run() {
             browse_mods,
             fetch_mod_details,
             resolve_download_batch,
+            check_api_health,
             log_message,
             start_download_batch,
             get_download_tasks,
@@ -140,8 +142,7 @@ pub fn run() {
             #[cfg(target_os = "windows")]
             {
                 use windows_sys::Win32::Graphics::Dwm::{
-                    DwmSetWindowAttribute, DWMSBT_MAINWINDOW, DWMWA_SYSTEMBACKDROP_TYPE,
-                    DWMWA_TEXT_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                    DwmSetWindowAttribute, DWMWA_TEXT_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE,
                 };
 
                 if let Ok(hwnd) = window.hwnd() {
@@ -156,27 +157,7 @@ pub fn run() {
                             std::mem::size_of::<i32>() as u32,
                         );
 
-                        // 2. Enable Mica System Backdrop (Windows 11 22H2+ / DWMSBT_MAINWINDOW)
-                        let backdrop: u32 = DWMSBT_MAINWINDOW as u32;
-                        let hr = DwmSetWindowAttribute(
-                            hwnd,
-                            DWMWA_SYSTEMBACKDROP_TYPE as u32,
-                            &backdrop as *const _ as _,
-                            std::mem::size_of::<u32>() as u32,
-                        );
-
-                        // Fallback for Windows 11 21H2 (build 22000 legacy DWMWA_MICA_EFFECT)
-                        if hr != 0 {
-                            let mica_legacy: i32 = 1;
-                            let _ = DwmSetWindowAttribute(
-                                hwnd,
-                                1029, // DWMWA_MICA_EFFECT
-                                &mica_legacy as *const _ as _,
-                                std::mem::size_of::<i32>() as u32,
-                            );
-                        }
-
-                        // 3. Set caption text color to clean white/zinc #f4f4f5 (COLORREF 0x00F5F4F4)
+                        // 2. Set caption text color to clean white/zinc #f4f4f5 (COLORREF 0x00F5F4F4)
                         let text_color: u32 = 0x00F5F4F4;
                         let _ = DwmSetWindowAttribute(
                             hwnd,

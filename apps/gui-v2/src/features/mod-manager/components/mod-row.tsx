@@ -1,5 +1,5 @@
 import * as React from "react"
-import { MoreVertical, FolderArchive, Info, Trash2, ExternalLink, CheckCircle2, ArrowUpCircle } from "lucide-react"
+import { MoreVertical, FolderArchive, Info, Trash2, ExternalLink, CheckCircle2, ArrowUpCircle, ArrowDownCircle } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +18,7 @@ import { HealthBadge } from "./health-badge"
 import { useModManagerStore } from "@/stores/use-mod-manager-store"
 import { useSettingsStore } from "@/stores/use-settings-store"
 import { isFactorioVersionCompatible } from "@/lib/version-utils"
+import { compareVersions } from "@/lib/version-utils"
 import { cn } from "@/lib/utils"
 import type { InstalledModGroup } from "../types"
 
@@ -84,6 +85,14 @@ export function ModRow({
     effectiveFactorioVersion !== "any" &&
     mod.factorioVersion &&
     !isFactorioVersionCompatible(mod.factorioVersion, effectiveFactorioVersion)
+  )
+
+  // Downgrade: latest available version is older than the installed active version
+  const isDowngrade = Boolean(
+    mod.hasUpdate &&
+    mod.latestVersion &&
+    mod.activeVersion &&
+    compareVersions(mod.latestVersion, mod.activeVersion) < 0
   )
 
   const handleToggle = (checked: boolean) => {
@@ -158,28 +167,6 @@ export function ModRow({
               </Badge>
             )}
 
-            {/* Update badge */}
-            {mod.hasUpdate && (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] h-5 px-2 font-medium text-blue-600 dark:text-blue-400 border-blue-500/30 shrink-0 cursor-pointer hover:bg-blue-500/10 transition-colors gap-1"
-                      onClick={handleUpdate}
-                      aria-label={`Update ${mod.title} to v${mod.latestVersion || "latest"}`}
-                    >
-                      {isUpdating ? <Spinner data-icon="inline-start" /> : <ArrowUpCircle className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />}
-                      <span>v{mod.latestVersion}</span>
-                    </Badge>
-                  }
-                />
-                <TooltipContent side="top">
-                  Click to update to v{mod.latestVersion} and fetch required dependencies
-                </TooltipContent>
-              </Tooltip>
-            )}
-
             {/* Unpacked Dev Badge */}
             {mod.isDirectory && (
               <Badge variant="outline" className="text-[10px] h-5 px-2 font-medium text-amber-600 dark:text-amber-400 border-amber-500/30 shrink-0">
@@ -212,6 +199,38 @@ export function ModRow({
           </div>
         </div>
       </div>
+
+      {/* Update badge column — just left of the incompatible/error pills */}
+      {mod.hasUpdate && (
+        <div className="flex items-center gap-2 shrink-0 w-[100px]">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-5 px-2 font-medium text-blue-600 dark:text-blue-400 border-blue-500/30 shrink-0 cursor-pointer hover:bg-blue-500/10 transition-colors gap-1"
+                  onClick={handleUpdate}
+                  aria-label={`Update ${mod.title} to v${mod.latestVersion || "latest"}${isDowngrade ? " (downgrade)" : ""}`}
+                >
+                  {isUpdating ? (
+                    <Spinner data-icon="inline-start" />
+                  ) : isDowngrade ? (
+                    <ArrowDownCircle className="size-3 text-amber-600 dark:text-amber-400 shrink-0" />
+                  ) : (
+                    <ArrowUpCircle className="size-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                  )}
+                  <span>v{mod.latestVersion}</span>
+                </Badge>
+              }
+            />
+            <TooltipContent side="top">
+              {isDowngrade
+                ? `Downgrade ${mod.title} to v${mod.latestVersion} (older than installed v${mod.activeVersion})`
+                : `Click to update to v${mod.latestVersion} and fetch required dependencies`}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      )}
 
       {/* Right-aligned Status Column for Error / Health / Incompatible Pill */}
       {(isFactorioIncompatible || (mod.healthIssues && mod.healthIssues.length > 0)) && (

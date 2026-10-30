@@ -23,7 +23,10 @@ import {
 } from "@/components/ui/tooltip"
 import { cn, getShortcutLabel } from "@/lib/utils"
 import { useSettingsStore, DEFAULT_FACTORIO_VERSIONS } from "@/stores/use-settings-store"
+import { useModManagerStore } from "@/stores/use-mod-manager-store"
+import { useApiStore } from "@/stores/use-api-store"
 import type { LogEntry } from "./console-drawer"
+import { FactorioVersionConfirmDialog } from "./factorio-version-confirm-dialog"
 
 export interface ActiveDownloadInfo {
   modName: string
@@ -37,7 +40,6 @@ export interface StatusBarProps {
   latestLog?: LogEntry | null
   activeDownload?: ActiveDownloadInfo | null
   modDirectoryPath?: string
-  apiConnected?: boolean
   factorioVersion?: string
   onVersionChange?: (version: string) => void
 }
@@ -48,17 +50,22 @@ export function StatusBar({
   latestLog = null,
   activeDownload = null,
   modDirectoryPath,
-  apiConnected = true,
   factorioVersion,
   onVersionChange,
 }: StatusBarProps) {
   const storeVersion = useSettingsStore((s) => s.factorioVersion)
   const setStoreVersion = useSettingsStore((s) => s.setFactorioVersion)
+  const handleFactorioVersionChange = useModManagerStore((s) => s.handleFactorioVersionChange)
   const storeModsFolder = useSettingsStore((s) => s.modsFolder)
+  const apiConnected = useApiStore((s) => s.apiConnected)
 
   const [appVersion, setAppVersion] = React.useState("0.5.0")
   const currentVersion = factorioVersion ?? storeVersion
   const activeModsPath = modDirectoryPath || storeModsFolder || "Factorio Mods"
+
+  // Version change confirmation dialog state
+  const [pendingVersion, setPendingVersion] = React.useState<string | null>(null)
+  const [isConfirmingVersion, setIsConfirmingVersion] = React.useState(false)
 
   React.useEffect(() => {
     getVersion()
@@ -66,9 +73,24 @@ export function StatusBar({
       .catch(() => setAppVersion("0.5.0"))
   }, [])
 
-  const handleVersionSelect = (v: string) => {
-    setStoreVersion(v)
-    onVersionChange?.(v)
+  const handleVersionSelect = async (v: string) => {
+    if (v === currentVersion) return
+    setPendingVersion(v)
+    setIsConfirmingVersion(true)
+  }
+
+  const handleConfirmVersionChange = async () => {
+    const target = pendingVersion
+    if (!target) return
+    setIsConfirmingVersion(false)
+    setPendingVersion(null)
+    try {
+      await setStoreVersion(target)
+      await handleFactorioVersionChange(target)
+      onVersionChange?.(target)
+    } catch (e) {
+      console.error("Failed to change Factorio version:", e)
+    }
   }
 
   const dotColorClass = React.useMemo(() => {
@@ -264,6 +286,19 @@ export function StatusBar({
           v{appVersion}
         </span>
       </div>
+
+      {/* Version Change Confirmation Dialog */}
+      <FactorioVersionConfirmDialog
+        open={isConfirmingVersion}
+        onOpenChange={(open) => {
+          if (!open) setPendingVersion(null)
+          setIsConfirmingVersion(open)
+        }}
+        fromVersion={currentVersion}
+        toVersion={pendingVersion || ""}
+        onConfirm={handleConfirmVersionChange}
+        isProcessing={isConfirmingVersion}
+      />
     </footer>
   )
 }

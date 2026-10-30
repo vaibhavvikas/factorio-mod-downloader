@@ -9,6 +9,23 @@ use crate::models::DownloadStatus;
 
 pub const MODS_STORAGE_BASE_URL: &str = "https://mods-storage.re146.dev";
 pub const INACTIVITY_TIMEOUT: Duration = Duration::from_secs(15);
+pub const API_HEALTH_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Returns true if the mods-storage API host responds to a GET request,
+/// false if the connection fails or times out (offline).
+pub async fn check_api_health() -> bool {
+    let client = match reqwest::Client::builder()
+        .timeout(API_HEALTH_TIMEOUT)
+        .build()
+    {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+    match client.get(MODS_STORAGE_BASE_URL).send().await {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
 
 pub fn build_download_url(mod_id: &str, version: &str) -> String {
     let anticache: f64 = rand::random();

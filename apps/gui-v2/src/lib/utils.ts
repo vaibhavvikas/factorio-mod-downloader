@@ -38,3 +38,15 @@ export function getShortcutLabel(key: string): string {
   }
   return `Ctrl+${key}`
 }
+
+/**
+ * Decode HTML entities (e.g. &#34; -> ") from portal API strings before rendering.
+ * Uses a textarea element so no external dependency like `he` is required.
+ */
+export function decodeHtmlEntities(text: string): string {
+  if (!text) return text
+  if (typeof document === "undefined") return text
+  const textarea = document.createElement("textarea")
+  textarea.innerHTML = text
+  return textarea.value
+}

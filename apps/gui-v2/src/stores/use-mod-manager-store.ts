@@ -226,7 +226,54 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
           return []
         }),
       ])
-      set({ mods: groups, graphGroups: graph, isLoading: false })
+
+      // Preserve update flags (hasUpdate / latestVersion) from the existing store
+      // so they survive a reload (e.g. switching back to the installed tab).
+      const prev = get()
+      const prevUpdateByName = new Map<string, { hasUpdate: boolean; latestVersion?: string }>()
+      for (const m of prev.mods) {
+        prevUpdateByName.set(m.name, { hasUpdate: m.hasUpdate, latestVersion: m.latestVersion })
+      }
+      for (const g of prev.graphGroups) {
+        if (g.root) {
+          prevUpdateByName.set(g.root.name, {
+            hasUpdate: g.root.hasUpdate,
+            latestVersion: g.root.latestVersion,
+          })
+        }
+        for (const c of g.children) {
+          prevUpdateByName.set(c.name, {
+            hasUpdate: c.hasUpdate,
+            latestVersion: c.latestVersion,
+          })
+        }
+      }
+
+      const applyUpdates = <T extends { name: string; hasUpdate: boolean; latestVersion?: string }>(
+        item: T
+      ): T => {
+        const u = prevUpdateByName.get(item.name)
+        if (!u) return item
+        return { ...item, hasUpdate: u.hasUpdate, latestVersion: u.latestVersion } as T
+      }
+
+      const nextMods = groups.map((m) => applyUpdates(m))
+      const nextGraphGroups = graph.map((g) => {
+        const nextRoot = g.root ? applyUpdates(g.root) : null
+        const nextChildren = g.children.map((c) => applyUpdates(c))
+        // Recompute aggregate updateCount from preserved hasUpdate flags so the
+        // "updates" filter tab keeps working after a reload.
+        const rootUpdateCount = nextRoot?.hasUpdate ? 1 : 0
+        const childUpdateCount = nextChildren.filter((c) => !c.missing && c.hasUpdate).length
+        return {
+          ...g,
+          root: nextRoot,
+          children: nextChildren,
+          updateCount: rootUpdateCount + childUpdateCount,
+        }
+      })
+
+      set({ mods: nextMods, graphGroups: nextGraphGroups, isLoading: false })
       get().loadStorageUsage()
     } catch (e) {
       console.error("Failed to load installed mods:", e)
@@ -338,6 +385,7 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
   switchVersion: async (modName: string, version: string) => {
     await invoke("set_active_mod_version", { modName, version })
     await get().loadMods()
+    await get().checkUpdates()
   },
 
   deleteVersion: async (modName: string, version: string) => {
@@ -485,15 +533,25 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
     }
   },
 
-  handleFactorioVersionChange: async (_targetVersion: string) => {
-    // When Factorio target version changes, the UI reactively warns and flags incompatible mods
-    // with warning pills without destructively modifying mod-list.json enablement.
+  handleFactorioVersionChange: async (targetVersion: string) => {
+    // Refresh installed mods so the new Factorio version is reflected in compatibility checks
+    await get().loadMods(true)
+    // Re-check updates so upgrade/downgrade badges are recalculated for the new target version
+    await get().checkUpdates(targetVersion)
   },
 
   updateMod: async (modName: string, targetVersion?: string) => {
     const mod = get().mods.find((m) => m.name === modName)
     const ver = targetVersion || mod?.latestVersion
     if (!ver) return
+
+    // If the target version is already stashed (downloaded previously), just switch
+    // to it instead of re-downloading from the portal.
+    const isInStash = mod?.stashedVersions?.some((s) => s.version === ver)
+    if (isInStash) {
+      await get().switchVersion(modName, ver)
+      return
+    }
 
     let targetModsFolder = await invoke<string | null>("get_mods_folder")
     if (!targetModsFolder) {
@@ -560,6 +618,8 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
 
     useDownloadsStore.getState().fetchTasks()
     await get().loadMods()
+    // Refresh update flags after mods were updated so badges clear correctly
+    await get().checkUpdates()
   },
 
   updateAllMods: async () => {
@@ -628,5 +688,7 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
 
     useDownloadsStore.getState().fetchTasks()
     await get().loadMods()
+    // Refresh update flags after mods were updated so badges clear correctly
+    await get().checkUpdates()
   },
 }))

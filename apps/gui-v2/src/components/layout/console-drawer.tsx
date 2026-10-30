@@ -247,7 +247,7 @@ export function ConsoleDrawer({
       >
         {/* Dynamic loader banner when logs exceed window */}
         {olderCount > 0 && (
-          <div className="sticky top-0 z-10 py-1 px-2.5 mb-1.5 rounded border border-zinc-800 bg-zinc-900/90 backdrop-blur-xs text-[10px] text-zinc-400 flex items-center justify-between shadow-xs">
+          <div className="sticky top-0 z-10 py-1 px-2.5 mb-1.5 rounded border border-zinc-800 bg-zinc-900 text-[10px] text-zinc-400 flex items-center justify-between shadow-xs">
             <span>
               Streaming latest <strong className="text-zinc-200">{displayedLogs.length}</strong> of{" "}
               <strong className="text-zinc-200">{filteredLogs.length}</strong> lines

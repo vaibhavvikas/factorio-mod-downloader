@@ -9,6 +9,11 @@ use factorio::models::ResolvedDownloadItem;
 use mod_manager::models::DownloadBatch;
 use batch::{compute_batches_from_tasks, load_persisted_batches, save_persisted_batches};
 
+#[tauri::command]
+pub async fn check_api_health() -> Result<bool, String> {
+    Ok(downloader::check_api_health().await)
+}
+
 #[derive(Default)]
 pub struct DownloaderState {
     pub manager: DownloadQueueManager,

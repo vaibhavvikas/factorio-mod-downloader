@@ -8,7 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { openModPortal } from "@/lib/utils"
+import { openModPortal, decodeHtmlEntities } from "@/lib/utils"
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import type { ModSearchResultItem } from "../types"
 
@@ -94,7 +94,7 @@ export function ModListItem({ item, onDownload }: ModListItemProps) {
 
           {/* Mod Summary */}
           <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed">
-            {item.summary || "No description provided for this mod."}
+            {decodeHtmlEntities(item.summary) || "No description provided for this mod."}
           </p>
 
           {/* Footer Meta Row: Author, Downloads, Mod Name */}
