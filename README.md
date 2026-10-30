@@ -88,7 +88,7 @@ Simply search online mods, paste a Factorio Mod Portal URL or mod ID, inspect ve
 ```bash
 # Clone the repository
 git clone https://github.com/vaibhavvikas/factorio-mod-downloader.git
-cd factorio-mod-downloader/apps/gui
+cd factorio-mod-downloader/apps/gui-v2
 
 # Install npm dependencies
 npm install
