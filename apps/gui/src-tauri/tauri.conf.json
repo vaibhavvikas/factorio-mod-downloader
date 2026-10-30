@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Factorio Mod Downloader",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "identifier": "com.vaibhavvikas.factorio-mod-downloader",
   "build": {
     "frontendDist": "../dist",
@@ -24,7 +24,9 @@
         "backgroundColor": "#00000000",
         "shadow": true,
         "windowEffects": {
-          "effects": ["sidebar", "mica"],
+          "effects": [
+            "sidebar"
+          ],
           "state": "followsWindowActiveState",
           "radius": 12
         },

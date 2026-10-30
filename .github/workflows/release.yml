@@ -90,7 +90,7 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: 'apps/gui/package-lock.json'
+          cache-dependency-path: 'apps/gui-v2/package-lock.json'
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -107,7 +107,7 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Install Frontend Dependencies
-        working-directory: apps/gui
+        working-directory: apps/gui-v2
         run: npm ci
 
       - name: Run Workspace Tests
@@ -145,24 +145,48 @@ jobs:
           node -e "
             const fs = require('fs');
 
-            // apps/gui/package.json
-            const pkgPath = 'apps/gui/package.json';
+            // apps/gui-v2/package.json
+            const pkgV2Path = 'apps/gui-v2/package.json';
+            if (fs.existsSync(pkgV2Path)) {
+              const pkgV2 = JSON.parse(fs.readFileSync(pkgV2Path, 'utf8'));
+              pkgV2.version = process.env.RAW_VERSION;
+              fs.writeFileSync(pkgV2Path, JSON.stringify(pkgV2, null, 2) + '\n');
+            }
+
+            // apps/gui-v2/src-tauri/tauri.conf.json
+            const tauriV2Path = 'apps/gui-v2/src-tauri/tauri.conf.json';
+            if (fs.existsSync(tauriV2Path)) {
+              const tauriV2Conf = JSON.parse(fs.readFileSync(tauriV2Path, 'utf8'));
+              tauriV2Conf.version = process.env.RAW_VERSION;
+              fs.writeFileSync(tauriV2Path, JSON.stringify(tauriV2Conf, null, 2) + '\n');
+            }
+
+            // apps/gui-v2/src-tauri/Cargo.toml
+            const cargoTauriV2Path = 'apps/gui-v2/src-tauri/Cargo.toml';
+            if (fs.existsSync(cargoTauriV2Path)) {
+              let cargoTauriV2 = fs.readFileSync(cargoTauriV2Path, 'utf8');
+              cargoTauriV2 = cargoTauriV2.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(cargoTauriV2Path, cargoTauriV2);
+            }
+
+            // apps/gui-v2/package.json
+            const pkgPath = 'apps/gui-v2/package.json';
             if (fs.existsSync(pkgPath)) {
               const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
               pkg.version = process.env.RAW_VERSION;
               fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
             }
 
-            // apps/gui/src-tauri/tauri.conf.json
-            const tauriPath = 'apps/gui/src-tauri/tauri.conf.json';
+            // apps/gui-v2/src-tauri/tauri.conf.json
+            const tauriPath = 'apps/gui-v2/src-tauri/tauri.conf.json';
             if (fs.existsSync(tauriPath)) {
               const tauriConf = JSON.parse(fs.readFileSync(tauriPath, 'utf8'));
               tauriConf.version = process.env.RAW_VERSION;
               fs.writeFileSync(tauriPath, JSON.stringify(tauriConf, null, 2) + '\n');
             }
 
-            // apps/gui/src-tauri/Cargo.toml
-            const cargoTauriPath = 'apps/gui/src-tauri/Cargo.toml';
+            // apps/gui-v2/src-tauri/Cargo.toml
+            const cargoTauriPath = 'apps/gui-v2/src-tauri/Cargo.toml';
             if (fs.existsSync(cargoTauriPath)) {
               let cargoTauri = fs.readFileSync(cargoTauriPath, 'utf8');
               cargoTauri = cargoTauri.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
@@ -183,7 +207,7 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: 'apps/gui/package-lock.json'
+          cache-dependency-path: 'apps/gui-v2/package-lock.json'
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -202,11 +226,11 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Install Frontend Dependencies
-        working-directory: apps/gui
+        working-directory: apps/gui-v2
         run: npm ci
 
       - name: Build Desktop GUI App
-        working-directory: apps/gui
+        working-directory: apps/gui-v2
         shell: bash
         run: |
           npm run build
