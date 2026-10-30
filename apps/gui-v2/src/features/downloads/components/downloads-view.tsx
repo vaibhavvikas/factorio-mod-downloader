@@ -344,7 +344,7 @@ export function DownloadsView({
   }
 
   return (
-    <div className="p-6 w-full max-w-[1100px] mx-auto space-y-6 downloads-container @container font-sans">
+    <div className="p-6 w-full space-y-6 downloads-container @container font-sans">
       {/* Polite Screen Reader Live Region for Accessibility */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {announcement}

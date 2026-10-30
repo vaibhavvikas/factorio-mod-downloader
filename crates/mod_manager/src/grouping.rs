@@ -128,6 +128,11 @@ pub fn get_installed_mod_groups(
         }
         stashed.sort_by(|a, b| compare_versions(&b.version, &a.version));
 
+        // The active version lives in the mods root — never show it in the stash list,
+        // even if a leftover stash folder exists for that same version (e.g. from a
+        // failed or interrupted switch that did not clean up the subdirectory).
+        stashed.retain(|s| s.version != primary.version);
+
         let pinned = manifest_entry.map(|e| e.pinned).unwrap_or(false);
         let pinned_policy = manifest_entry.and_then(|e| e.pinned_policy.clone());
 

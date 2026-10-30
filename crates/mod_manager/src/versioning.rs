@@ -137,6 +137,7 @@ pub fn set_active_mod_version(
 }
 
 /// Delete a non-active version from the stash folder permanently.
+/// Refuses to delete the currently active (root) version to prevent data loss.
 pub fn delete_stashed_version(
     mods_folder: &Path,
     mod_name: &str,
@@ -144,6 +145,24 @@ pub fn delete_stashed_version(
 ) -> Result<(), String> {
     if is_factorio_running() {
         return Err("Cannot delete versions while Factorio is running.".to_string());
+    }
+
+    // Safety guard: refuse to delete if this version is the currently active one
+    // (i.e. a matching zip exists directly in the mods root for this mod+version).
+    if let Ok(entries) = std::fs::read_dir(mods_folder) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip") {
+                if let Some(info) = factorio::installed::read_info_json_from_zip(&p) {
+                    if info.name == mod_name && info.version == version {
+                        return Err(format!(
+                            "Version {} is currently active in the mods folder and cannot be deleted. Activate a different version first.",
+                            version
+                        ));
+                    }
+                }
+            }
+        }
     }
 
     let stash_ver_dir = stash_dir(mods_folder).join(mod_name).join(version);

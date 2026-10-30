@@ -324,7 +324,7 @@ export function QueueView({
   }
 
   return (
-    <div className="@container p-6 w-full max-w-6xl mx-auto space-y-6">
+    <div className="@container p-6 w-full space-y-6">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2.5">

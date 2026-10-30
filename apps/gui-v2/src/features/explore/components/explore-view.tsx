@@ -414,7 +414,7 @@ export function ExploreView({
   const digits = String(totalPages).length;
 
   return (
-    <div ref={containerRef} className="@container p-6 w-full max-w-6xl mx-auto space-y-6">
+    <div ref={containerRef} className="@container p-6 w-full space-y-6">
       {/* Header */}
       <div>
         <h2 className="text-xl font-bold tracking-tight text-foreground flex uppercase items-center gap-2.5">
