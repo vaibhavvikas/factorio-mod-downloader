@@ -4,13 +4,15 @@ resolver = "2"
 members = [
     "apps/cli",
     "apps/gui/src-tauri",
+    "crates/common",
     "crates/factorio",
     "crates/downloader",
     "crates/parser",
+    "crates/mod_manager",
 ]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Vaibhav Vikas <vaibhavvikas@users.noreply.github.com>"]
 license = "MIT"
 repository = "https://github.com/vaibhavvikas/factorio-mod-downloader"

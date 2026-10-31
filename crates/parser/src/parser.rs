@@ -38,7 +38,7 @@ pub fn parse_dependencies(dependencies: &Option<Vec<String>>) -> Dependencies {
         };
 
         match prefix {
-            "" => result.required.push(dep),
+            "" | "~" => result.required.push(dep),
             "?" | "(?)" => result.optional.push(dep),
             "+" | "(+)" => result.recommended.push(dep),
             "!" => result.incompatible.push(dep),

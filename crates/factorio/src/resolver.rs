@@ -7,7 +7,7 @@ use parser::{
 
 use crate::{
     client::ApiClient,
-    installed::{compare_versions, is_release_compatible},
+    installed::{compare_versions, is_release_compatible, is_virtual_mod},
     models::{ModInfo, ResolvedDownloadItem},
     mods::get_mod,
 };
@@ -45,7 +45,7 @@ impl<'client> Resolver<'client> {
         let mut resolved_mods: Vec<ResolvedDownloadItem> = Vec::new();
 
         while let Some(dep) = queue.pop_front() {
-            if visited.contains(&dep.id) {
+            if is_virtual_mod(&dep.id) || visited.contains(&dep.id) {
                 continue;
             }
 
@@ -84,6 +84,10 @@ impl<'client> Resolver<'client> {
                     version: release.version.clone(),
                     file_name: release.file_name.clone(),
                     sha1: release.sha1.clone(),
+                    batch_id: None,
+                    batch_name: None,
+                    reason: Some("dependency".to_string()),
+                    requested_by: Vec::new(),
                 });
 
                 let dep_strings = release
@@ -112,19 +116,28 @@ impl<'client> Resolver<'client> {
 
     pub async fn prepare_download_batch(
         &mut self,
-        main_mods: Vec<ResolvedDownloadItem>,
+        mut main_mods: Vec<ResolvedDownloadItem>,
         direct_deps: Vec<Dependency>,
         include_recommended: bool,
         target_factorio_version: Option<&str>,
     ) -> Result<Vec<ResolvedDownloadItem>, Box<dyn std::error::Error>> {
+        for m in &mut main_mods {
+            m.reason = Some("direct".to_string());
+        }
         let mut final_list = main_mods;
 
         let resolved_sub_deps = self
             .resolve_deps(direct_deps, include_recommended, target_factorio_version)
             .await?;
 
-        for sub_dep in resolved_sub_deps {
-            if !final_list.iter().any(|item| item.id == sub_dep.id) {
+        for mut sub_dep in resolved_sub_deps {
+            if let Some(existing) = final_list.iter_mut().find(|item| item.id == sub_dep.id) {
+                // Mod is already in main_mods; ensure it is marked as direct
+                if existing.reason.as_deref() != Some("direct") {
+                    existing.reason = Some("direct".to_string());
+                }
+            } else {
+                sub_dep.reason = Some("dependency".to_string());
                 final_list.push(sub_dep);
             }
         }
@@ -182,6 +195,10 @@ mod tests {
             version: "0.13.0".to_string(),
             file_name: "bobmodules_0.13.0.zip".to_string(),
             sha1: String::new(),
+            batch_id: None,
+            batch_name: None,
+            reason: None,
+            requested_by: Vec::new(),
         }];
 
         let direct_deps = vec![
@@ -216,5 +233,10 @@ mod tests {
         assert!(resolved_ids.contains(&"bobplates".to_string()), "bobplates should be resolved");
         assert!(resolved_ids.contains(&"bobelectronics".to_string()), "bobelectronics should be resolved");
         assert_eq!(resolved.len(), 5, "expected 5 resolved items (bobmodules + 4 deps), got {}", resolved.len());
+
+        let bob_item = resolved.iter().find(|i| i.id == "bobmodules").unwrap();
+        assert_eq!(bob_item.reason.as_deref(), Some("direct"));
+        let lib_item = resolved.iter().find(|i| i.id == "boblibrary").unwrap();
+        assert_eq!(lib_item.reason.as_deref(), Some("dependency"));
     }
 }

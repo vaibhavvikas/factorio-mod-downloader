@@ -40,3 +40,9 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Agents & AI Configuration
+.agents/
+**/.agents/
+AGENTS.md
+**/AGENTS.md

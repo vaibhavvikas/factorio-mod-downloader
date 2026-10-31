@@ -65,13 +65,35 @@ jobs:
         run: |
           mkdir -p dist_executable
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp target/release/app.exe dist_executable/factorio-mod-downloader-gui-windows-x64.exe
+            EXE_FILE=$(ls target/release/gui.exe target/release/gui-v2.exe target/release/factorio-mod-downloader-gui.exe target/release/app.exe 2>/dev/null | head -n 1)
+            if [ -z "$EXE_FILE" ]; then
+              echo "Error: Windows GUI executable not found in target/release/"
+              ls -la target/release/
+              exit 1
+            fi
+            cp "$EXE_FILE" dist_executable/factorio-mod-downloader-gui-windows-x64.exe
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
             cd target/release/bundle/macos
-            zip -r "${GITHUB_WORKSPACE}/dist_executable/factorio-mod-downloader-gui-macos-x64.app.zip" "Factorio Mod Downloader.app"
+            if [ -d "Factorio Mod Downloader.app" ]; then
+              APP_NAME="Factorio Mod Downloader.app"
+            else
+              APP_NAME=$(ls -d *.app 2>/dev/null | head -n 1)
+            fi
+            if [ -z "$APP_NAME" ]; then
+              echo "Error: macOS app bundle not found in target/release/bundle/macos/"
+              ls -la .
+              exit 1
+            fi
+            zip -r "${GITHUB_WORKSPACE}/dist_executable/factorio-mod-downloader-gui-macos-x64.app.zip" "$APP_NAME"
           else
-            chmod +x target/release/app
-            cp target/release/app dist_executable/factorio-mod-downloader-gui-linux-x64
+            BIN_FILE=$(ls target/release/gui target/release/gui-v2 target/release/factorio-mod-downloader-gui target/release/app 2>/dev/null | head -n 1)
+            if [ -z "$BIN_FILE" ]; then
+              echo "Error: Linux GUI executable not found in target/release/"
+              ls -la target/release/
+              exit 1
+            fi
+            chmod +x "$BIN_FILE"
+            cp "$BIN_FILE" dist_executable/factorio-mod-downloader-gui-linux-x64
             cd dist_executable
             tar -czvf factorio-mod-downloader-gui-linux-x64.tar.gz factorio-mod-downloader-gui-linux-x64
             rm factorio-mod-downloader-gui-linux-x64
@@ -101,9 +123,9 @@ jobs:
         run: |
           ARTIFACTS=$(gh api /repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
 
-          WIN_ID=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | contains("windows")) | .id')
-          MAC_ID=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | contains("macos")) | .id')
-          LIN_ID=$(echo "$ARTIFACTS" | jq -r '.artifacts[] | select(.name | contains("ubuntu")) | .id')
+          WIN_ID=$(echo "$ARTIFACTS" | jq -r '[.artifacts[] | select(.name | contains("windows"))][0].id // empty')
+          MAC_ID=$(echo "$ARTIFACTS" | jq -r '[.artifacts[] | select(.name | contains("macos"))][0].id // empty')
+          LIN_ID=$(echo "$ARTIFACTS" | jq -r '[.artifacts[] | select(.name | contains("ubuntu"))][0].id // empty')
 
           BASE_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
 
