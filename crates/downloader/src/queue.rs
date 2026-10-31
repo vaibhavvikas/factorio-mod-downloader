@@ -97,7 +97,14 @@ impl DownloadQueueManager {
             let mut old_installed_version: Option<String> = None;
 
             // 1. Check if EXACT matching mod version is already installed in target root folder
-            if let Some(installed_path) = scanned.exact_files.get(&(item.id.clone(), item.version.clone())) {
+            let found_exact = scanned.exact_files.get(&(item.id.clone(), item.version.clone()))
+                .or_else(|| {
+                    scanned.exact_files.iter()
+                        .find(|((k_name, k_ver), _)| k_name.eq_ignore_ascii_case(&item.id) && compare_versions(k_ver, &item.version) == std::cmp::Ordering::Equal)
+                        .map(|(_, p)| p)
+                });
+
+            if let Some(installed_path) = found_exact {
                 let actual_size_bytes = std::fs::metadata(installed_path)
                     .map(|m| m.len())
                     .unwrap_or(0);
@@ -127,7 +134,14 @@ impl DownloadQueueManager {
             }
 
             // 2. If a DIFFERENT version of this mod is currently installed in root, mark for update/downgrade replacement
-            if let Some((installed_ver, installed_path)) = scanned.latest_by_name.get(&item.id) {
+            let found_existing = scanned.latest_by_name.get(&item.id)
+                .or_else(|| {
+                    scanned.latest_by_name.iter()
+                        .find(|(k, _)| k.eq_ignore_ascii_case(&item.id))
+                        .map(|(_, v)| v)
+                });
+
+            if let Some((installed_ver, installed_path)) = found_existing {
                 is_update_replacement = true;
                 is_downgrade = compare_versions(installed_ver, &item.version).is_gt();
                 old_installed_path = Some(installed_path.clone());

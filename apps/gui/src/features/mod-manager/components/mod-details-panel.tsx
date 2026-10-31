@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils"
 import { useModManagerStore } from "@/stores/use-mod-manager-store"
 import { useDownloadsStore } from "@/stores/use-downloads-store"
 import { useSettingsStore } from "@/stores/use-settings-store"
-import { isFactorioVersionCompatible } from "@/lib/version-utils"
+import { compareVersions, isFactorioVersionCompatible } from "@/lib/version-utils"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "@/components/ui/toast"
@@ -556,7 +556,7 @@ export function ModDetailsPanel({
                     <span>Incompatible with Factorio {factorioVersion}</span>
                   </Badge>
                 )}
-                {activeMod.hasUpdate && activeMod.latestVersion && (
+                {activeMod.hasUpdate && activeMod.latestVersion && compareVersions(activeMod.latestVersion, activeMod.activeVersion) !== 0 && (
                   <Button
                     size="sm"
                     variant="outline"

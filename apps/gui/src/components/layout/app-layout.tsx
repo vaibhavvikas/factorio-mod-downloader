@@ -26,7 +26,6 @@ import { SettingsView } from "@/features/settings"
 import { ModManagerView } from "@/features/mod-manager"
 import { CollectionsView } from "@/features/collections"
 import { SetupDialog } from "@/components/layout/setup-dialog"
-import { ParallaxBackground } from "@/components/layout/parallax-background"
 import { useCollectionsStore } from "@/stores/use-collections-store"
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import { useDownloadsStore } from "@/stores/use-downloads-store"
@@ -211,7 +210,6 @@ export function AppLayout() {
           />
 
           <SidebarInset className="relative flex flex-col flex-1 min-h-0 overflow-hidden border border-border/50 shadow-sm rounded-xl my-2 mr-2 ml-0 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-0 bg-background">
-            <ParallaxBackground />
             <header data-tauri-drag-region className="relative z-10 flex h-11 shrink-0 items-center justify-between gap-2 border-b border-border/70 px-4 bg-background/80 backdrop-blur-md select-none">
               <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />

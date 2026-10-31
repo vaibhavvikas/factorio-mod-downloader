@@ -18,18 +18,28 @@ pub fn list_collections(app_data_dir: &Path) -> Vec<CollectionProfile> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let p = entry.path();
-            if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("json") {
-                if let Ok(content) = fs::read_to_string(&p) {
-                    if let Ok(profile) = serde_json::from_str::<CollectionProfile>(&content) {
+            if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("json")
+                && let Ok(content) = fs::read_to_string(&p)
+                    && let Ok(profile) = serde_json::from_str::<CollectionProfile>(&content) {
                         profiles.push(profile);
                     }
-                }
-            }
         }
     }
 
     profiles.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     profiles
+}
+
+fn sanitize_profile_id(id: &str) -> String {
+    let safe: String = id
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .collect();
+    if safe.is_empty() {
+        "default".to_string()
+    } else {
+        safe
+    }
 }
 
 pub fn save_collection(
@@ -59,7 +69,8 @@ pub fn save_collection(
         }
     }
 
-    let file_path = dir.join(format!("{}.json", profile.id));
+    let safe_id = sanitize_profile_id(&profile.id);
+    let file_path = dir.join(format!("{}.json", safe_id));
     let json = serde_json::to_string_pretty(&profile)
         .map_err(|e| format!("Failed to serialize profile: {}", e))?;
 
@@ -68,12 +79,13 @@ pub fn save_collection(
 }
 
 pub fn delete_collection(app_data_dir: &Path, profile_id: &str) -> Result<(), String> {
+    let safe_id = sanitize_profile_id(profile_id);
     let dir = collections_dir(app_data_dir);
-    let profile_file = dir.join(format!("{}.json", profile_id));
+    let profile_file = dir.join(format!("{}.json", safe_id));
     if profile_file.is_file() {
         let _ = fs::remove_file(profile_file);
     }
-    let settings_file = dir.join(format!("{}.settings.dat", profile_id));
+    let settings_file = dir.join(format!("{}.settings.dat", safe_id));
     if settings_file.is_file() {
         let _ = fs::remove_file(settings_file);
     }
@@ -91,8 +103,9 @@ pub fn apply_collection(
         return Err("Cannot apply collection while Factorio is running.".to_string());
     }
 
+    let safe_id = sanitize_profile_id(profile_id);
     let dir = collections_dir(app_data_dir);
-    let profile_file = dir.join(format!("{}.json", profile_id));
+    let profile_file = dir.join(format!("{}.json", safe_id));
     if !profile_file.is_file() {
         return Err("Collection profile not found.".to_string());
     }
@@ -139,8 +152,8 @@ pub fn apply_collection(
                 })
             }).unwrap_or(false);
 
-            if !has_active_in_root {
-                if let Ok(entries) = std::fs::read_dir(&mod_stash_dir) {
+            if !has_active_in_root
+                && let Ok(entries) = std::fs::read_dir(&mod_stash_dir) {
                     let mut stashed_vers: Vec<String> = entries
                         .flatten()
                         .filter(|e| e.path().is_dir())
@@ -151,7 +164,6 @@ pub fn apply_collection(
                         let _ = crate::versioning::set_active_mod_version(mods_folder, app_data_dir, mod_name, highest_ver);
                     }
                 }
-            }
         }
 
         new_entries.push(ModListEntry {

@@ -1,17 +1,20 @@
+use std::sync::LazyLock;
 use crate::models::{Dependencies, Dependency};
 
 const IGNORED_MOD_IDS: &[&str] = &["base", "space-age", "quality", "elevated-rails", "recycler"];
 
-pub fn parse_dependencies(dependencies: &Option<Vec<String>>) -> Dependencies {
-    let reg = regex::Regex::new(
+static REG: LazyLock<regex::Regex> = LazyLock::new(|| {
+    regex::Regex::new(
         r"^(?P<prefix>\?|\(\?\)|!|~|\+|\(\+\))?\s*(?P<id>[%\w\s-]+)\s*((?P<ineq>=>|==|=|<=|>=|<|>)\s*(?P<version>\d+\.\d+\.\d+|\d+\.\d+))?$"
     )
-    .unwrap();
+    .unwrap()
+});
 
+pub fn parse_dependencies(dependencies: &Option<Vec<String>>) -> Dependencies {
     let mut result = Dependencies::default();
 
     for dep in dependencies.as_deref().unwrap_or(&[]) {
-        let Some(caps) = reg.captures(dep) else {
+        let Some(caps) = REG.captures(dep) else {
             eprintln!("Failed to parse the dependency: {:?}", dep);
             continue;
         };

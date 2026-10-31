@@ -238,11 +238,10 @@ pub async fn retry_download_batch(
     let tasks = state.manager.get_all_tasks().await;
     let target_dir = PathBuf::from(outputDir);
     for t in tasks {
-        if t.batch_id.as_deref() == Some(&batchId) {
-            if let downloader::models::DownloadStatus::Failed(_) = t.status {
+        if t.batch_id.as_deref() == Some(&batchId)
+            && let downloader::models::DownloadStatus::Failed(_) = t.status {
                 state.manager.retry_task(&t.id, target_dir.clone()).await;
             }
-        }
     }
     Ok(())
 }

@@ -39,14 +39,32 @@ export function getShortcutLabel(key: string): string {
   return `Ctrl+${key}`
 }
 
+const ENTITY_MAP: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+  "&apos;": "'",
+  "&nbsp;": " ",
+}
+
 /**
  * Decode HTML entities (e.g. &#34; -> ") from portal API strings before rendering.
- * Uses a textarea element so no external dependency like `he` is required.
+ * Pure string parsing avoids DOM allocations and XSS injection vectors.
  */
 export function decodeHtmlEntities(text: string): string {
   if (!text) return text
-  if (typeof document === "undefined") return text
-  const textarea = document.createElement("textarea")
-  textarea.innerHTML = text
-  return textarea.value
+  return text.replace(/&(?:amp|lt|gt|quot|#39|apos|nbsp|#(\d+)|#x([0-9a-fA-F]+));/g, (match, dec, hex) => {
+    if (ENTITY_MAP[match]) return ENTITY_MAP[match]
+    if (dec) {
+      const code = parseInt(dec, 10)
+      return !isNaN(code) ? String.fromCharCode(code) : match
+    }
+    if (hex) {
+      const code = parseInt(hex, 16)
+      return !isNaN(code) ? String.fromCharCode(code) : match
+    }
+    return match
+  })
 }

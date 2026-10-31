@@ -12,15 +12,12 @@ fn batches_file_path() -> Result<PathBuf, String> {
 }
 
 pub fn load_persisted_batches() -> Vec<DownloadBatch> {
-    if let Ok(path) = batches_file_path() {
-        if path.exists() {
-            if let Ok(content) = fs::read_to_string(path) {
-                if let Ok(batches) = serde_json::from_str::<Vec<DownloadBatch>>(&content) {
+    if let Ok(path) = batches_file_path()
+        && path.exists()
+            && let Ok(content) = fs::read_to_string(path)
+                && let Ok(batches) = serde_json::from_str::<Vec<DownloadBatch>>(&content) {
                     return batches;
                 }
-            }
-        }
-    }
     Vec::new()
 }
 

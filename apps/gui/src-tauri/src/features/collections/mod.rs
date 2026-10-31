@@ -67,17 +67,14 @@ pub fn get_collections() -> Result<Vec<CollectionProfile>, String> {
         if let Ok(saved) = crate_save_collection(&mods_folder, &app_data_dir, default_profile, false) {
             profiles.push(saved);
         }
-    } else if let Some(default_profile) = profiles.iter_mut().find(|p| p.id == "default") {
-        if default_profile.factorio_version.is_none() {
-            if let Ok(config) = get_app_config() {
-                if let Some(fv) = config.factorio_version.filter(|v| !v.is_empty() && v != "any") {
+    } else if let Some(default_profile) = profiles.iter_mut().find(|p| p.id == "default")
+        && default_profile.factorio_version.is_none()
+            && let Ok(config) = get_app_config()
+                && let Some(fv) = config.factorio_version.filter(|v| !v.is_empty() && v != "any") {
                     default_profile.factorio_version = Some(fv);
                     let (mods_folder, _) = resolve_paths().unwrap_or_else(|_| (PathBuf::from("."), app_data_dir.clone()));
                     let _ = crate_save_collection(&mods_folder, &app_data_dir, default_profile.clone(), false);
                 }
-            }
-        }
-    }
     Ok(profiles)
 }
 

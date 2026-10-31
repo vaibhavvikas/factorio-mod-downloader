@@ -87,9 +87,17 @@ export function ModRow({
     !isFactorioVersionCompatible(mod.factorioVersion, effectiveFactorioVersion)
   )
 
+  const isSameVersion = Boolean(
+    mod.latestVersion &&
+    mod.activeVersion &&
+    compareVersions(mod.latestVersion, mod.activeVersion) === 0
+  )
+
+  const hasValidUpdate = Boolean(mod.hasUpdate && mod.latestVersion && !isSameVersion)
+
   // Downgrade: latest available version is older than the installed active version
   const isDowngrade = Boolean(
-    mod.hasUpdate &&
+    hasValidUpdate &&
     mod.latestVersion &&
     mod.activeVersion &&
     compareVersions(mod.latestVersion, mod.activeVersion) < 0
@@ -201,7 +209,7 @@ export function ModRow({
       </div>
 
       {/* Update badge column — just left of the incompatible/error pills */}
-      {mod.hasUpdate && (
+      {hasValidUpdate && (
         <div className="flex items-center gap-2 shrink-0 w-[100px]">
           <Tooltip>
             <TooltipTrigger
@@ -276,7 +284,7 @@ export function ModRow({
             <MoreVertical className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
-            {mod.hasUpdate && mod.latestVersion && (
+            {hasValidUpdate && (
               <DropdownMenuItem
                 onClick={handleUpdate}
                 disabled={isUpdating}

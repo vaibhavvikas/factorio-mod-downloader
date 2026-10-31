@@ -133,24 +133,29 @@ pub async fn pick_mods_folder_dialog() -> Result<Option<String>, String> {
 
 #[tauri::command]
 pub fn open_folder_in_explorer(path: String) -> Result<(), String> {
+    if path.trim().is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
     let path_buf = PathBuf::from(&path);
     if !path_buf.exists() {
         let _ = fs::create_dir_all(&path_buf);
+    }
+    if !path_buf.is_dir() {
+        return Err("Target path is not a directory".to_string());
     }
 
     #[cfg(target_os = "macos")]
     {
         std::process::Command::new("open")
-            .arg(&path)
+            .arg(&path_buf)
             .spawn()
             .map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "windows")]
     {
-        let win_path = path.replace('/', "\\");
         std::process::Command::new("explorer")
-            .arg(&win_path)
+            .arg(&path_buf)
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -158,7 +163,7 @@ pub fn open_folder_in_explorer(path: String) -> Result<(), String> {
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         std::process::Command::new("xdg-open")
-            .arg(&path)
+            .arg(&path_buf)
             .spawn()
             .map_err(|e| e.to_string())?;
     }

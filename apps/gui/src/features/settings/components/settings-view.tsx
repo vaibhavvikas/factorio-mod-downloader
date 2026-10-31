@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { invoke } from "@tauri-apps/api/core"
+import { getVersion } from "@tauri-apps/api/app"
 import {
   Palette,
   FolderCog,
@@ -163,7 +164,6 @@ export function SettingsView() {
     try {
       let currentVer = "0.5.0"
       try {
-        const { getVersion } = await import("@tauri-apps/api/app")
         currentVer = await getVersion()
       } catch {
         // browser fallback

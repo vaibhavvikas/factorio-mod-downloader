@@ -9,6 +9,9 @@ node_modules/
 /dist-ssr/
 **/dist-ssr/
 *.local
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
 
 # Tauri
 /apps/gui/ui/src-tauri/gen/schemas/

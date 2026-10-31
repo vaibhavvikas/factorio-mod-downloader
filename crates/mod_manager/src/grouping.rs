@@ -38,8 +38,8 @@ pub fn get_installed_mod_groups(
     // Scan stash directory
     let stash_root = stash_dir(mods_folder);
     let mut stashed_by_name: HashMap<String, Vec<StashedModVersion>> = HashMap::new();
-    if stash_root.is_dir() {
-        if let Ok(mod_dirs) = fs::read_dir(&stash_root) {
+    if stash_root.is_dir()
+        && let Ok(mod_dirs) = fs::read_dir(&stash_root) {
             for mod_entry in mod_dirs.flatten() {
                 if mod_entry.path().is_dir() {
                     let mod_name = mod_entry.file_name().to_string_lossy().to_string();
@@ -69,7 +69,6 @@ pub fn get_installed_mod_groups(
                 }
             }
         }
-    }
 
     // Build enabled map
     let mod_list_entries = mod_list.mods.clone();
@@ -265,18 +264,17 @@ pub fn get_installed_mod_groups(
 
         // Check incompatible conflicts
         for inc in parsed.incompatible {
-            if let Some((is_enabled, _)) = installed_status_map.get(&inc.id) {
-                if *is_enabled {
+            if let Some((is_enabled, _)) = installed_status_map.get(&inc.id)
+                && *is_enabled {
                     group.health_issues.push(HealthIssue {
                         kind: "incompatible_conflict".to_string(),
                         message: format!("Incompatible mod '{}' is currently enabled.", inc.id),
                     });
                 }
-            }
         }
     }
 
-    groups.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+    groups.sort_by_key(|a| a.title.to_lowercase());
 
     groups
 }
@@ -401,7 +399,7 @@ pub fn parse_dep_string(raw: &str) -> Option<(String, DepKind, Option<String>)> 
     };
 
     let rest = rest.trim();
-    let (name, constraint) = if let Some(idx) = rest.find(|c: char| c == '>' || c == '<' || c == '=' || c == '!') {
+    let (name, constraint) = if let Some(idx) = rest.find(['>', '<', '=', '!']) {
         (rest[..idx].trim(), Some(rest[idx..].trim().to_string()))
     } else {
         (rest, None)
@@ -479,7 +477,7 @@ fn assign_groups(
         mod_to_group.insert(r.clone(), r.clone());
     }
 
-    for (name, _) in single_parent_mods {
+    for name in single_parent_mods.keys() {
         if mod_to_group.contains_key(name) {
             continue;
         }
@@ -613,14 +611,12 @@ fn build_root_group(
     for child_name in child_names {
         let mut immediate_parent: Option<String> = None;
         for other_child in child_names {
-            if other_child != child_name {
-                if let Some(reqs) = parents_of.get(child_name) {
-                    if reqs.contains(other_child) {
+            if other_child != child_name
+                && let Some(reqs) = parents_of.get(child_name)
+                    && reqs.contains(other_child) {
                         immediate_parent = Some(other_child.clone());
                         break;
                     }
-                }
-            }
         }
         let parent = immediate_parent.unwrap_or_else(|| root_name.to_string());
         tree_children.entry(parent).or_default().push(child_name.clone());
@@ -751,8 +747,8 @@ fn build_root_group(
 
     // Fallback for unvisited cycle children
     for child_name in child_names {
-        if visited_children.insert(child_name.clone()) {
-            if let Some(child_mod) = mod_map.get(child_name) {
+        if visited_children.insert(child_name.clone())
+            && let Some(child_mod) = mod_map.get(child_name) {
                 child_rows.push(ChildNode {
                     mod_data: (*child_mod).clone(),
                     depth: 1,
@@ -763,7 +759,6 @@ fn build_root_group(
                     references: Vec::new(),
                 });
             }
-        }
     }
 
     // Check for missing required dependencies
@@ -777,8 +772,8 @@ fn build_root_group(
 
     for member in all_members {
         for dep_str in &member.dependencies {
-            if let Some((target_id, kind, constraint)) = parse_dep_string(dep_str) {
-                if kind == DepKind::Required && !mod_map.contains_key(&target_id) && missing_seen.insert(target_id.clone()) {
+            if let Some((target_id, kind, constraint)) = parse_dep_string(dep_str)
+                && kind == DepKind::Required && !mod_map.contains_key(&target_id) && missing_seen.insert(target_id.clone()) {
                     let missing_issue = HealthIssue {
                         kind: "missing_dep".to_string(),
                         message: format!("Missing required dependency: {}", target_id),
@@ -814,7 +809,6 @@ fn build_root_group(
                         references: Vec::new(),
                     });
                 }
-            }
         }
     }
 

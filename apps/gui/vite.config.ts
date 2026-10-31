@@ -25,4 +25,24 @@ export default defineConfig(() => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  build: {
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("scheduler")) {
+              return "react-vendor";
+            }
+            if (id.includes("@tanstack") || id.includes("zustand")) {
+              return "data-vendor";
+            }
+            if (id.includes("lucide-react")) {
+              return "icons-vendor";
+            }
+          }
+        },
+      },
+    },
+  },
 }));

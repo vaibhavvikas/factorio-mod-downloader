@@ -13,7 +13,6 @@
     "@base-ui/react": "^1.8.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/oxanium": "^5.3.0",
-    "@fontsource/titillium-web": "^5.3.0",
     "@tanstack/react-query": "^5.104.5",
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-opener": "^2.7.2",

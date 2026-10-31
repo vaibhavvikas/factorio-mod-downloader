@@ -52,15 +52,13 @@ pub fn set_active_mod_version(
         if let Ok(entries) = fs::read_dir(mods_folder) {
             for entry in entries.flatten() {
                 let p = entry.path();
-                if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip") {
-                    if let Some(info) = factorio::installed::read_info_json_from_zip(&p) {
-                        if info.name == mod_name {
+                if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip")
+                    && let Some(info) = factorio::installed::read_info_json_from_zip(&p)
+                        && info.name == mod_name {
                             current_active_zip = Some(p);
                             current_active_ver = Some(info.version);
                             break;
                         }
-                    }
-                }
             }
         }
 
@@ -97,17 +95,15 @@ pub fn set_active_mod_version(
         if let Ok(entries) = fs::read_dir(mods_folder) {
             for entry in entries.flatten() {
                 let p = entry.path();
-                if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip") {
-                    if let Some(info) = factorio::installed::read_info_json_from_zip(&p) {
-                        if info.name == mod_name {
+                if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip")
+                    && let Some(info) = factorio::installed::read_info_json_from_zip(&p)
+                        && info.name == mod_name {
                             if info.version == target_version {
                                 found_target_in_root = true;
                             } else {
                                 other_root_zips.push((p, info.version));
                             }
                         }
-                    }
-                }
             }
         }
 
@@ -118,12 +114,11 @@ pub fn set_active_mod_version(
         // Stash the other root zips for this mod
         for (other_path, other_ver) in other_root_zips {
             let other_stash_dir = stash_root.join(mod_name).join(&other_ver);
-            if fs::create_dir_all(&other_stash_dir).is_ok() {
-                if let Some(fname) = other_path.file_name() {
+            if fs::create_dir_all(&other_stash_dir).is_ok()
+                && let Some(fname) = other_path.file_name() {
                     let dest = other_stash_dir.join(fname);
                     let _ = fs::rename(&other_path, &dest);
                 }
-            }
         }
     }
 
@@ -152,16 +147,14 @@ pub fn delete_stashed_version(
     if let Ok(entries) = std::fs::read_dir(mods_folder) {
         for entry in entries.flatten() {
             let p = entry.path();
-            if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip") {
-                if let Some(info) = factorio::installed::read_info_json_from_zip(&p) {
-                    if info.name == mod_name && info.version == version {
+            if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip")
+                && let Some(info) = factorio::installed::read_info_json_from_zip(&p)
+                    && info.name == mod_name && info.version == version {
                         return Err(format!(
                             "Version {} is currently active in the mods folder and cannot be deleted. Activate a different version first.",
                             version
                         ));
                     }
-                }
-            }
         }
     }
 
@@ -172,26 +165,23 @@ pub fn delete_stashed_version(
 
         // If mod stash directory is empty, remove it too
         let mod_stash_dir = stash_dir(mods_folder).join(mod_name);
-        if let Ok(mut entries) = fs::read_dir(&mod_stash_dir) {
-            if entries.next().is_none() {
+        if let Ok(mut entries) = fs::read_dir(&mod_stash_dir)
+            && entries.next().is_none() {
                 let _ = fs::remove_dir(&mod_stash_dir);
             }
-        }
     } else {
         // Check if matching extra zip in root
         let mut deleted = false;
         if let Ok(entries) = fs::read_dir(mods_folder) {
             for entry in entries.flatten() {
                 let p = entry.path();
-                if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip") {
-                    if let Some(info) = factorio::installed::read_info_json_from_zip(&p) {
-                        if info.name == mod_name && info.version == version {
+                if p.is_file() && p.extension().and_then(|e| e.to_str()) == Some("zip")
+                    && let Some(info) = factorio::installed::read_info_json_from_zip(&p)
+                        && info.name == mod_name && info.version == version {
                             let _ = fs::remove_file(&p);
                             deleted = true;
                             break;
                         }
-                    }
-                }
             }
         }
 

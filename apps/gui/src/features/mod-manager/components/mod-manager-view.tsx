@@ -243,11 +243,10 @@ export function ModManagerView({ isActive }: ModManagerViewProps = {}) {
 
   const [fixingModNames, setFixingModNames] = React.useState<Set<string>>(new Set())
   const [isFixingAll, setIsFixingAll] = React.useState(false)
-  const [isUpdatingAll, setIsUpdatingAll] = React.useState(false)
+  const isUpdatingAll = useModManagerStore((s) => s.isUpdatingAll)
   const updateAllMods = useModManagerStore((s) => s.updateAllMods)
 
   const handleUpdateAll = async () => {
-    setIsUpdatingAll(true)
     try {
       await updateAllMods()
       toast.add({
@@ -262,8 +261,6 @@ export function ModManagerView({ isActive }: ModManagerViewProps = {}) {
         description: typeof e === "string" ? e : e?.message || "Failed to update mods",
         priority: "high",
       })
-    } finally {
-      setIsUpdatingAll(false)
     }
   }
 
@@ -559,7 +556,7 @@ export function ModManagerView({ isActive }: ModManagerViewProps = {}) {
               aria-label={`Update all ${updatesCount} mods to latest versions`}
             >
               {isUpdatingAll ? <Spinner className="size-3.5" /> : <ArrowUpCircle className="size-3.5" />}
-              <span>Update All ({updatesCount})</span>
+              <span>{isUpdatingAll ? "Resolving Updates..." : `Update All (${updatesCount})`}</span>
             </Button>
           )}
 
@@ -668,8 +665,16 @@ export function ModManagerView({ isActive }: ModManagerViewProps = {}) {
         onUninstallSelected={handleUninstallMultiple}
       />
 
+      {/* Resolving Banner for smooth non-disruptive feedback */}
+      {isUpdatingAll && (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-xs text-blue-600 dark:text-blue-400 animate-in fade-in duration-200">
+          <RefreshCw className="size-3.5 animate-spin shrink-0" />
+          <span>Resolving dependencies and preparing updates for Factorio {factorioVersion || "selected version"}...</span>
+        </div>
+      )}
+
       {/* Mod List Rows (Grouped View) */}
-      {isLoading ? (
+      {isLoading && filteredGraphGroups.length === 0 ? (
         <div className="p-12 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
           <RefreshCw className="size-5 animate-spin text-primary" />
           <span>Scanning installed mods...</span>

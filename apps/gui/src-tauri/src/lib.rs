@@ -118,7 +118,7 @@ pub fn run() {
                 .transparent(true)
                 .shadow(true)
                 .inner_size(1280.0, 720.0)
-                .min_inner_size(800.0, 600.0)
+                .min_inner_size(1280.0, 720.0)
                 .visible(false);
 
             // set transparent title bar and hidden title only when building for macOS
@@ -131,6 +131,18 @@ pub fn run() {
 
             // Restore previous window position, size, and maximized state using tauri-plugin-window-state
             let _ = window.restore_state(StateFlags::all() & !StateFlags::VISIBLE);
+
+            // Ensure window is never smaller than 1280x720 after restoring previous state
+            if let Ok(size) = window.inner_size() {
+                let scale = window.scale_factor().unwrap_or(1.0);
+                let logical = size.to_logical::<f64>(scale);
+                if logical.width < 1280.0 || logical.height < 720.0 {
+                    let _ = window.set_size(tauri::LogicalSize::new(
+                        logical.width.max(1280.0),
+                        logical.height.max(720.0),
+                    ));
+                }
+            }
 
             let window_fallback = window.clone();
             tauri::async_runtime::spawn(async move {

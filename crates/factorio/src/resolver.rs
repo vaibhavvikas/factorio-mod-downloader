@@ -75,7 +75,17 @@ impl<'client> Resolver<'client> {
                         is_release_compatible(rel_fver, target_factorio_version)
                     })
                 })
-                .or_else(|| releases_sorted.first());
+                .or_else(|| {
+                    let is_explicit = target_factorio_version.map(|t| {
+                        let c = t.trim().to_lowercase();
+                        !c.is_empty() && c != "all" && c != "any"
+                    }).unwrap_or(false);
+                    if is_explicit {
+                        None
+                    } else {
+                        releases_sorted.first()
+                    }
+                });
 
             if let Some(release) = selected_release {
                 resolved_mods.push(ResolvedDownloadItem {
@@ -108,6 +118,11 @@ impl<'client> Resolver<'client> {
                         }
                     }
                 }
+            } else {
+                eprintln!(
+                    "Warning: Mod '{}' has no release compatible with Factorio {:?}",
+                    dep.id, target_factorio_version
+                );
             }
         }
 

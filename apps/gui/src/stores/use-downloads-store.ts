@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core"
 import type { BackendDownloadTask, FormattedDownloadTask, DownloadStatusType, DownloadBatch } from "@/features/downloads/types"
 import { useModQueueStore } from "@/stores/use-mod-queue-store"
 import { useModManagerStore } from "@/stores/use-mod-manager-store"
+import { useSettingsStore } from "@/stores/use-settings-store"
 
 const CORE_MODS = new Set(["base", "space-age", "quality", "elevated-rails", "recycler"])
 const enabledGroupKeys = new Set<string>()
@@ -370,8 +371,10 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
         }
       }
 
-      if (didEnableAny) {
-        await useModManagerStore.getState().loadMods()
+      if (didEnableAny || newlyCompleted) {
+        await useModManagerStore.getState().loadMods(true)
+        const factorioVer = useSettingsStore.getState().factorioVersion
+        await useModManagerStore.getState().checkUpdates(factorioVer)
       }
     } catch {
       // Ignore background poll errors during teardown

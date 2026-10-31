@@ -147,9 +147,16 @@ pub fn get_mod_storage_usage() -> Result<StorageUsage, String> {
 pub async fn check_mod_updates(
     target_factorio_version: Option<String>,
 ) -> Result<Vec<factorio::installed::InstalledModDetails>, String> {
+    let effective_version = match target_factorio_version.filter(|v| !v.trim().is_empty()) {
+        Some(v) => Some(v),
+        None => crate::features::config::get_app_config()
+            .ok()
+            .and_then(|c| c.factorio_version)
+            .filter(|v| !v.trim().is_empty()),
+    };
     let (mods_folder, _) = resolve_paths()?;
     let raw_installed = factorio::installed::scan_installed_mods(&mods_folder);
-    let updated = factorio::installed::check_updates_for_installed_mods(raw_installed, target_factorio_version).await;
+    let updated = factorio::installed::check_updates_for_installed_mods(raw_installed, effective_version).await;
     Ok(updated)
 }
 

@@ -164,7 +164,7 @@ export function StatusBar({
 
         {activeDownload && (
           <>
-            <Separator className="h-3 bg-zinc-800" orientation="vertical" />
+            <Separator className="h-3 bg-border" orientation="vertical" />
             <div className="flex items-center gap-2 min-w-0">
               <Download className="size-3.5 text-primary animate-bounce shrink-0" />
               <span className="font-medium text-xs truncate max-w-[120px] sm:max-w-[180px]">
@@ -206,7 +206,7 @@ export function StatusBar({
           </span>
         </div>
 
-        <Separator className="h-3 bg-zinc-800" orientation="vertical" />
+        <Separator className="h-3 bg-border" orientation="vertical" />
 
         {/* Active Mod Directory Telemetry */}
         <Tooltip>
@@ -225,7 +225,7 @@ export function StatusBar({
           </TooltipContent>
         </Tooltip>
 
-        <Separator className="h-3 bg-zinc-800" orientation="vertical" />
+        <Separator className="h-3 bg-border" orientation="vertical" />
         {/* Interactive Factorio Version Ghost Button with Popover */}
         <Popover>
           <PopoverTrigger
@@ -279,7 +279,7 @@ export function StatusBar({
           </PopoverContent>
         </Popover>
 
-        <Separator className="h-3 bg-zinc-800" orientation="vertical" />
+        <Separator className="h-3 bg-border" orientation="vertical" />
 
         {/* App Version */}
         <span className="text-[11px] font-mono text-muted-foreground font-medium">

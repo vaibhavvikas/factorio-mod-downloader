@@ -15,11 +15,10 @@ pub async fn browse_mods(
     page: u32,
 ) -> Result<ModSearchResponse, String> {
     let mut cats = categories.unwrap_or_default();
-    if let Some(single_cat) = category {
-        if !single_cat.trim().is_empty() && single_cat != "all" && !cats.contains(&single_cat) {
+    if let Some(single_cat) = category
+        && !single_cat.trim().is_empty() && single_cat != "all" && !cats.contains(&single_cat) {
             cats.push(single_cat);
         }
-    }
 
     let q_display = query.as_deref().unwrap_or("");
     let ver_display = factorio_version.as_deref().unwrap_or("any");

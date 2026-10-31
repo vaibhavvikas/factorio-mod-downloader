@@ -21,10 +21,7 @@ pub async fn check_api_health() -> bool {
         Ok(c) => c,
         Err(_) => return false,
     };
-    match client.get(MODS_STORAGE_BASE_URL).send().await {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    client.get(MODS_STORAGE_BASE_URL).send().await.is_ok()
 }
 
 pub fn build_download_url(mod_id: &str, version: &str) -> String {
@@ -66,10 +63,26 @@ where
         .await
         .map_err(|e| format!("Failed to create temp folder: {}", e))?;
 
-    let final_filename = if file_name.trim().is_empty() {
-        format!("{}_{}.zip", mod_id, version)
+    // Security: Sanitize filename to prevent directory traversal
+    let raw_name = file_name.trim();
+    let sanitized_name = Path::new(raw_name)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .map(|s| s.trim())
+        .unwrap_or("");
+
+    let final_filename = if sanitized_name.is_empty() || sanitized_name.starts_with('.') {
+        let safe_mod = mod_id
+            .chars()
+            .map(|c| if c.is_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+            .collect::<String>();
+        let safe_ver = version
+            .chars()
+            .map(|c| if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
+            .collect::<String>();
+        format!("{}_{}.zip", safe_mod, safe_ver)
     } else {
-        file_name.trim().to_string()
+        sanitized_name.to_string()
     };
 
     let target_filepath = output_dir.join(&final_filename);

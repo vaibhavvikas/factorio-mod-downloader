@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { invoke } from "@tauri-apps/api/core"
 import type { InstalledModGroup, ModGroupGraph, StorageUsage } from "@/features/mod-manager/types"
 import { parseDependencyString } from "@/features/mod-manager/grouping"
-import { isFactorioVersionCompatible } from "@/lib/version-utils"
+import { compareVersions, isFactorioVersionCompatible } from "@/lib/version-utils"
 import { useDownloadsStore } from "./use-downloads-store"
 import { useSettingsStore } from "./use-settings-store"
 
@@ -174,6 +174,7 @@ interface ModManagerStore {
   storageUsage: StorageUsage | null
   isLoading: boolean
   isCheckingUpdates: boolean
+  isUpdatingAll: boolean
   isFactorioRunning: boolean
   searchQuery: string
   filterTab: ModFilterTab
@@ -207,6 +208,7 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
   storageUsage: null,
   isLoading: false,
   isCheckingUpdates: false,
+  isUpdatingAll: false,
   isFactorioRunning: false,
   searchQuery: "",
   filterTab: "all",
@@ -254,6 +256,26 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
       ): T => {
         const u = prevUpdateByName.get(item.name)
         if (!u) return item
+
+        const currentVer = ((item as any).activeVersion || (item as any).version || "").trim()
+        const targetVer = (u.latestVersion || "").trim()
+
+        // If the installed version is already equal to or newer than the target version,
+        // it means this mod is ALREADY at this version, so no update/downgrade should be shown.
+        const isAlreadyAtTarget = Boolean(
+          currentVer &&
+          targetVer &&
+          compareVersions(currentVer, targetVer) === 0
+        )
+
+        if (isAlreadyAtTarget) {
+          return {
+            ...item,
+            hasUpdate: false,
+            latestVersion: undefined,
+          } as T
+        }
+
         return { ...item, hasUpdate: u.hasUpdate, latestVersion: u.latestVersion } as T
       }
 
@@ -384,18 +406,28 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
 
   switchVersion: async (modName: string, version: string) => {
     await invoke("set_active_mod_version", { modName, version })
-    await get().loadMods()
-    await get().checkUpdates()
+    await get().loadMods(true)
+    const factorioVer = useSettingsStore.getState().factorioVersion
+    await get().checkUpdates(factorioVer)
   },
 
   deleteVersion: async (modName: string, version: string) => {
     await invoke("delete_mod_version", { modName, version })
-    await get().loadMods()
+    await get().loadMods(true)
   },
 
   checkUpdates: async (targetFactorioVersion?: string) => {
     set({ isCheckingUpdates: true })
     try {
+      const activeFactorioVersion =
+        targetFactorioVersion ?? useSettingsStore.getState().factorioVersion
+      const cleanFactorioVer =
+        !activeFactorioVersion ||
+        activeFactorioVersion === "all" ||
+        activeFactorioVersion === "any"
+          ? null
+          : activeFactorioVersion
+
       const updatedDetails = await invoke<
         Array<{
           name: string
@@ -403,7 +435,7 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
           latestVersion?: string
           newerVersions?: string[]
         }>
-      >("check_mod_updates", { targetFactorioVersion })
+      >("check_mod_updates", { targetFactorioVersion: cleanFactorioVer })
 
       const updateMap = new Map(updatedDetails.map((u) => [u.name, u]))
       set((state) => {
@@ -545,6 +577,12 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
     const ver = targetVersion || mod?.latestVersion
     if (!ver) return
 
+    const factorioVer = useSettingsStore.getState().factorioVersion
+    const cleanFactorioVer =
+      !factorioVer || factorioVer === "all" || factorioVer === "any"
+        ? null
+        : factorioVer
+
     // If the target version is already stashed (downloaded previously), just switch
     // to it instead of re-downloading from the portal.
     const isInStash = mod?.stashedVersions?.some((s) => s.version === ver)
@@ -558,16 +596,18 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
       targetModsFolder = await invoke<string>("detect_default_mods_folder")
     }
 
-    const factorioVer = useSettingsStore.getState().factorioVersion
-    const cleanFactorioVer =
-      !factorioVer || factorioVer === "all" || factorioVer === "any"
-        ? null
-        : factorioVer
-
     let reqDeps: any[] = []
     try {
       const details = await invoke<any>("fetch_mod_details", { modId: modName })
       const matchedRelease = (details.releases || []).find((r: any) => r.version === ver)
+      if (cleanFactorioVer && matchedRelease) {
+        const relFactorioVer =
+          matchedRelease.info_json?.factorio_version || matchedRelease.factorio_version
+        if (relFactorioVer && !isFactorioVersionCompatible(relFactorioVer, cleanFactorioVer)) {
+          console.warn(`Version ${ver} of ${modName} is incompatible with Factorio ${cleanFactorioVer}`)
+          return
+        }
+      }
       if (matchedRelease?.dependencies?.required) {
         reqDeps = matchedRelease.dependencies.required
       }
@@ -617,78 +657,109 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
     })
 
     useDownloadsStore.getState().fetchTasks()
-    await get().loadMods()
+    await get().loadMods(true)
     // Refresh update flags after mods were updated so badges clear correctly
-    await get().checkUpdates()
+    await get().checkUpdates(cleanFactorioVer || undefined)
   },
 
   updateAllMods: async () => {
-    const modsToUpdate = get().mods.filter((m) => m.hasUpdate && m.latestVersion)
-    if (modsToUpdate.length === 0) return
-
-    let targetModsFolder = await invoke<string | null>("get_mods_folder")
-    if (!targetModsFolder) {
-      targetModsFolder = await invoke<string>("detect_default_mods_folder")
-    }
-
     const factorioVer = useSettingsStore.getState().factorioVersion
     const cleanFactorioVer =
       !factorioVer || factorioVer === "all" || factorioVer === "any"
         ? null
         : factorioVer
 
-    const mainMods = modsToUpdate.map((m) => ({
-      id: m.name,
-      title: m.title || m.name,
-      version: m.latestVersion!,
-      file_name: `${m.name}_${m.latestVersion!}.zip`,
-      sha1: "",
-      reason: "direct",
-    }))
+    const modsToUpdate = get().mods.filter((m) => m.hasUpdate && m.latestVersion)
+    if (modsToUpdate.length === 0) return
 
-    const allDirectDeps: any[] = []
-    for (const m of modsToUpdate) {
-      try {
-        const details = await invoke<any>("fetch_mod_details", { modId: m.name })
-        const matchedRelease = (details.releases || []).find((r: any) => r.version === m.latestVersion)
-        const reqs = matchedRelease?.dependencies?.required || []
-        for (const req of reqs) {
-          if (!CORE_MODS.has((req.id || req.name || "").toLowerCase())) {
-            allDirectDeps.push({
-              id: req.id || req.name,
-              ineq: req.ineq || ">=",
-              version: req.version || "",
-            })
-          }
-        }
-      } catch (e) {
-        console.warn(`Could not fetch details for update of ${m.name}:`, e)
+    set({ isUpdatingAll: true })
+    try {
+      let targetModsFolder = await invoke<string | null>("get_mods_folder")
+      if (!targetModsFolder) {
+        targetModsFolder = await invoke<string>("detect_default_mods_folder")
       }
+
+      // Fetch details and dependencies in parallel, filtering out any releases that are incompatible
+      const allDirectDeps: any[] = []
+      const compatibleModsToUpdate: typeof modsToUpdate = []
+
+      await Promise.all(
+        modsToUpdate.map(async (m) => {
+          try {
+            const details = await invoke<any>("fetch_mod_details", { modId: m.name })
+            const matchedRelease = (details.releases || []).find((r: any) => r.version === m.latestVersion)
+
+            // Strictly verify that the update target is compatible with the selected Factorio version
+            if (cleanFactorioVer && matchedRelease) {
+              const relFactorioVer =
+                matchedRelease.info_json?.factorio_version || matchedRelease.factorio_version
+              if (relFactorioVer && !isFactorioVersionCompatible(relFactorioVer, cleanFactorioVer)) {
+                console.warn(
+                  `Skipping update of ${m.name} to ${m.latestVersion}: incompatible with Factorio ${cleanFactorioVer}`
+                )
+                return
+              }
+            }
+
+            compatibleModsToUpdate.push(m)
+
+            const reqs = matchedRelease?.dependencies?.required || []
+            for (const req of reqs) {
+              if (!CORE_MODS.has((req.id || req.name || "").toLowerCase())) {
+                allDirectDeps.push({
+                  id: req.id || req.name,
+                  ineq: req.ineq || ">=",
+                  version: req.version || "",
+                })
+              }
+            }
+          } catch (e) {
+            console.warn(`Could not fetch details for update of ${m.name}:`, e)
+          }
+        })
+      )
+
+      if (compatibleModsToUpdate.length === 0) {
+        set({ isUpdatingAll: false })
+        return
+      }
+
+      const mainMods = compatibleModsToUpdate.map((m) => ({
+        id: m.name,
+        title: m.title || m.name,
+        version: m.latestVersion!,
+        file_name: `${m.name}_${m.latestVersion!}.zip`,
+        sha1: "",
+        reason: "direct",
+      }))
+
+      const resolvedBatch = await invoke<any[]>("resolve_download_batch", {
+        mainMods,
+        directDeps: allDirectDeps,
+        includeRecommended: false,
+        factorioVersion: cleanFactorioVer,
+      })
+
+      const groupsToRegister = compatibleModsToUpdate.map((m) => ({
+        parent: m.name,
+        dependencies: resolvedBatch
+          .filter((item) => item.id !== m.name && item.reason === "dependency")
+          .map((item) => item.id),
+      }))
+      useDownloadsStore.getState().registerDownloadGroups(groupsToRegister)
+
+      await invoke("start_download_batch", {
+        items: resolvedBatch,
+        outputDir: targetModsFolder,
+      })
+
+      useDownloadsStore.getState().fetchTasks()
+      // Silent reload: updates data without flashing or unmounting the mod table
+      await get().loadMods(true)
+      // Refresh update flags after mods were updated so badges clear correctly
+      await get().checkUpdates(cleanFactorioVer || undefined)
+    } finally {
+      set({ isUpdatingAll: false })
     }
-
-    const resolvedBatch = await invoke<any[]>("resolve_download_batch", {
-      mainMods,
-      directDeps: allDirectDeps,
-      includeRecommended: false,
-      factorioVersion: cleanFactorioVer,
-    })
-
-    const groupsToRegister = modsToUpdate.map((m) => ({
-      parent: m.name,
-      dependencies: resolvedBatch
-        .filter((item) => item.id !== m.name && item.reason === "dependency")
-        .map((item) => item.id),
-    }))
-    useDownloadsStore.getState().registerDownloadGroups(groupsToRegister)
-
-    await invoke("start_download_batch", {
-      items: resolvedBatch,
-      outputDir: targetModsFolder,
-    })
-
-    useDownloadsStore.getState().fetchTasks()
-    await get().loadMods()
-    // Refresh update flags after mods were updated so badges clear correctly
-    await get().checkUpdates()
   },
 }))

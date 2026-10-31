@@ -110,40 +110,40 @@ export function ConsoleDrawer({
     switch (level) {
       case "system":
       case "info":
-        return "text-sky-400 bg-sky-950/40 border-sky-800/40"
+        return "text-sky-700 bg-sky-50 border-sky-200 dark:text-sky-300 dark:bg-sky-950/50 dark:border-sky-800/50"
       case "warn":
       case "queue":
-        return "text-amber-400 bg-amber-950/40 border-amber-800/40"
+        return "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/50 dark:border-amber-800/50"
       case "resolve":
-        return "text-purple-400 bg-purple-950/40 border-purple-800/40"
+        return "text-purple-700 bg-purple-50 border-purple-200 dark:text-purple-300 dark:bg-purple-950/50 dark:border-purple-800/50"
       case "download":
-        return "text-cyan-400 bg-cyan-950/40 border-cyan-800/40"
+        return "text-cyan-700 bg-cyan-50 border-cyan-200 dark:text-cyan-300 dark:bg-cyan-950/50 dark:border-cyan-800/50"
       case "verify":
-        return "text-indigo-400 bg-indigo-950/40 border-indigo-800/40"
+        return "text-indigo-700 bg-indigo-50 border-indigo-200 dark:text-indigo-300 dark:bg-indigo-950/50 dark:border-indigo-800/50"
       case "success":
-        return "text-emerald-400 bg-emerald-950/40 border-emerald-800/40"
+        return "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/50 dark:border-emerald-800/50"
       case "error":
-        return "text-rose-400 bg-rose-950/40 border-rose-800/40"
+        return "text-rose-700 bg-rose-50 border-rose-200 dark:text-rose-300 dark:bg-rose-950/50 dark:border-rose-800/50"
       default:
-        return "text-zinc-400 bg-zinc-900 border-zinc-800"
+        return "text-muted-foreground bg-muted border-border"
     }
   }
 
   return (
     <div
       className={cn(
-        "shrink-0 flex flex-col border-t border-border bg-zinc-950 text-zinc-100 dark:bg-zinc-950 transition-all duration-200 ease-in-out overflow-hidden z-20",
+        "shrink-0 flex flex-col border-t border-border bg-card text-card-foreground transition-all duration-200 ease-in-out overflow-hidden z-20",
         isOpen
           ? "h-[240px] opacity-100 pointer-events-auto"
           : "h-0 opacity-0 border-t-0 pointer-events-none"
       )}
       aria-hidden={!isOpen}
     >
-      {/* Console Header - clean, no separators */}
-      <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b border-zinc-800 bg-zinc-900 select-none">
+      {/* Console Header */}
+      <div className="h-9 shrink-0 flex items-center justify-between px-3 border-b border-border bg-muted/60 dark:bg-muted/30 select-none">
         {/* Left: Terminal Title & Filter Tabs */}
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 text-zinc-100 font-mono text-xs font-semibold mr-1">
+          <div className="flex items-center gap-1.5 text-foreground font-mono text-xs font-semibold mr-1">
             <Terminal className="size-3.5 text-primary" />
             <span>Output</span>
           </div>
@@ -166,10 +166,10 @@ export function ConsoleDrawer({
                   setVisibleLimit(DEFAULT_STREAMING_LIMIT)
                 }}
                 className={cn(
-                  "px-2 py-0.5 rounded text-[11px] font-mono transition-colors cursor-pointer",
+                  "px-2 py-0.5 text-[11px] font-mono transition-colors cursor-pointer",
                   activeFilter === tab.id
-                    ? "bg-zinc-800 text-zinc-100 font-medium"
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                    ? "bg-background text-foreground font-medium shadow-xs border border-border"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/70"
                 )}
               >
                 {tab.label}
@@ -178,7 +178,7 @@ export function ConsoleDrawer({
           </div>
 
           {/* Live streaming telemetry indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 ml-2 text-[10px] font-mono text-zinc-400">
+          <div className="hidden sm:flex items-center gap-1.5 ml-2 text-[10px] font-mono text-muted-foreground">
             <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>Streaming</span>
           </div>
@@ -195,7 +195,7 @@ export function ConsoleDrawer({
                   variant="ghost"
                   size="xs"
                   onClick={onClearLogs}
-                  className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 cursor-pointer"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/70 cursor-pointer"
                   aria-label="Clear Console"
                 >
                   <Trash2 className="size-3.5" />
@@ -207,7 +207,7 @@ export function ConsoleDrawer({
             </TooltipContent>
           </Tooltip>
 
-          {/* Close Console (X button) - right aligned */}
+          {/* Close Console (X button) */}
           <Tooltip>
             <TooltipTrigger
               render={
@@ -216,7 +216,7 @@ export function ConsoleDrawer({
                   variant="ghost"
                   size="xs"
                   onClick={onClose}
-                  className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60 cursor-pointer"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/70 cursor-pointer"
                   aria-label="Close Console"
                 >
                   <X className="size-3.5" />
@@ -240,17 +240,17 @@ export function ConsoleDrawer({
       <ScrollArea
         viewportRef={logContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 bg-zinc-950 text-zinc-300 select-text"
+        className="flex-1 min-h-0 bg-background text-foreground select-text"
         viewportClassName="p-2.5 font-mono text-[11px] space-y-1 select-text"
-        scrollBarClassName="bg-zinc-900/30"
-        thumbClassName="bg-zinc-700/60 hover:bg-zinc-500"
+        scrollBarClassName="bg-muted/30"
+        thumbClassName="bg-muted-foreground/30 hover:bg-muted-foreground/50"
       >
         {/* Dynamic loader banner when logs exceed window */}
         {olderCount > 0 && (
-          <div className="sticky top-0 z-10 py-1 px-2.5 mb-1.5 rounded border border-zinc-800 bg-zinc-900 text-[10px] text-zinc-400 flex items-center justify-between shadow-xs">
+          <div className="sticky top-0 z-10 py-1 px-2.5 mb-1.5 border border-border bg-muted/60 text-[10px] text-muted-foreground flex items-center justify-between shadow-xs">
             <span>
-              Streaming latest <strong className="text-zinc-200">{displayedLogs.length}</strong> of{" "}
-              <strong className="text-zinc-200">{filteredLogs.length}</strong> lines
+              Streaming latest <strong className="text-foreground">{displayedLogs.length}</strong> of{" "}
+              <strong className="text-foreground">{filteredLogs.length}</strong> lines
             </span>
             <div className="flex items-center gap-2">
               <button
@@ -260,11 +260,11 @@ export function ConsoleDrawer({
               >
                 Load older ({Math.min(100, olderCount)} more)
               </button>
-              <span className="text-zinc-600">•</span>
+              <span className="text-muted-foreground/50">•</span>
               <button
                 type="button"
                 onClick={() => setVisibleLimit(filteredLogs.length)}
-                className="text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 Show all
               </button>
@@ -273,27 +273,27 @@ export function ConsoleDrawer({
         )}
 
         {displayedLogs.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-zinc-500 italic select-none py-8">
-            No console output for filter '{activeFilter}'.
+          <div className="h-full flex items-center justify-center text-muted-foreground italic select-none py-8">
+            No console output for filter &apos;{activeFilter}&apos;.
           </div>
         ) : (
           displayedLogs.map((log) => (
             <div
               key={log.id}
-              className="flex items-start gap-2.5 leading-relaxed hover:bg-zinc-900/60 px-1.5 py-0.5 rounded transition-colors group"
+              className="flex items-start gap-2.5 leading-relaxed hover:bg-muted/40 px-1.5 py-0.5 transition-colors group"
             >
-              <span className="text-zinc-500 shrink-0 select-none">
+              <span className="text-muted-foreground shrink-0 select-none">
                 {log.timestamp}
               </span>
               <span
                 className={cn(
-                  "px-1.5 py-0.2 rounded border text-[10px] font-semibold tracking-normal shrink-0 select-none",
+                  "px-1.5 py-0.2 border text-[10px] font-semibold tracking-normal shrink-0 select-none",
                   getBadgeStyle(log.level)
                 )}
               >
                 {toTitleCase(log.tag)}
               </span>
-              <span className="text-zinc-200 break-all flex-1">
+              <span className="text-foreground break-all flex-1">
                 {log.message}
               </span>
             </div>

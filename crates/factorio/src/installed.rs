@@ -71,39 +71,41 @@ pub struct InfoJson {
     pub dependencies: Vec<String>,
 }
 
-pub fn read_info_json_from_zip(zip_path: &Path) -> Option<InfoJson> {
+pub fn read_mod_metadata_from_zip(zip_path: &Path) -> Option<(InfoJson, Option<String>)> {
     let file = File::open(zip_path).ok()?;
     let mut archive = ZipArchive::new(file).ok()?;
+    let mut info: Option<InfoJson> = None;
+    let mut thumbnail: Option<String> = None;
 
     for i in 0..archive.len() {
-        let mut zip_file = archive.by_index(i).ok()?;
+        if info.is_some() && thumbnail.is_some() {
+            break;
+        }
+        let Ok(mut zip_file) = archive.by_index(i) else { continue };
         let name = zip_file.name().to_string();
-        if name.ends_with("info.json") {
+        if info.is_none() && name.ends_with("info.json") {
             let mut content = String::new();
-            zip_file.read_to_string(&mut content).ok()?;
-            let parsed: InfoJson = serde_json::from_str(&content).ok()?;
-            return Some(parsed);
+            if zip_file.read_to_string(&mut content).is_ok() {
+                info = serde_json::from_str(&content).ok();
+            }
+        } else if thumbnail.is_none() && name.ends_with("thumbnail.png") {
+            let mut buf = Vec::new();
+            if zip_file.read_to_end(&mut buf).is_ok() {
+                use base64::Engine;
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+                thumbnail = Some(format!("data:image/png;base64,{}", b64));
+            }
         }
     }
-    None
+    info.map(|i| (i, thumbnail))
+}
+
+pub fn read_info_json_from_zip(zip_path: &Path) -> Option<InfoJson> {
+    read_mod_metadata_from_zip(zip_path).map(|(info, _)| info)
 }
 
 pub fn read_thumbnail_from_zip(zip_path: &Path) -> Option<String> {
-    let file = File::open(zip_path).ok()?;
-    let mut archive = ZipArchive::new(file).ok()?;
-
-    for i in 0..archive.len() {
-        let mut zip_file = archive.by_index(i).ok()?;
-        let name = zip_file.name().to_string();
-        if name.ends_with("thumbnail.png") {
-            let mut buf = Vec::new();
-            zip_file.read_to_end(&mut buf).ok()?;
-            use base64::Engine;
-            let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
-            return Some(format!("data:image/png;base64,{}", b64));
-        }
-    }
-    None
+    read_mod_metadata_from_zip(zip_path).and_then(|(_, thumb)| thumb)
 }
 
 pub fn read_info_json_from_dir(dir_path: &Path) -> Option<InfoJson> {
@@ -117,13 +119,12 @@ pub fn read_info_json_from_dir(dir_path: &Path) -> Option<InfoJson> {
 
 pub fn read_thumbnail_from_dir(dir_path: &Path) -> Option<String> {
     let thumb_path = dir_path.join("thumbnail.png");
-    if thumb_path.is_file() {
-        if let Ok(bytes) = fs::read(&thumb_path) {
+    if thumb_path.is_file()
+        && let Ok(bytes) = fs::read(&thumb_path) {
             use base64::Engine;
             let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
             return Some(format!("data:image/png;base64,{}", b64));
         }
-    }
     None
 }
 
@@ -150,8 +151,7 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
         }
 
         if path.is_file() && path.extension().and_then(|e| e.to_str()) == Some("zip") {
-            if let Some(info) = read_info_json_from_zip(&path) {
-                let thumbnail = read_thumbnail_from_zip(&path);
+            if let Some((info, thumbnail)) = read_mod_metadata_from_zip(&path) {
                 let title = info.title.filter(|t| !t.trim().is_empty()).unwrap_or_else(|| info.name.clone());
 
                 installed_list.push(InstalledModDetails {
@@ -175,8 +175,8 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
                     enabled: false,
                 });
             }
-        } else if path.is_dir() {
-            if let Some(info) = read_info_json_from_dir(&path) {
+        } else if path.is_dir()
+            && let Some(info) = read_info_json_from_dir(&path) {
                 let thumbnail = read_thumbnail_from_dir(&path);
                 let title = info.title.filter(|t| !t.trim().is_empty()).unwrap_or_else(|| info.name.clone());
 
@@ -201,7 +201,6 @@ pub fn scan_installed_mods(mods_folder: &Path) -> Vec<InstalledModDetails> {
                     enabled: false,
                 });
             }
-        }
     }
 
     installed_list
@@ -350,17 +349,17 @@ pub async fn check_updates_for_installed_mods(
 
                 if is_explicit_target && newer.is_empty()
                     && let Some(latest_compat) = compatible_versions.first()
-                    && latest_compat.trim() != mod_item.version.trim()
+                    && compare_versions(latest_compat, &mod_item.version) != std::cmp::Ordering::Equal
                 {
                     newer.push(latest_compat.clone());
                 }
 
-                let latest_ver = newer.first().cloned().or_else(|| compatible_versions.first().cloned());
+                let latest_ver = newer.first().cloned();
 
-                // Only flag an update if the latest version is actually different from installed.
-                // Guards against version-string formatting issues (whitespace, etc.) that could
-                // make compare_versions report a false positive.
-                let has_real_update = newer.iter().any(|v| v.trim() != mod_item.version.trim());
+                // Only flag an update if the target version is semantically different from installed.
+                let has_real_update = newer.iter().any(|v| {
+                    compare_versions(v, &mod_item.version) != std::cmp::Ordering::Equal
+                });
 
                 if has_real_update {
                     mod_item.has_update = true;
@@ -368,8 +367,8 @@ pub async fn check_updates_for_installed_mods(
                     mod_item.newer_versions = newer;
                 } else {
                     mod_item.has_update = false;
-                    mod_item.latest_version = latest_ver.map(|v| v.trim().to_string());
-                    mod_item.newer_versions = compatible_versions;
+                    mod_item.latest_version = None;
+                    mod_item.newer_versions = Vec::new();
                 }
             }
         }
@@ -390,13 +389,32 @@ pub async fn check_single_mod_update_with_client(
 
 pub fn is_release_compatible(rel_fver: Option<&str>, target_fver: Option<&str>) -> bool {
     let Some(target) = target_fver else { return true; };
-    let target_clean = target.trim().to_lowercase();
+    let target_clean = target.trim().trim_start_matches('v').to_lowercase();
     if target_clean.is_empty() || target_clean == "all" || target_clean == "any" {
         return true;
     }
-    let Some(rel) = rel_fver else { return true; };
-    let rel_clean = rel.trim().to_lowercase();
-    rel_clean == target_clean || rel_clean.starts_with(&target_clean) || target_clean.starts_with(&rel_clean)
+    let Some(rel) = rel_fver else { return false; };
+    let rel_clean = rel.trim().trim_start_matches('v').to_lowercase();
+    if rel_clean == target_clean {
+        return true;
+    }
+
+    let rel_parts: Vec<&str> = rel_clean.split('.').collect();
+    let target_parts: Vec<&str> = target_clean.split('.').collect();
+
+    // Major version must match (e.g. 1.x vs 1.x, 2.x vs 2.x, 0.x vs 0.x)
+    if let (Some(r_maj), Some(t_maj)) = (rel_parts.first(), target_parts.first()) {
+        if r_maj != t_maj {
+            return false;
+        }
+    }
+
+    // In Factorio, major.minor defines engine/mod API compatibility (e.g. 1.0 vs 1.1, 2.0 vs 2.1)
+    if rel_parts.len() > 1 && target_parts.len() > 1 {
+        return rel_parts[1] == target_parts[1];
+    }
+
+    rel_clean.starts_with(&target_clean) || target_clean.starts_with(&rel_clean)
 }
 
 pub fn delete_mod_file(file_path: &Path) -> Result<(), String> {
@@ -410,7 +428,8 @@ pub fn delete_mod_file(file_path: &Path) -> Result<(), String> {
 
 pub fn compare_versions(left: &str, right: &str) -> std::cmp::Ordering {
     fn parse_ver(v: &str) -> Vec<u32> {
-        v.split('.')
+        let clean = v.trim().trim_start_matches(|c| c == 'v' || c == 'V');
+        clean.split('.')
             .map(|s| s.parse::<u32>().unwrap_or(0))
             .collect()
     }
@@ -427,4 +446,43 @@ pub fn compare_versions(left: &str, right: &str) -> std::cmp::Ordering {
     }
 
     std::cmp::Ordering::Equal
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_release_compatible_exact_and_minor() {
+        assert!(is_release_compatible(Some("1.1"), Some("1.1")));
+        assert!(is_release_compatible(Some("1.1.87"), Some("1.1")));
+        assert!(is_release_compatible(Some("v1.1"), Some("1.1")));
+        assert!(is_release_compatible(Some("1.1"), Some("v1.1")));
+        assert!(is_release_compatible(Some("2.0"), Some("2.0")));
+        assert!(is_release_compatible(Some("2.0.12"), Some("2.0")));
+    }
+
+    #[test]
+    fn test_is_release_compatible_incompatible_versions() {
+        // Different major versions
+        assert!(!is_release_compatible(Some("2.0"), Some("1.1")));
+        assert!(!is_release_compatible(Some("1.1"), Some("2.0")));
+        assert!(!is_release_compatible(Some("0.18"), Some("1.1")));
+
+        // Different minor versions
+        assert!(!is_release_compatible(Some("1.0"), Some("1.1")));
+        assert!(!is_release_compatible(Some("2.1"), Some("2.0")));
+
+        // Unknown release version with explicit target
+        assert!(!is_release_compatible(None, Some("1.1")));
+        assert!(!is_release_compatible(Some(""), Some("1.1")));
+    }
+
+    #[test]
+    fn test_is_release_compatible_wildcards() {
+        assert!(is_release_compatible(Some("1.1"), None));
+        assert!(is_release_compatible(Some("2.0"), Some("all")));
+        assert!(is_release_compatible(Some("2.0"), Some("any")));
+        assert!(is_release_compatible(Some("2.0"), Some("")));
+    }
 }
