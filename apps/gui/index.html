@@ -2,77 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/app.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Factorio Mod Downloader</title>
     <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-        height: 100vh;
-        width: 100vw;
-        background-color: transparent !important;
-        color: #18181b;
-      }
-      @media (prefers-color-scheme: dark) {
-        html, body {
-          background-color: transparent !important;
-          color: #f4f4f5;
-        }
+      :root {
+        color-scheme: light dark;
       }
       html.dark, html.dark body {
-        background-color: transparent !important;
-        color: #f4f4f5 !important;
+        background-color: oklch(0.148 0.004 228.8);
+        color: oklch(0.987 0.002 197.1);
+      }
+      html:not(.dark), html:not(.dark) body {
+        background-color: oklch(1 0 0);
+        color: oklch(0.148 0.004 228.8);
       }
     </style>
     <script>
-      (function () {
+      (function() {
         try {
-          var STORAGE_KEY = 'fmd_theme_mode';
-          var saved = null;
-          try { saved = localStorage.getItem(STORAGE_KEY); } catch (e) {}
-
-          var mode = saved && (saved === 'light' || saved === 'dark' || saved === 'system')
-            ? saved
-            : 'system';
-
-          var isDark = mode === 'system'
-            ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
-            : (mode === 'dark');
-
-          var html = document.documentElement;
-          if (isDark) html.classList.add('dark');
-          else html.classList.remove('dark');
-
-          var bg = isDark ? '#0d1117' : '#f1f5f9';
-          var fg = isDark ? '#f4f4f5' : '#18181b';
-
-          // Paint an opaque, theme-correct surface before React mounts so the
-          // native window never flashes transparent during startup.
-          var style = document.createElement('style');
-          style.id = 'theme-instant-bg';
-          style.textContent = 'html, body { background-color: transparent !important; color: ' + fg + ' !important; } #root { background-color: ' + bg + '; border-radius: 12px; height: 100vh; width: 100vw; overflow: hidden; }';
-          document.head.appendChild(style);
-
-          html.setAttribute('data-pref-theme', mode);
-          if (isDark) html.setAttribute('data-is-dark', '1');
-          else html.removeAttribute('data-is-dark');
+          const stored = localStorage.getItem('factorio-theme') || 'system';
+          const isDark = stored === 'dark' || 
+            (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
         } catch (e) {}
       })();
     </script>
   </head>
-  <body style="margin: 0; padding: 0; overflow: hidden; height: 100vh; width: 100vw; background-color: transparent;">
-    <div id="root" style="height: 100vh; width: 100vw; overflow: hidden; border-radius: 12px; background-color: #0d1117;">
-      <div style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; font-family: 'Inter', system-ui, -apple-system, sans-serif; user-select: none; border-radius: 12px; background-color: #0d1117;">
-        <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-          <img src="/app.png" alt="Factorio Mod Downloader" style="width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(99, 102, 241, 0.25));" />
-        </div>
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <span style="font-size: 13px; font-weight: 700; opacity: 0.85; letter-spacing: 0.02em;">Factorio Mod Downloader</span>
-        </div>
-      </div>
-    </div>
+  <body>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1601,7 +1601,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gui-v2"
+name = "gui"
 version = "0.5.0"
 dependencies = [
  "chrono",

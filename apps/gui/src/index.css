@@ -1,535 +1,193 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/oxanium";
+@import "@fontsource-variable/jetbrains-mono";
 
-@theme {
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  /* Desktop chrome uses one compact surface radius.  This also normalizes
-     legacy rounded-xl/2xl/3xl utilities without affecting circular icons. */
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.5rem;
-  --radius-3xl: 0.5rem;
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: 'Oxanium Variable', 'Oxanium', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Oxanium Variable', 'Oxanium', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-/* The native compositor supplies the OS shadow/rounded frame where available.
-   The app container uses conditional border-radius based on OS and
-   maximization state (set in MainLayout.tsx) so child-content corners
-   are always properly rounded by the OS window frame. */
 :root {
-  --app-frame-radius: 12px;
-  --card-padding-x: 1rem;
-  --card-padding-y: 1rem;
-  --card-gap: 1rem;
-  --panel-padding: 1rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.148 0.004 228.8);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.148 0.004 228.8);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.148 0.004 228.8);
+  --primary: oklch(0.218 0.008 223.9);
+  --primary-foreground: oklch(0.987 0.002 197.1);
+  --secondary: oklch(0.963 0.002 197.1);
+  --secondary-foreground: oklch(0.218 0.008 223.9);
+  --muted: oklch(0.963 0.002 197.1);
+  --muted-foreground: oklch(0.56 0.021 213.5);
+  --accent: oklch(0.963 0.002 197.1);
+  --accent-foreground: oklch(0.218 0.008 223.9);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.89 0.005 214.3);
+  --input: oklch(0.89 0.005 214.3);
+  --ring: oklch(0.723 0.014 214.4);
+  --chart-1: oklch(0.872 0.007 219.6);
+  --chart-2: oklch(0.56 0.021 213.5);
+  --chart-3: oklch(0.45 0.017 213.2);
+  --chart-4: oklch(0.378 0.015 216);
+  --chart-5: oklch(0.275 0.011 216.9);
+  --radius: 0rem;
+  --sidebar: oklch(0.987 0.002 197.1);
+  --sidebar-foreground: oklch(0.148 0.004 228.8);
+  --sidebar-primary: oklch(0.218 0.008 223.9);
+  --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-accent: oklch(0.963 0.002 197.1);
+  --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
+  --sidebar-border: oklch(0.925 0.005 214.3);
+  --sidebar-ring: oklch(0.723 0.014 214.4);
 }
 
-/* 1. Lock the root window frame to prevent the entire app from bouncing */
-html,
-body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f1f5f9;
-  overscroll-behavior: none !important;
-  overscroll-behavior-x: none !important;
-  overflow-x: hidden !important;
-  border-radius: var(--app-frame-radius);
-  overflow: hidden;
+.dark {
+  --background: oklch(0.148 0.004 228.8);
+  --foreground: oklch(0.987 0.002 197.1);
+  --card: oklch(0.218 0.008 223.9);
+  --card-foreground: oklch(0.987 0.002 197.1);
+  --popover: oklch(0.218 0.008 223.9);
+  --popover-foreground: oklch(0.987 0.002 197.1);
+  --primary: oklch(0.925 0.005 214.3);
+  --primary-foreground: oklch(0.218 0.008 223.9);
+  --secondary: oklch(0.275 0.011 216.9);
+  --secondary-foreground: oklch(0.987 0.002 197.1);
+  --muted: oklch(0.275 0.011 216.9);
+  --muted-foreground: oklch(0.723 0.014 214.4);
+  --accent: oklch(0.275 0.011 216.9);
+  --accent-foreground: oklch(0.987 0.002 197.1);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.56 0.021 213.5);
+  --chart-1: oklch(0.872 0.007 219.6);
+  --chart-2: oklch(0.56 0.021 213.5);
+  --chart-3: oklch(0.45 0.017 213.2);
+  --chart-4: oklch(0.378 0.015 216);
+  --chart-5: oklch(0.275 0.011 216.9);
+  --sidebar: oklch(0.218 0.008 223.9);
+  --sidebar-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-accent: oklch(0.275 0.011 216.9);
+  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
-html.dark,
-html.dark body {
-  background-color: #0d1117;
-}
-
-#root {
-   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-   height: 100vh;
-   width: 100vw;
-   margin: 0;
-   padding: 0;
-   overflow: hidden;
-   border-radius: var(--app-frame-radius);
-   isolation: isolate;
-   user-select: none;
-   -webkit-user-select: none;
-   -moz-user-select: none;
-}
-
-/* 1b. Smooth app entrance – prevents layout shift flash */
-.app-ready {
-  opacity: 1;
-  height: 100%;
-  border-radius: inherit;
-  overflow: hidden;
-}
-
-.app-window-frame {
-  border-radius: inherit;
-}
-
-/* 2. Target your scrollable workspace/sidebar containers to stop internal rubber-banding.
-      This stops the native rubber-band/overscroll on scroll containers; it does NOT
-      reserve any scroll gutter. */
-.overflow-y-auto,
-.overflow-auto {
-  overscroll-behavior-y: none !important;
-}
-
-/* -------------------------------------------------------------------------- */
-/* 2b. Unified scroll system — SPEC-BASED ZERO-SHIFT (Win + Mac, 2025)        */
-/*                                                                             */
-/*   Why NOT `overflow: overlay` in 2025+:                                     */
-/*   • Chrome/WebView2 114+ DEPRECATED overlay → aliased to `auto`, so the    */
-/*     scrollbar still steals 8px of content width.                            */
-/*   • Safari still supports overlay but also fully supports the SPEC path.    */
-/*   • Firefox never supported overlay at all.                                 */
-/*   Result: overlay is dead as a cross-platform strategy in 2025.             */
-/*                                                                             */
-/*   THE ONLY bulletproof strategy (CSS Overflow Level 4 standard):            */
-/*   1. scrollbar-gutter: stable — browser ALWAYS reserves 8px RIGHT slot     */
-/*      for the scrollbar, whether it's visible or not. No 8px shift, EVER.   */
-/*   2. Every padding variant sets padding-left = content + 8px offset so      */
-/*      visual L = visual R (both 24px for `.card`, etc.). The gutter on the  */
-/*      right is 8px reserved, so adding 8px on the left perfectly balances.  */
-/*   3. Thumb itself stays hidden-by-default with fade-in on hover (180ms),    */
-/*      exactly matching Windows 11 + native macOS overlay scroll feel.       */
-/*   4. GLOBAL rule: also apply scrollbar-gutter: stable to all Tailwind      */
-/*      overflow utilities so ad-hoc `overflow-y-auto` divs don't shift either.*/
-/*                                                                             */
-/*   Net result for ALL scrollable content:                                    */
-/*   • Zero horizontal layout shift. Full stop.                                */
-/*   • Perfectly symmetric visible padding at all times.                       */
-/*   • Consistent behavior across Tauri Windows (WebView2) + macOS (WKWebView) */
-/* -------------------------------------------------------------------------- */
-
-/* --- GLOBAL CATCH-ALL: SPEC-based zero-shift for every scrollable element
-   Applies to both our semantic classes (.scroller-panel, .scroller-dropdown)
-   AND ad-hoc Tailwind utility classes (overflow-y-auto, overflow-auto).
-   No raw scrollable element ever slips through without a stable gutter. */
-
-.scroller-panel,
-.overflow-y-auto,
-.overflow-auto {
-  scrollbar-gutter: stable;
-}
-
-/* --- Panel scroller base (all persistent content panels) ------------------ */
-.scroller-panel {
-  overflow-y: auto;
-  overscroll-behavior-y: none;
-}
-
-/* --- Padding variants — FULL PICTURE-FRAME SYMMETRY ------------------------
-   padding shorthand: TOP / RIGHT / BOTTOM / LEFT.
-
-   Math for ALL FOUR SIDES VISUALLY EQUAL (picture frame):
-   • Right-side visible gap = padding-right + 8px stable gutter
-   • Left-side  visible gap = padding-left  (no gutter on left)
-   • Top/bottom visible gap = padding-top / padding-bottom  (no gutter on T/B)
-
-   Therefore for perfect 4-way visual symmetry:
-      padding-left  = padding-right + 8   ← L offsets the gutter on R
-      padding-top   = padding-left        ← T matches L
-      padding-bottom = padding-left       ← B matches L
-
-   Result: every edge of content sits exactly X px from every edge of the
-   viewport chrome. No top-compression, no phantom asymmetry.
-
-   Tightened 8px-rhythm values (2025 streamline): 4px scale matches grid-gap
-   sizes used in the app so space-between-cards == card-edge-to-viewport-edge
-
-   | Variant    | R pad | +8 gut | Vis R | L pad | Vis L | T pad = Vis T | B pad = Vis B | 4-Way Sym |
-   |------------|-------|--------|-------|-------|-------|---------------|---------------|-----------|
-   | .card      | 12px  | 8px    | 20px  | 20px  | 20px  | 20px          | 20px          | ✓ 20×20   |
-   | .terminal  | 12px  | 8px    | 20px  | 20px  | 20px  | 10px (dense)  | 10px (dense)  | ✓ Console |
-   | .modal     | 12px  | 8px    | 20px  | 20px  | 20px  | 20px          | 20px          | ✓ 20×20   |
-   | .tree      | 16px  | 8px    | 24px  | 24px  | 24px  | 24px          | 24px          | ✓ 24×24   |
-   | .profile   | 20px  | 8px    | 28px  | 28px  | 28px  | 28px          | 28px          | ✓ 28×28   |
-*/
-
-/* .card — L=R=T=B=20px visible frame. Used by: Explore grid, Installed list,
-    Resolver queue cards. Horizontal padding matches --card-gap for even edge gaps. */
-.scroller-panel.card {
-  padding: var(--card-padding-y) var(--card-padding-x) var(--card-padding-y) var(--card-padding-x);
-  /* T=20, R=12, B=20, L=12 — symmetric horizontal padding to match inter-card gap */
-}
-
-/* .card-grid — grid layout for card panels with consistent gap matching card padding */
-.card-grid {
-  display: grid;
-  gap: var(--card-gap);
-}
-
-/* .card-col — flex column for card grids with consistent gap */
-.card-col {
-  display: flex;
-  flex-direction: column;
-  gap: var(--card-gap);
-}
-
-/* .panel-content — consistent 1rem padding on all sides for tab content panels */
-.panel-content {
-  padding: var(--panel-padding);
-}
-
-/* .card-no-pt — header-wrapped variant: header bar occupies the top frame so
-   T=0. Bottom still matches L/vis-R = 20px for 3-way symmetry. */
-.scroller-panel.card-no-pt {
-  padding: 0 var(--card-padding-x) var(--card-padding-y) var(--card-padding-x);
-  /* T=0, R=12, B=20, L=12 — symmetric horizontal padding */
-}
-
-/* .terminal — intentionally dense vertical padding for scrolling console logs.
-   Monospace terminal output stacks 1px-leading lines; we keep 10px T/B so the
-   first log line sits flush near the console header, not 20px of dead air.
-   Horizontal symmetry still honored (Vis L = Vis R = 20px). */
-.scroller-panel.terminal {
-  padding: 0.625rem 0.75rem 0.625rem 1.25rem;
-  /* T=10, R=12, B=10, L=20 */
-}
-
-/* .modal — L=R=T=B=20px visible frame around InstalledModals body content */
-.scroller-panel.modal {
-  padding: 1.25rem 0.75rem 1.25rem 1.25rem;
-  /* T=20, R=12, B=20, L=20 */
-}
-
-/* .tree — L=R=T=B=24px visible frame around Resolver dep-graph tree view */
-.scroller-panel.tree {
-  padding: 1.5rem 1rem 1.5rem 1.5rem;
-  /* T=24, R=16, B=24, L=24 */
-}
-
-/* .profile — L=R=T=B=28px visible frame around Dev Profile floating popover */
-.scroller-panel.profile {
-  padding: 1.75rem 1.25rem 1.75rem 1.75rem;
-  /* T=28, R=20, B=28, L=28 */
-}
-
-/* --- Dropdown / transient-popover scroller --------------------------------
-    Same `scrollbar-gutter: stable` zero-shift rule as panel scrollers (see
-    lines 85-89), applied globally via the grouped selector.
-
-    SYMMETRIC PADDING RULE:
-      All four sides have equal padding, ensuring even gaps between content
-      and the dropdown's chrome border on all platforms (Windows, macOS, Linux).
-      The `scrollbar-gutter: stable` on the parent reserves space for the
-      scrollbar, preventing layout shifts when the scrollbar appears/disappears.
-
-/*
-  Padding is now handled by `p-1` (0.25rem) on the dropdown container itself.
-  The .dense / .loose modifiers are retained only as semantic markers;
-  they no longer set padding directly.
-*/
-.scroller-dropdown {
-  overflow-y: auto;
-  overscroll-behavior-y: none;
-  scrollbar-gutter: auto !important;
-}
-
-/* --- Global scroll bar geometry -------------------------------------------- */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/* Thumb visual: 6px visible pill inside the 8px track. NO global transition
-   (Chromium quirk — global transition on thumb forces a compositor layer that
-   breaks the hover-fade). Transition is applied ONLY inside the hover rules. */
-::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  background: transparent;
-}
-
-/* --- CONTAINER HOVER → thumb fades IN to visible muted state ---------------
-   Covers ALL scrollable elements: our semantic classes (.scroller-panel,
-   .scroller-dropdown) AND ad-hoc Tailwind utilities (.overflow-y-auto,
-   .overflow-auto). No container slips through without the fade effect. */
-
-/* Light mode — panel / dropdown / utility container hover */
-.scroller-panel:hover::-webkit-scrollbar-thumb,
-.scroller-dropdown:hover::-webkit-scrollbar-thumb,
-.overflow-y-auto:hover::-webkit-scrollbar-thumb,
-.overflow-auto:hover::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.22);
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  transition: background-color 180ms ease-out;
-}
-
-/* Dark mode — panel / dropdown / utility container hover */
-.dark .scroller-panel:hover::-webkit-scrollbar-thumb,
-.dark .scroller-dropdown:hover::-webkit-scrollbar-thumb,
-.dark .overflow-y-auto:hover::-webkit-scrollbar-thumb,
-.dark .overflow-auto:hover::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.30);
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  transition: background-color 180ms ease-out;
-}
-
-/* --- THUMB HOVER (pointer directly on thumb) → darker, draggable ---------- */
-
-/* Light mode — thumb hover */
-.scroller-panel::-webkit-scrollbar-thumb:hover,
-.scroller-dropdown::-webkit-scrollbar-thumb:hover,
-.overflow-y-auto::-webkit-scrollbar-thumb:hover,
-.overflow-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.50);
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  transition: background-color 180ms ease-out;
-}
-
-/* Dark mode — thumb hover */
-.dark .scroller-panel::-webkit-scrollbar-thumb:hover,
-.dark .scroller-dropdown::-webkit-scrollbar-thumb:hover,
-.dark .overflow-y-auto::-webkit-scrollbar-thumb:hover,
-.dark .overflow-auto::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.62);
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  transition: background-color 180ms ease-out;
-}
-
-/* --- Firefox (scrollbar-color + width) parity — COVERS ALL scrollables -----
-   Same grouped selectors as the WebKit rules so no element is missed. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 180ms ease-out;
-}
-
-/* Light — container hover fade in */
-.scroller-panel:hover,
-.scroller-dropdown:hover,
-.overflow-y-auto:hover,
-.overflow-auto:hover {
-  scrollbar-color: rgba(100, 116, 139, 0.22) transparent;
-}
-
-/* Dark — container hover fade in */
-.dark .scroller-panel:hover,
-.dark .scroller-dropdown:hover,
-.dark .overflow-y-auto:hover,
-.dark .overflow-auto:hover {
-  scrollbar-color: rgba(148, 163, 184, 0.30) transparent;
-}
-
-/* Custom 2-line WebKit line clamp class */
-.line-clamp-2-custom {
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  line-clamp: 2 !important;
-  /* autoprefixer: ignore next */
-  -webkit-box-orient: vertical !important;
-  line-height: 1.4em !important;
-  max-height: 2.8em !important;
-  overflow: hidden !important;
-  word-break: break-word !important;
-}
-
-/* Softer compact ping halo for inline card status indicators.
-   Tailwind's default animate-ping scales to 2x which is too aggressive for
-   8–10px inline dots in card headers; it either clips, or when unclipped,
-   looks like a full-screen alert. 1.5x + slightly longer duration = subtle
-   pulsing halo that matches the tool-style restrained aesthetic. */
-@keyframes ping-soft {
-  0% {
-    transform: scale(1);
-    opacity: 0.85;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
 
-  75%,
-  to {
-    transform: scale(1.5);
-    opacity: 0;
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    overscroll-behavior-x: none !important;
+    overscroll-behavior-y: none !important;
+    -webkit-overflow-scrolling: auto;
+  }
+
+  html,
+  body,
+  #root {
+    background-color: var(--background);
+  }
+
+  body {
+    @apply text-foreground;
+    background-color: var(--background);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html,
+  body {
+    @apply font-sans;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--font-mono);
+  }
+
+  [data-slot="scroll-area-viewport"] {
+    overscroll-behavior: contain !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  [data-slot="scroll-area-viewport"]::-webkit-scrollbar {
+    display: none;
   }
 }
 
-.animate-ping-soft {
-  animation: ping-soft 1.4s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.panel-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.5rem;
-  min-height: 1.5rem;
-  max-height: 1.5rem;
-  padding: 0 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  line-height: 1;
-  font-weight: 600;
-  appearance: none;
-  -webkit-appearance: none;
-  vertical-align: middle;
-  border-radius: var(--radius-md);
-}
-
-.panel-pill-mono {
-  font-family: 'Geist Mono', ui-monospace, monospace;
-}
-
-/* 3. High-performance GPU transitions for smooth 120fps rendering */
-.transition-gpu {
-  transition-property: transform, opacity, background-color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-  will-change: transform, opacity, background-color;
-}
-
-/* Cross-platform accordion collapse animation (Windows, macOS, Linux) */
-.accordion-collapse {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition: grid-template-rows 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: grid-template-rows, opacity;
-}
-
-.accordion-collapse.expanded {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-
-.accordion-collapse-inner {
-  overflow: hidden;
-}
-
-/* Straight Slide Right dismissal keyframe animation */
-@keyframes slide-out-right-straight {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
-
-.item-dismissing {
-  animation-name: slide-out-right-straight;
-  animation-duration: 220ms;
-  animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
-  animation-fill-mode: forwards;
-  pointer-events: none;
-}
-
-/* 4. Animated laser shimmer effect for active download progress bars */
-@keyframes shimmer {
-  0% {
-    background-position: 200% center;
-  }
-
-  100% {
-    background-position: -200% center;
-  }
-}
-
-.animate-shimmer {
-  background-size: 200% auto;
-  animation: shimmer 2.5s infinite linear;
-}
-
-@keyframes loading-bar {
-
-  0%,
-  100% {
-    transform: scaleY(0.45);
-    opacity: 0.55;
-  }
-
-  50% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
-}
-
-.loading-bars {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 16px;
-}
-
-.loading-bars i {
-  display: block;
-  width: 3px;
-  height: 14px;
-  border-radius: 999px;
-  background: rgb(99 102 241);
-  animation: loading-bar 0.8s ease-in-out infinite;
-}
-
-.loading-bars i:nth-child(2) {
-  animation-delay: 0.12s;
-}
-
-.loading-bars i:nth-child(3) {
-  animation-delay: 0.24s;
-}
-
-.divider {
-  width: 4px;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 0.2s;
-}
-
-.divider:hover {
-  background: rgba(100, 100, 100, 0.2);
-}
-
-/* Optional glass-morphism for sidebar root */
-.sidebar-root {
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.dark .sidebar-root {
-  background: rgba(0, 0, 0, 0.9);
-}
-
-@keyframes theme-crossfade {
-  0% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-  }
-}
-
-html[data-theme-transitioning]::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 2147483647;
-  pointer-events: none;
-  background-color: var(--theme-transition-bg, transparent);
-  animation: theme-crossfade 320ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important;
-  will-change: opacity;
-  isolation: isolate;
-}
-
-@keyframes tab-pane-in {
+@keyframes cardFadeIn {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
 
   to {
@@ -538,35 +196,99 @@ html[data-theme-transitioning]::before {
   }
 }
 
-@keyframes subtab-pane-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+.animate-cards-fade-in {
+  animation: cardFadeIn 450ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Downloads Page Container Query & Responsive Grid */
+.downloads-container {
+  container-type: inline-size;
+}
+
+.download-col-actions {
+  justify-self: end !important;
+  margin-left: auto !important;
+}
+
+@container (max-width: 699px) {
+  .download-row-grid {
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
+    row-gap: 6px !important;
+    column-gap: 12px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    align-items: center !important;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .download-col-name {
+    grid-column: 1 / 3 !important;
+    grid-row: 1 / 2 !important;
+  }
+
+  .download-col-actions {
+    grid-column: 3 / 4 !important;
+    grid-row: 1 / 2 !important;
+    justify-self: end !important;
+  }
+
+  .download-col-progress {
+    grid-column: 1 / 2 !important;
+    grid-row: 2 / 3 !important;
+  }
+
+  .download-col-size {
+    grid-column: 2 / 3 !important;
+    grid-row: 2 / 3 !important;
+    text-align: right !important;
+    justify-self: end !important;
+  }
+
+  .download-col-speed {
+    grid-column: 3 / 4 !important;
+    grid-row: 2 / 3 !important;
+    text-align: right !important;
+    justify-self: end !important;
   }
 }
 
-.animate-tab-pane-in {
-  animation: tab-pane-in 200ms cubic-bezier(0.2, 0, 0, 1) forwards;
-  will-change: transform, opacity;
+/* Mod Row & Dependency Navigation Highlight */
+@keyframes targetHighlight {
+  0% {
+    outline: 2px solid #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.4), 0 0 20px 4px rgba(245, 158, 11, 0.35);
+    background-color: rgba(245, 158, 11, 0.22);
+  }
+  25% {
+    outline: 2px solid #f59e0b;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.5), 0 0 24px 6px rgba(245, 158, 11, 0.45);
+    background-color: rgba(245, 158, 11, 0.28);
+  }
+  65% {
+    outline: 2px solid rgba(245, 158, 11, 0.7);
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25), 0 0 12px 2px rgba(245, 158, 11, 0.2);
+    background-color: rgba(245, 158, 11, 0.16);
+  }
+  100% {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 0 transparent;
+    background-color: transparent;
+  }
 }
 
-.animate-subtab-pane-in {
-  animation: subtab-pane-in 160ms cubic-bezier(0.2, 0, 0, 1) forwards;
-  will-change: transform, opacity;
+.mod-highlight-active {
+  animation: targetHighlight 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+  position: relative !important;
+  z-index: 30 !important;
 }
 
-/* Reduced motion preference fallback for cross-platform accessibility */
 @media (prefers-reduced-motion: reduce) {
 
-  .animate-tab-pane-in,
-  .animate-subtab-pane-in {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

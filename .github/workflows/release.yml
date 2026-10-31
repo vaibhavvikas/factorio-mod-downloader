@@ -90,7 +90,7 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: 'apps/gui-v2/package-lock.json'
+          cache-dependency-path: 'apps/gui/package-lock.json'
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -107,7 +107,7 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Install Frontend Dependencies
-        working-directory: apps/gui-v2
+        working-directory: apps/gui
         run: npm ci
 
       - name: Run Workspace Tests
@@ -145,52 +145,36 @@ jobs:
           node -e "
             const fs = require('fs');
 
-            // apps/gui-v2/package.json
-            const pkgV2Path = 'apps/gui-v2/package.json';
-            if (fs.existsSync(pkgV2Path)) {
-              const pkgV2 = JSON.parse(fs.readFileSync(pkgV2Path, 'utf8'));
-              pkgV2.version = process.env.RAW_VERSION;
-              fs.writeFileSync(pkgV2Path, JSON.stringify(pkgV2, null, 2) + '\n');
+            // root Cargo.toml
+            const rootCargoPath = 'Cargo.toml';
+            if (fs.existsSync(rootCargoPath)) {
+              let rootCargo = fs.readFileSync(rootCargoPath, 'utf8');
+              rootCargo = rootCargo.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(rootCargoPath, rootCargo);
             }
 
-            // apps/gui-v2/src-tauri/tauri.conf.json
-            const tauriV2Path = 'apps/gui-v2/src-tauri/tauri.conf.json';
-            if (fs.existsSync(tauriV2Path)) {
-              const tauriV2Conf = JSON.parse(fs.readFileSync(tauriV2Path, 'utf8'));
-              tauriV2Conf.version = process.env.RAW_VERSION;
-              fs.writeFileSync(tauriV2Path, JSON.stringify(tauriV2Conf, null, 2) + '\n');
+            // apps/gui/package.json
+            const pkgGuiPath = 'apps/gui/package.json';
+            if (fs.existsSync(pkgGuiPath)) {
+              const pkgGui = JSON.parse(fs.readFileSync(pkgGuiPath, 'utf8'));
+              pkgGui.version = process.env.RAW_VERSION;
+              fs.writeFileSync(pkgGuiPath, JSON.stringify(pkgGui, null, 2) + '\n');
             }
 
-            // apps/gui-v2/src-tauri/Cargo.toml
-            const cargoTauriV2Path = 'apps/gui-v2/src-tauri/Cargo.toml';
-            if (fs.existsSync(cargoTauriV2Path)) {
-              let cargoTauriV2 = fs.readFileSync(cargoTauriV2Path, 'utf8');
-              cargoTauriV2 = cargoTauriV2.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
-              fs.writeFileSync(cargoTauriV2Path, cargoTauriV2);
+            // apps/gui/src-tauri/tauri.conf.json
+            const tauriGuiPath = 'apps/gui/src-tauri/tauri.conf.json';
+            if (fs.existsSync(tauriGuiPath)) {
+              const tauriGuiConf = JSON.parse(fs.readFileSync(tauriGuiPath, 'utf8'));
+              tauriGuiConf.version = process.env.RAW_VERSION;
+              fs.writeFileSync(tauriGuiPath, JSON.stringify(tauriGuiConf, null, 2) + '\n');
             }
 
-            // apps/gui-v2/package.json
-            const pkgPath = 'apps/gui-v2/package.json';
-            if (fs.existsSync(pkgPath)) {
-              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-              pkg.version = process.env.RAW_VERSION;
-              fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
-            }
-
-            // apps/gui-v2/src-tauri/tauri.conf.json
-            const tauriPath = 'apps/gui-v2/src-tauri/tauri.conf.json';
-            if (fs.existsSync(tauriPath)) {
-              const tauriConf = JSON.parse(fs.readFileSync(tauriPath, 'utf8'));
-              tauriConf.version = process.env.RAW_VERSION;
-              fs.writeFileSync(tauriPath, JSON.stringify(tauriConf, null, 2) + '\n');
-            }
-
-            // apps/gui-v2/src-tauri/Cargo.toml
-            const cargoTauriPath = 'apps/gui-v2/src-tauri/Cargo.toml';
-            if (fs.existsSync(cargoTauriPath)) {
-              let cargoTauri = fs.readFileSync(cargoTauriPath, 'utf8');
-              cargoTauri = cargoTauri.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
-              fs.writeFileSync(cargoTauriPath, cargoTauri);
+            // apps/gui/src-tauri/Cargo.toml
+            const cargoTauriGuiPath = 'apps/gui/src-tauri/Cargo.toml';
+            if (fs.existsSync(cargoTauriGuiPath)) {
+              let cargoTauriGui = fs.readFileSync(cargoTauriGuiPath, 'utf8');
+              cargoTauriGui = cargoTauriGui.replace(/^version = \".*\"/m, 'version = \"' + process.env.RAW_VERSION + '\"');
+              fs.writeFileSync(cargoTauriGuiPath, cargoTauriGui);
             }
 
             // apps/cli/Cargo.toml
@@ -207,7 +191,7 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: 'apps/gui-v2/package-lock.json'
+          cache-dependency-path: 'apps/gui/package-lock.json'
 
       - name: Install Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -226,11 +210,11 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Install Frontend Dependencies
-        working-directory: apps/gui-v2
+        working-directory: apps/gui
         run: npm ci
 
       - name: Build Desktop GUI App
-        working-directory: apps/gui-v2
+        working-directory: apps/gui
         shell: bash
         run: |
           npm run build
@@ -250,12 +234,34 @@ jobs:
           if [ "${{ matrix.platform }}" = "macos-latest" ]; then
             TARGET_DIR="target/universal-apple-darwin/release"
             cd "${TARGET_DIR}/bundle/macos"
-            zip -r "${GITHUB_WORKSPACE}/stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal.app.zip" "Factorio Mod Downloader.app"
+            if [ -d "Factorio Mod Downloader.app" ]; then
+              APP_NAME="Factorio Mod Downloader.app"
+            else
+              APP_NAME=$(ls -d *.app 2>/dev/null | head -n 1)
+            fi
+            if [ -z "$APP_NAME" ]; then
+              echo "Error: macOS app bundle not found in ${TARGET_DIR}/bundle/macos"
+              ls -la "${TARGET_DIR}/bundle/macos"
+              exit 1
+            fi
+            zip -r "${GITHUB_WORKSPACE}/stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-macos-universal.app.zip" "$APP_NAME"
           elif [ "${{ matrix.platform }}" = "windows-latest" ]; then
-            cp "${TARGET_DIR}/app.exe" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe"
+            EXE_FILE=$(ls "${TARGET_DIR}/gui.exe" "${TARGET_DIR}/gui-v2.exe" "${TARGET_DIR}/factorio-mod-downloader-gui.exe" "${TARGET_DIR}/app.exe" 2>/dev/null | head -n 1)
+            if [ -z "$EXE_FILE" ]; then
+              echo "Error: Windows GUI executable not found in ${TARGET_DIR}"
+              ls -la "${TARGET_DIR}"
+              exit 1
+            fi
+            cp "$EXE_FILE" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-windows-x64.exe"
           else
-            chmod +x "${TARGET_DIR}/app"
-            cp "${TARGET_DIR}/app" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
+            BIN_FILE=$(ls "${TARGET_DIR}/gui" "${TARGET_DIR}/gui-v2" "${TARGET_DIR}/factorio-mod-downloader-gui" "${TARGET_DIR}/app" 2>/dev/null | head -n 1)
+            if [ -z "$BIN_FILE" ]; then
+              echo "Error: Linux GUI executable not found in ${TARGET_DIR}"
+              ls -la "${TARGET_DIR}"
+              exit 1
+            fi
+            chmod +x "$BIN_FILE"
+            cp "$BIN_FILE" "stage_assets/factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
             cd stage_assets
             tar -czvf "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64.tar.gz" "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
             rm "factorio-mod-downloader-gui-${TARGET_VERSION}-linux-x64"
