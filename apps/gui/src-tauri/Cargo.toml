@@ -42,12 +42,3 @@ windows-sys = { version = "0.59", features = ["Win32_Graphics_Dwm", "Win32_Found
 
 [target."cfg(target_os = \"macos\")".dependencies]
 objc2-app-kit = { version = "0.3.2", features = ["NSColor", "NSWindow", "objc2-core-foundation"] }
-
-
-# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
-[profile.release]
-codegen-units = 1
-lto = true
-opt-level = 3
-panic = "abort"
-strip = true

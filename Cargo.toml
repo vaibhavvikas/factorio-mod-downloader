@@ -17,3 +17,10 @@ authors = ["Vaibhav Vikas <vaibhavvikas@users.noreply.github.com>"]
 license = "MIT"
 repository = "https://github.com/vaibhavvikas/factorio-mod-downloader"
 edition = "2024"
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+opt-level = 3
+panic = "abort"
+strip = true

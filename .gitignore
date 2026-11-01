@@ -48,4 +48,8 @@ lerna-debug.log*
 .agents/
 **/.agents/
 AGENTS.md
+
+# Build Artifacts Staging
+dist_executable/
+stage_assets/
 **/AGENTS.md

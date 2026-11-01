@@ -40,7 +40,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - name: Install Frontend Dependencies
         working-directory: apps/gui
@@ -65,33 +65,91 @@ jobs:
         run: |
           mkdir -p dist_executable
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            EXE_FILE=$(ls target/release/gui.exe target/release/gui-v2.exe target/release/factorio-mod-downloader-gui.exe target/release/app.exe 2>/dev/null | head -n 1)
+            EXE_FILE=""
+            for candidate in \
+              "target/release/gui.exe" \
+              "target/release/Factorio Mod Downloader.exe" \
+              "target/release/factorio-mod-downloader.exe" \
+              "target/release/factorio-mod-downloader-gui.exe" \
+              "target/release/gui-v2.exe" \
+              "target/release/app.exe" \
+              "apps/gui/src-tauri/target/release/gui.exe" \
+              "apps/gui/src-tauri/target/release/Factorio Mod Downloader.exe"
+            do
+              if [ -f "$candidate" ]; then
+                EXE_FILE="$candidate"
+                break
+              fi
+            done
+
             if [ -z "$EXE_FILE" ]; then
+              EXE_FILE=$(find target -maxdepth 3 -type f -name "*.exe" ! -name "*cli*" ! -name "build*" ! -path "*/deps/*" 2>/dev/null | head -n 1)
+            fi
+
+            if [ -z "$EXE_FILE" ] || [ ! -f "$EXE_FILE" ]; then
               echo "Error: Windows GUI executable not found in target/release/"
-              ls -la target/release/
+              ls -la target/release/ 2>/dev/null || true
               exit 1
             fi
+            echo "Staging Windows executable: $EXE_FILE"
             cp "$EXE_FILE" dist_executable/factorio-mod-downloader-gui-windows-x64.exe
+
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            cd target/release/bundle/macos
-            if [ -d "Factorio Mod Downloader.app" ]; then
-              APP_NAME="Factorio Mod Downloader.app"
-            else
-              APP_NAME=$(ls -d *.app 2>/dev/null | head -n 1)
+            APP_DIR=""
+            for candidate in \
+              "target/release/bundle/macos/Factorio Mod Downloader.app" \
+              "target/universal-apple-darwin/release/bundle/macos/Factorio Mod Downloader.app" \
+              "apps/gui/src-tauri/target/release/bundle/macos/Factorio Mod Downloader.app"
+            do
+              if [ -d "$candidate" ]; then
+                APP_DIR="$candidate"
+                break
+              fi
+            done
+
+            if [ -z "$APP_DIR" ]; then
+              APP_DIR=$(find target -type d -name "*.app" 2>/dev/null | head -n 1)
             fi
-            if [ -z "$APP_NAME" ]; then
+
+            if [ -z "$APP_DIR" ] || [ ! -d "$APP_DIR" ]; then
               echo "Error: macOS app bundle not found in target/release/bundle/macos/"
-              ls -la .
+              ls -la target/release/bundle/macos/ 2>/dev/null || true
               exit 1
             fi
-            zip -r "${GITHUB_WORKSPACE}/dist_executable/factorio-mod-downloader-gui-macos-x64.app.zip" "$APP_NAME"
+            echo "Staging macOS app bundle: $APP_DIR"
+            APP_DIR_ABS="$(cd "$APP_DIR" && pwd)"
+            APP_PARENT_DIR="$(dirname "$APP_DIR_ABS")"
+            APP_BASE_NAME="$(basename "$APP_DIR_ABS")"
+            (cd "$APP_PARENT_DIR" && zip -r "${GITHUB_WORKSPACE}/dist_executable/factorio-mod-downloader-gui-macos-x64.app.zip" "$APP_BASE_NAME")
+
           else
-            BIN_FILE=$(ls target/release/gui target/release/gui-v2 target/release/factorio-mod-downloader-gui target/release/app 2>/dev/null | head -n 1)
+            BIN_FILE=""
+            for candidate in \
+              "target/release/gui" \
+              "target/release/Factorio Mod Downloader" \
+              "target/release/factorio-mod-downloader" \
+              "target/release/factorio-mod-downloader-gui" \
+              "target/release/gui-v2" \
+              "target/release/app" \
+              "apps/gui/src-tauri/target/release/gui" \
+              "apps/gui/src-tauri/target/release/Factorio Mod Downloader"
+            do
+              if [ -f "$candidate" ] && [ ! -d "$candidate" ]; then
+                BIN_FILE="$candidate"
+                break
+              fi
+            done
+
             if [ -z "$BIN_FILE" ]; then
+              BIN_FILE=$(find target -maxdepth 3 -type f -executable ! -name "*.d" ! -name "*.so*" ! -name "*cli*" ! -name "build*" ! -path "*/deps/*" 2>/dev/null | head -n 1)
+            fi
+
+            if [ -z "$BIN_FILE" ] || [ ! -f "$BIN_FILE" ]; then
               echo "Error: Linux GUI executable not found in target/release/"
-              ls -la target/release/
+              ls -la target/release/ 2>/dev/null || true
               exit 1
             fi
+            echo "Staging Linux executable: $BIN_FILE"
             chmod +x "$BIN_FILE"
             cp "$BIN_FILE" dist_executable/factorio-mod-downloader-gui-linux-x64
             cd dist_executable
