@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::{Mutex, Semaphore};
 
 use common::emit_log_with_tag;
@@ -11,6 +12,8 @@ use crate::downloader::{download_mod_file, DownloadRequest};
 use crate::models::{DownloadStatus, DownloadTask};
 
 pub const DEFAULT_MAX_CONCURRENT_DOWNLOADS: usize = 5;
+/// Maximum number of tasks to retain in memory. Oldest completed/failed tasks are evicted.
+pub const MAX_DOWNLOAD_TASKS: usize = 1000;
 
 #[derive(Clone)]
 pub struct DownloadQueueManager {
@@ -24,6 +27,35 @@ pub struct DownloadQueueManager {
 impl Default for DownloadQueueManager {
     fn default() -> Self {
         Self::new(DEFAULT_MAX_CONCURRENT_DOWNLOADS)
+    }
+}
+
+impl DownloadQueueManager {
+    /// Evict oldest completed/failed tasks if we exceed the max task limit.
+    fn evict_stale_tasks(guard: &mut tokio::sync::MutexGuard<'_, HashMap<String, DownloadTask>>) {
+        if guard.len() <= MAX_DOWNLOAD_TASKS {
+            return;
+        }
+
+        let to_remove: Vec<String> = guard
+            .iter()
+            .filter(|(_, t)| {
+                matches!(
+                    t.status,
+                    DownloadStatus::Completed
+                        | DownloadStatus::Updated
+                        | DownloadStatus::Downgraded
+                        | DownloadStatus::AlreadyExists
+                        | DownloadStatus::Failed(_)
+                )
+            })
+            .map(|(k, _)| k.clone())
+            .take(guard.len().saturating_sub(MAX_DOWNLOAD_TASKS))
+            .collect();
+
+        for key in to_remove {
+            guard.remove(&key);
+        }
     }
 }
 
@@ -110,7 +142,7 @@ impl DownloadQueueManager {
                     .unwrap_or(0);
 
                 let mut guard = self.tasks.lock().await;
-                let now_ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+                let now_ms = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
                 guard.insert(
                     task_id.clone(),
                     DownloadTask {
@@ -129,6 +161,7 @@ impl DownloadQueueManager {
                         enqueued_at: Some(now_ms),
                     },
                 );
+                Self::evict_stale_tasks(&mut guard);
                 emit_log_with_tag("info", "mods", &format!("Mod already exists in folder: \"{}\" (v{})", item.title, item.version));
                 continue;
             }
@@ -161,7 +194,7 @@ impl DownloadQueueManager {
                     continue;
                 }
 
-                let now_ms = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
+                let now_ms = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
                 guard.insert(
                     task_id.clone(),
                     DownloadTask {
@@ -180,6 +213,7 @@ impl DownloadQueueManager {
                         enqueued_at: Some(now_ms),
                     },
                 );
+                Self::evict_stale_tasks(&mut guard);
 
                 let mut flags = self.cancel_flags.lock().await;
                 flags.insert(task_id.clone(), cancel_flag.clone());
@@ -360,15 +394,36 @@ impl DownloadQueueManager {
 
     pub async fn clear_completed(&self) {
         let mut guard = self.tasks.lock().await;
-        guard.retain(|_, task| {
-            matches!(
-                task.status,
-                DownloadStatus::Pending
-                    | DownloadStatus::Downloading
-                    | DownloadStatus::Paused
-                    | DownloadStatus::Failed(_)
-            )
-        });
+        let to_remove: Vec<String> = guard
+            .iter()
+            .filter(|(_, t)| {
+                !matches!(
+                    t.status,
+                    DownloadStatus::Pending
+                        | DownloadStatus::Downloading
+                        | DownloadStatus::Paused
+                        | DownloadStatus::Failed(_)
+                )
+            })
+            .map(|(k, _)| k.clone())
+            .collect();
+        for key in &to_remove {
+            guard.remove(key);
+        }
+        drop(guard);
+
+        // Clean up associated flags
+        if !to_remove.is_empty() {
+            let mut cflags = self.cancel_flags.lock().await;
+            for key in &to_remove {
+                cflags.remove(key);
+            }
+            let mut pflags = self.pause_flags.lock().await;
+            for key in &to_remove {
+                pflags.remove(key);
+            }
+        }
+
         emit_log_with_tag("info", "queue", "Cleared completed tasks from download queue");
     }
 
@@ -427,6 +482,12 @@ impl DownloadQueueManager {
                     requested_by: task.requested_by.clone(),
                 };
                 drop(guard);
+
+                // Clean up old flags for the retried task
+                let mut cflags = self.cancel_flags.lock().await;
+                cflags.remove(&key);
+                let mut pflags = self.pause_flags.lock().await;
+                pflags.remove(&key);
 
                 self.enqueue_batch(vec![item], output_dir).await;
             }

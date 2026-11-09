@@ -127,7 +127,11 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
         }
 
         const prev = prevMap.get(bt.id)
-        if (isDone && prev && prev.statusType !== "completed" && prev.statusType !== "alreadyExists") {
+        if (
+          isDone &&
+          prev &&
+          !["completed", "alreadyExists", "updated", "downgraded"].includes(prev.statusType)
+        ) {
           newlyCompleted = prev
         }
 
@@ -262,6 +266,14 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
       const backendIdSet = new Set(backendTasks.flatMap((bt) => [bt.id, `${bt.id}_${bt.version}`]))
       const updatedDismissed = state.dismissedTaskIds.filter((id) => backendIdSet.has(id))
 
+      // Prune completedTimestamps for tasks no longer present (prevents unbounded growth)
+      const prunedTimestamps: Record<string, number> = {}
+      for (const [id, ts] of Object.entries(newCompletedTimestamps)) {
+        if (backendIdSet.has(id)) {
+          prunedTimestamps[id] = ts
+        }
+      }
+
       set({
         tasks: formatted,
         batches: backendBatches || [],
@@ -270,7 +282,7 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
         overallProgress,
         overallProgressPercent,
         activeDownload: currentActiveDownload,
-        completedTimestamps: newCompletedTimestamps,
+        completedTimestamps: prunedTimestamps,
         lastCompletedTask: newlyCompleted || state.lastCompletedTask,
         dismissedTaskIds: updatedDismissed,
       })
@@ -373,8 +385,6 @@ export const useDownloadsStore = create<DownloadsState>((set, get) => ({
 
       if (didEnableAny || newlyCompleted) {
         await useModManagerStore.getState().loadMods(true)
-        const factorioVer = useSettingsStore.getState().factorioVersion
-        await useModManagerStore.getState().checkUpdates(factorioVer)
       }
     } catch {
       // Ignore background poll errors during teardown

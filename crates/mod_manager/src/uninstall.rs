@@ -90,7 +90,7 @@ pub fn execute_uninstall(
     for m in installed {
         if remove_set.contains(m.name.as_str()) {
             let p = Path::new(&m.file_path);
-            let _ = delete_mod_file(p);
+            let _ = delete_mod_file(mods_folder, p);
         }
     }
 

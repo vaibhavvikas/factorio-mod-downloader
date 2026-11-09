@@ -26,6 +26,8 @@ export interface WindowStateData {
   y?: number | null
 }
 
+export type UpdateCheckFrequency = "startup" | "daily" | "weekly" | "manual"
+
 export interface AppConfigData {
   mods_folder?: string | null
   factorio_version?: string | null
@@ -33,6 +35,7 @@ export interface AppConfigData {
   max_concurrency?: number | null
   auto_retry?: boolean | null
   auto_check_updates?: boolean | null
+  update_check_frequency?: UpdateCheckFrequency | null
   timeout_guard?: boolean | null
   window_state?: WindowStateData | null
   setup_completed?: boolean | null
@@ -46,6 +49,8 @@ interface SettingsState {
   maxConcurrency: string
   autoRetry: boolean
   autoCheckUpdates: boolean
+  updateCheckFrequency: UpdateCheckFrequency
+  lastUpdateCheckTime: number | null
   timeoutGuard: boolean
   configPath: string
   setupCompleted: boolean
@@ -59,6 +64,8 @@ interface SettingsState {
   setMaxConcurrency: (limit: string) => Promise<void>
   setAutoRetry: (retry: boolean) => Promise<void>
   setAutoCheckUpdates: (check: boolean) => Promise<void>
+  setUpdateCheckFrequency: (freq: UpdateCheckFrequency) => Promise<void>
+  setLastUpdateCheckTime: (time: number) => void
   setTimeoutGuard: (guard: boolean) => Promise<void>
   openConfigFolder: () => Promise<void>
   resetToDefaults: () => Promise<void>
@@ -76,6 +83,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   maxConcurrency: "5",
   autoRetry: true,
   autoCheckUpdates: true,
+  updateCheckFrequency: "startup",
+  lastUpdateCheckTime:
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("factorio-last-update-check")) || null
+      : null,
   timeoutGuard: true,
   configPath: "",
   setupCompleted: true,
@@ -90,6 +102,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       max_concurrency: parseInt(s.maxConcurrency, 10) || 5,
       auto_retry: s.autoRetry,
       auto_check_updates: s.autoCheckUpdates,
+      update_check_frequency: s.updateCheckFrequency,
       timeout_guard: s.timeoutGuard,
       setup_completed: s.setupCompleted,
     }
@@ -140,6 +153,15 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         maxConcurrency: config.max_concurrency ? String(config.max_concurrency) : "5",
         autoRetry: config.auto_retry ?? true,
         autoCheckUpdates: config.auto_check_updates ?? true,
+        updateCheckFrequency:
+          (config.update_check_frequency as UpdateCheckFrequency) ||
+          (typeof window !== "undefined"
+            ? (localStorage.getItem("factorio-update-frequency") as UpdateCheckFrequency) || "startup"
+            : "startup"),
+        lastUpdateCheckTime:
+          typeof window !== "undefined"
+            ? Number(localStorage.getItem("factorio-last-update-check")) || null
+            : null,
         timeoutGuard: config.timeout_guard ?? true,
         configPath: configPath || "",
         setupCompleted: isSetupDone,
@@ -202,8 +224,32 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   setAutoCheckUpdates: async (check: boolean) => {
-    set({ autoCheckUpdates: check })
+    set({
+      autoCheckUpdates: check,
+      updateCheckFrequency: check ? "startup" : "manual",
+    })
+    if (typeof window !== "undefined") {
+      localStorage.setItem("factorio-update-frequency", check ? "startup" : "manual")
+    }
     await get().saveCurrentConfig()
+  },
+
+  setUpdateCheckFrequency: async (freq: UpdateCheckFrequency) => {
+    set({
+      updateCheckFrequency: freq,
+      autoCheckUpdates: freq !== "manual",
+    })
+    if (typeof window !== "undefined") {
+      localStorage.setItem("factorio-update-frequency", freq)
+    }
+    await get().saveCurrentConfig()
+  },
+
+  setLastUpdateCheckTime: (time: number) => {
+    set({ lastUpdateCheckTime: time })
+    if (typeof window !== "undefined") {
+      localStorage.setItem("factorio-last-update-check", String(time))
+    }
   },
 
   setTimeoutGuard: async (guard: boolean) => {

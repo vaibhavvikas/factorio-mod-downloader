@@ -49,6 +49,7 @@ import { FactorioVersionConfirmDialog } from "@/components/layout/factorio-versi
 import {
   useSettingsStore,
   DEFAULT_FACTORIO_VERSIONS,
+  type UpdateCheckFrequency,
 } from "@/stores/use-settings-store"
 import { useModManagerStore } from "@/stores/use-mod-manager-store"
 import { isVersionNewer } from "@/lib/version-utils"
@@ -112,6 +113,8 @@ export function SettingsView() {
     setAutoRetry,
     autoCheckUpdates,
     setAutoCheckUpdates,
+    updateCheckFrequency,
+    setUpdateCheckFrequency,
     timeoutGuard,
     setTimeoutGuard,
     configPath,
@@ -540,21 +543,39 @@ export function SettingsView() {
 
                     <Separator />
 
-                    {/* Auto check updates */}
+                    {/* Auto check updates frequency */}
                     <div className="flex items-center justify-between gap-4">
                       <div className="space-y-0.5">
                         <Label className="text-sm font-medium text-foreground">
                           Automatic Update Checking
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Check for newer mod versions when opening the explore view.
+                          Configure how frequently the app checks the Factorio Mod Portal for updates.
                         </p>
                       </div>
 
-                      <Switch
-                        checked={autoCheckUpdates}
-                        onCheckedChange={setAutoCheckUpdates}
-                      />
+                      <Select
+                        value={updateCheckFrequency}
+                        onValueChange={(val) => setUpdateCheckFrequency(val as UpdateCheckFrequency)}
+                      >
+                        <SelectTrigger className="w-56 h-8 text-xs">
+                          <SelectValue placeholder="Frequency" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-64 min-w-(--anchor-width) w-auto">
+                          <SelectItem value="startup" className="text-xs py-1.5 pl-2.5 pr-8">
+                            On Launch (Every 6 hrs)
+                          </SelectItem>
+                          <SelectItem value="daily" className="text-xs py-1.5 pl-2.5 pr-8">
+                            Once a Day (Every 24 hrs)
+                          </SelectItem>
+                          <SelectItem value="weekly" className="text-xs py-1.5 pl-2.5 pr-8">
+                            Once a Week
+                          </SelectItem>
+                          <SelectItem value="manual" className="text-xs py-1.5 pl-2.5 pr-8">
+                            Manual Only
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <Separator />

@@ -274,7 +274,14 @@ pub fn get_installed_mod_groups(
         }
     }
 
-    groups.sort_by_key(|a| a.title.to_lowercase());
+    groups.sort_by(|a, b| {
+        let cmp = a.title.to_lowercase().cmp(&b.title.to_lowercase());
+        if cmp != std::cmp::Ordering::Equal {
+            cmp
+        } else {
+            a.name.cmp(&b.name)
+        }
+    });
 
     groups
 }
@@ -641,7 +648,12 @@ fn build_root_group(
             sorted.sort_by(|a, b| {
                 let title_a = mod_map.get(a).map(|m| m.title.as_str()).unwrap_or(a);
                 let title_b = mod_map.get(b).map(|m| m.title.as_str()).unwrap_or(b);
-                title_a.to_lowercase().cmp(&title_b.to_lowercase())
+                let cmp = title_a.to_lowercase().cmp(&title_b.to_lowercase());
+                if cmp != std::cmp::Ordering::Equal {
+                    cmp
+                } else {
+                    a.cmp(b)
+                }
             });
 
             for child_name in sorted {
@@ -883,12 +895,28 @@ pub fn compute_installed_mod_graph(
     sorted_root_names.sort_by(|a, b| {
         let title_a = mod_map.get(a).map(|m| m.title.as_str()).unwrap_or(a);
         let title_b = mod_map.get(b).map(|m| m.title.as_str()).unwrap_or(b);
-        title_a.to_lowercase().cmp(&title_b.to_lowercase())
+        let cmp = title_a.to_lowercase().cmp(&title_b.to_lowercase());
+        if cmp != std::cmp::Ordering::Equal {
+            cmp
+        } else {
+            a.cmp(b)
+        }
     });
 
     for root_name in sorted_root_names {
-        let child_names = root_groups.remove(&root_name).unwrap_or_default();
-        let grp_refs = group_references.remove(&root_name).unwrap_or_default();
+        let mut child_names = root_groups.remove(&root_name).unwrap_or_default();
+        child_names.sort_by(|a, b| {
+            let title_a = mod_map.get(a).map(|m| m.title.as_str()).unwrap_or(a);
+            let title_b = mod_map.get(b).map(|m| m.title.as_str()).unwrap_or(b);
+            let cmp = title_a.to_lowercase().cmp(&title_b.to_lowercase());
+            if cmp != std::cmp::Ordering::Equal {
+                cmp
+            } else {
+                a.cmp(b)
+            }
+        });
+        let mut grp_refs = group_references.remove(&root_name).unwrap_or_default();
+        grp_refs.sort_by(|a, b| a.target_name.cmp(&b.target_name));
         result.push(build_root_group(
             &root_name,
             &child_names,

@@ -1,9 +1,38 @@
 use crate::client::ApiClient;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::Path;
+use std::sync::{Mutex, OnceLock};
+use std::time::{Duration, Instant};
 use zip::ZipArchive;
+
+/// Simple rate limiter to prevent excessive calls to the Factorio Mod Portal API.
+/// Minimum 10 seconds between calls to the same endpoint.
+static RATE_LIMITER: OnceLock<Mutex<HashMap<String, Instant>>> = OnceLock::new();
+
+fn rate_limiter() -> &'static Mutex<HashMap<String, Instant>> {
+    RATE_LIMITER.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+const MIN_API_CALL_INTERVAL: Duration = Duration::from_secs(10);
+
+fn check_rate_limit(key: &str) -> Result<(), String> {
+    let mut guard = rate_limiter().lock().map_err(|e| e.to_string())?;
+    let now = Instant::now();
+    if let Some(last) = guard.get(key) {
+        if now.duration_since(*last) < MIN_API_CALL_INTERVAL {
+            let remaining = MIN_API_CALL_INTERVAL - now.duration_since(*last);
+            return Err(format!(
+                "Rate limit exceeded. Please wait {:.0} seconds before checking for updates again.",
+                remaining.as_secs_f64()
+            ));
+        }
+    }
+    guard.insert(key.to_string(), now);
+    Ok(())
+}
 
 pub const VIRTUAL_CORE_MODS: &[(&str, &str, &str)] = &[
     ("base", "Base Game", "Core Factorio game content and data"),
@@ -71,6 +100,9 @@ pub struct InfoJson {
     pub dependencies: Vec<String>,
 }
 
+/// Maximum thumbnail size in bytes before we skip embedding it (prevents memory bloat).
+const MAX_THUMBNAIL_BYTES: usize = 64 * 1024; // 64 KB
+
 pub fn read_mod_metadata_from_zip(zip_path: &Path) -> Option<(InfoJson, Option<String>)> {
     let file = File::open(zip_path).ok()?;
     let mut archive = ZipArchive::new(file).ok()?;
@@ -90,7 +122,7 @@ pub fn read_mod_metadata_from_zip(zip_path: &Path) -> Option<(InfoJson, Option<S
             }
         } else if thumbnail.is_none() && name.ends_with("thumbnail.png") {
             let mut buf = Vec::new();
-            if zip_file.read_to_end(&mut buf).is_ok() {
+            if zip_file.read_to_end(&mut buf).is_ok() && buf.len() <= MAX_THUMBNAIL_BYTES {
                 use base64::Engine;
                 let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
                 thumbnail = Some(format!("data:image/png;base64,{}", b64));
@@ -120,7 +152,8 @@ pub fn read_info_json_from_dir(dir_path: &Path) -> Option<InfoJson> {
 pub fn read_thumbnail_from_dir(dir_path: &Path) -> Option<String> {
     let thumb_path = dir_path.join("thumbnail.png");
     if thumb_path.is_file()
-        && let Ok(bytes) = fs::read(&thumb_path) {
+        && let Ok(bytes) = fs::read(&thumb_path)
+        && bytes.len() <= MAX_THUMBNAIL_BYTES {
             use base64::Engine;
             let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
             return Some(format!("data:image/png;base64,{}", b64));
@@ -288,7 +321,10 @@ pub fn write_mod_list_atomic(
 pub async fn check_updates_for_installed_mods(
     mut installed_mods: Vec<InstalledModDetails>,
     target_factorio_version: Option<String>,
-) -> Vec<InstalledModDetails> {
+) -> Result<Vec<InstalledModDetails>, String> {
+    // Rate limit: prevent excessive calls to the Factorio Mod Portal API
+    check_rate_limit("check_mod_updates")?;
+
     let api_client = ApiClient::new();
     let mod_names: Vec<String> = installed_mods
         .iter()
@@ -374,7 +410,7 @@ pub async fn check_updates_for_installed_mods(
         }
     }
 
-    installed_mods
+    Ok(installed_mods)
 }
 
 /// Backwards-compatible helper for single mod update check.
@@ -383,7 +419,8 @@ pub async fn check_single_mod_update_with_client(
     mod_item: InstalledModDetails,
     target_factorio_version: Option<String>,
 ) -> InstalledModDetails {
-    let list = check_updates_for_installed_mods(vec![mod_item], target_factorio_version).await;
+    let list = check_updates_for_installed_mods(vec![mod_item.clone()], target_factorio_version).await
+        .unwrap_or_else(|_| vec![mod_item]);
     list.into_iter().next().unwrap()
 }
 
@@ -417,11 +454,25 @@ pub fn is_release_compatible(rel_fver: Option<&str>, target_fver: Option<&str>) 
     rel_clean.starts_with(&target_clean) || target_clean.starts_with(&rel_clean)
 }
 
-pub fn delete_mod_file(file_path: &Path) -> Result<(), String> {
-    if file_path.is_file() {
-        fs::remove_file(file_path).map_err(|e| format!("Failed to delete mod file: {}", e))?;
-    } else if file_path.is_dir() {
-        fs::remove_dir_all(file_path).map_err(|e| format!("Failed to delete mod directory: {}", e))?;
+/// Delete a file or directory, but only if it is contained within `mods_folder`.
+/// Prevents path traversal attacks by resolving and canonicalizing both paths.
+pub fn delete_mod_file(mods_folder: &Path, file_path: &Path) -> Result<(), String> {
+    let mods_folder_canon = mods_folder.canonicalize().map_err(|e| format!("Cannot canonicalize mods folder: {}", e))?;
+    let file_canon = file_path.canonicalize().map_err(|e| format!("Cannot canonicalize file path: {}", e))?;
+
+    // Ensure the file path starts with the mods folder path
+    if !file_canon.starts_with(&mods_folder_canon) {
+        return Err(format!(
+            "Path traversal detected: '{}' is outside mods folder '{}'",
+            file_canon.display(),
+            mods_folder_canon.display()
+        ));
+    }
+
+    if file_canon.is_file() {
+        fs::remove_file(&file_canon).map_err(|e| format!("Failed to delete mod file: {}", e))?;
+    } else if file_canon.is_dir() {
+        fs::remove_dir_all(&file_canon).map_err(|e| format!("Failed to delete mod directory: {}", e))?;
     }
     Ok(())
 }

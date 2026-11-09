@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { invoke } from "@tauri-apps/api/core"
 import type { InstalledModGroup, ModGroupGraph, StorageUsage } from "@/features/mod-manager/types"
 import { parseDependencyString } from "@/features/mod-manager/grouping"
-import { compareVersions, isFactorioVersionCompatible } from "@/lib/version-utils"
+import { isFactorioVersionCompatible } from "@/lib/version-utils"
 import { useDownloadsStore } from "./use-downloads-store"
 import { useSettingsStore } from "./use-settings-store"
 
@@ -190,6 +190,7 @@ interface ModManagerStore {
   switchVersion: (modName: string, version: string) => Promise<void>
   deleteVersion: (modName: string, version: string) => Promise<void>
   checkUpdates: (targetFactorioVersion?: string) => Promise<void>
+  checkUpdatesIfDue: (force?: boolean) => Promise<void>
   setFilterTab: (tab: ModFilterTab) => void
   setSearchQuery: (query: string) => void
   setAutoCascadeDependencies: (enabled: boolean) => void
@@ -229,68 +230,16 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
         }),
       ])
 
-      // Preserve update flags (hasUpdate / latestVersion) from the existing store
-      // so they survive a reload (e.g. switching back to the installed tab).
-      const prev = get()
-      const prevUpdateByName = new Map<string, { hasUpdate: boolean; latestVersion?: string }>()
-      for (const m of prev.mods) {
-        prevUpdateByName.set(m.name, { hasUpdate: m.hasUpdate, latestVersion: m.latestVersion })
-      }
-      for (const g of prev.graphGroups) {
-        if (g.root) {
-          prevUpdateByName.set(g.root.name, {
-            hasUpdate: g.root.hasUpdate,
-            latestVersion: g.root.latestVersion,
-          })
-        }
-        for (const c of g.children) {
-          prevUpdateByName.set(c.name, {
-            hasUpdate: c.hasUpdate,
-            latestVersion: c.latestVersion,
-          })
-        }
-      }
-
-      const applyUpdates = <T extends { name: string; hasUpdate: boolean; latestVersion?: string }>(
-        item: T
-      ): T => {
-        const u = prevUpdateByName.get(item.name)
-        if (!u) return item
-
-        const currentVer = ((item as any).activeVersion || (item as any).version || "").trim()
-        const targetVer = (u.latestVersion || "").trim()
-
-        // If the installed version is already equal to or newer than the target version,
-        // it means this mod is ALREADY at this version, so no update/downgrade should be shown.
-        const isAlreadyAtTarget = Boolean(
-          currentVer &&
-          targetVer &&
-          compareVersions(currentVer, targetVer) === 0
-        )
-
-        if (isAlreadyAtTarget) {
-          return {
-            ...item,
-            hasUpdate: false,
-            latestVersion: undefined,
-          } as T
-        }
-
-        return { ...item, hasUpdate: u.hasUpdate, latestVersion: u.latestVersion } as T
-      }
-
-      const nextMods = groups.map((m) => applyUpdates(m))
+      // Trust backend data for update flags — always call checkUpdates() after
+      // loadMods() if you need refreshed hasUpdate/latestVersion values.
+      const nextMods = groups
       const nextGraphGroups = graph.map((g) => {
-        const nextRoot = g.root ? applyUpdates(g.root) : null
-        const nextChildren = g.children.map((c) => applyUpdates(c))
-        // Recompute aggregate updateCount from preserved hasUpdate flags so the
-        // "updates" filter tab keeps working after a reload.
-        const rootUpdateCount = nextRoot?.hasUpdate ? 1 : 0
-        const childUpdateCount = nextChildren.filter((c) => !c.missing && c.hasUpdate).length
+        const rootUpdateCount = g.root?.hasUpdate ? 1 : 0
+        const childUpdateCount = g.children.filter((c) => !c.missing && c.hasUpdate).length
         return {
           ...g,
-          root: nextRoot,
-          children: nextChildren,
+          root: g.root,
+          children: g.children,
           updateCount: rootUpdateCount + childUpdateCount,
         }
       })
@@ -324,7 +273,9 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
   checkFactorioRunning: async () => {
     try {
       const running = await invoke<boolean>("is_factorio_running")
-      set({ isFactorioRunning: running })
+      if (get().isFactorioRunning !== running) {
+        set({ isFactorioRunning: running })
+      }
       return running
     } catch {
       return false
@@ -484,10 +435,38 @@ export const useModManagerStore = create<ModManagerStore>((set, get) => ({
           isCheckingUpdates: false,
         }
       })
+      useSettingsStore.getState().setLastUpdateCheckTime(Date.now())
     } catch (e) {
       console.error("Failed to check mod updates:", e)
       set({ isCheckingUpdates: false })
     }
+  },
+
+  checkUpdatesIfDue: async (force = false) => {
+    const settings = useSettingsStore.getState()
+    const freq =
+      settings.updateCheckFrequency ||
+      (settings.autoCheckUpdates ? "startup" : "manual")
+    if (freq === "manual" && !force) {
+      return
+    }
+
+    const lastCheck = settings.lastUpdateCheckTime
+    if (!force && lastCheck) {
+      const elapsed = Date.now() - lastCheck
+      let cooldown = 6 * 60 * 60 * 1000 // default startup cooldown: 6 hours
+      if (freq === "daily") {
+        cooldown = 24 * 60 * 60 * 1000 // 24 hours
+      } else if (freq === "weekly") {
+        cooldown = 7 * 24 * 60 * 60 * 1000 // 7 days
+      }
+
+      if (elapsed < cooldown) {
+        return
+      }
+    }
+
+    await get().checkUpdates()
   },
 
   setFilterTab: (tab: ModFilterTab) => set({ filterTab: tab }),

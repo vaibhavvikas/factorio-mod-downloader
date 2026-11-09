@@ -20,6 +20,7 @@ pub struct AppConfig {
     pub max_concurrency: Option<usize>,
     pub auto_retry: Option<bool>,
     pub auto_check_updates: Option<bool>,
+    pub update_check_frequency: Option<String>,
     pub timeout_guard: Option<bool>,
     pub window_state: Option<WindowState>,
     #[serde(default)]
@@ -35,6 +36,7 @@ impl Default for AppConfig {
             max_concurrency: Some(5),
             auto_retry: Some(true),
             auto_check_updates: Some(true),
+            update_check_frequency: Some("startup".to_string()),
             timeout_guard: Some(true),
             window_state: None,
             setup_completed: Some(false),
@@ -89,6 +91,16 @@ pub fn get_mods_folder() -> Result<Option<String>, String> {
 
 #[tauri::command]
 pub fn save_mods_folder(path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+
+    // Validate that the path exists and is a directory before saving
+    if !p.exists() {
+        return Err(format!("Mods folder does not exist: {}", path));
+    }
+    if !p.is_dir() {
+        return Err(format!("Mods folder path is not a directory: {}", path));
+    }
+
     let mut config = get_app_config().unwrap_or_default();
     #[cfg(target_os = "windows")]
     let normalized = path.replace('/', "\\");

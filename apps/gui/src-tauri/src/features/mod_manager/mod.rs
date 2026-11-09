@@ -156,7 +156,7 @@ pub async fn check_mod_updates(
     };
     let (mods_folder, _) = resolve_paths()?;
     let raw_installed = factorio::installed::scan_installed_mods(&mods_folder);
-    let updated = factorio::installed::check_updates_for_installed_mods(raw_installed, effective_version).await;
+    let updated = factorio::installed::check_updates_for_installed_mods(raw_installed, effective_version).await?;
     Ok(updated)
 }
 

@@ -131,12 +131,14 @@ export function ModManagerView({ isActive }: ModManagerViewProps = {}) {
   const loadMods = useModManagerStore((s) => s.loadMods)
   const toggleModGroupEnabled = useModManagerStore((s) => s.toggleModGroupEnabled)
   const checkUpdates = useModManagerStore((s) => s.checkUpdates)
+  const checkUpdatesIfDue = useModManagerStore((s) => s.checkUpdatesIfDue)
   const checkFactorioRunning = useModManagerStore((s) => s.checkFactorioRunning)
   const setFilterTab = useModManagerStore((s) => s.setFilterTab)
   const setSearchQuery = useModManagerStore((s) => s.setSearchQuery)
 
   const factorioVersion = useSettingsStore((s) => s.factorioVersion)
   const modsFolder = useSettingsStore((s) => s.modsFolder)
+  const lastUpdateCheckTime = useSettingsStore((s) => s.lastUpdateCheckTime)
 
   // Dialog states
   const [selectedModForDetails, setSelectedModForDetails] = React.useState<InstalledModGroup | null>(null)
@@ -170,7 +172,8 @@ export function ModManagerView({ isActive }: ModManagerViewProps = {}) {
   React.useEffect(() => {
     loadMods()
     checkFactorioRunning()
-  }, [loadMods, checkFactorioRunning])
+    checkUpdatesIfDue()
+  }, [loadMods, checkFactorioRunning, checkUpdatesIfDue])
 
   // Reload mods when view becomes active
   React.useEffect(() => {
@@ -535,6 +538,11 @@ export function ModManagerView({ isActive }: ModManagerViewProps = {}) {
             className="h-8 text-xs gap-1.5 cursor-pointer"
             disabled={isCheckingUpdates || isLoading}
             onClick={() => checkUpdates(factorioVersion)}
+            title={
+              lastUpdateCheckTime
+                ? `Last checked: ${new Date(lastUpdateCheckTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                : "Check for updates"
+            }
             aria-label="Check for updates using fast portal API"
           >
             <RefreshCw className={isCheckingUpdates ? "size-3.5 animate-spin text-primary" : "size-3.5"} />
