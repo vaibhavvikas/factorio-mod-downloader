@@ -1,11 +1,37 @@
 use crate::client::ApiClient;
 use crate::models::{
-    ModDetailsResponse, ModInfo, ModSearchResponse, ModSearchResultItem, ReleaseSummary,
+    ModDetailsResponse, ModInfo, ModSearchResponse, ModSearchResultItem, NamelistModItem,
+    NamelistResponse, ReleaseSummary,
 };
 use parser::models::Dependencies;
 use parser::parser::parse_dependencies;
 
 const MOD_PORTAL_API_URL: &str = "https://mods.factorio.com/api/mods";
+
+/// Query the Factorio Mod Portal batch API using `namelist`.
+/// Automatically splits large lists of mod names into chunks of up to 40 mods.
+pub async fn get_mods_by_namelist(
+    api_client: &ApiClient,
+    mod_names: &[String],
+) -> Result<Vec<NamelistModItem>, Box<dyn std::error::Error>> {
+    if mod_names.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut all_results = Vec::new();
+    for chunk in mod_names.chunks(40) {
+        let joined = chunk.join(",");
+        let url = format!(
+            "{}?namelist={}&page_size=max&hide_deprecated=false",
+            MOD_PORTAL_API_URL, joined
+        );
+        let resp = api_client.get(&url, &[]).await?;
+        let parsed: NamelistResponse = serde_json::from_str(&resp)?;
+        all_results.extend(parsed.results);
+    }
+
+    Ok(all_results)
+}
 
 /// Fetch raw mod info from the Factorio Mod Portal API
 pub async fn get_mod(

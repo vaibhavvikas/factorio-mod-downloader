@@ -9,6 +9,7 @@ repository.workspace = true
 [dependencies]
 parser = { path = "../parser" }
 factorio = { path = "../factorio" }
+common = { path = "../common" }
 reqwest = { version = "0.13.4", features = ["json", "stream"] }
 tokio = { version = "1.53.1", features = ["full", "macros"] }
 serde = { version = "1.0.229", features = ["derive"] }

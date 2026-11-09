@@ -44,6 +44,14 @@ pub struct ResolvedDownloadItem {
     pub version: String,
     pub file_name: String,
     pub sha1: String,
+    #[serde(default)]
+    pub batch_id: Option<String>,
+    #[serde(default)]
+    pub batch_name: Option<String>,
+    #[serde(default)]
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub requested_by: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,4 +122,28 @@ pub struct ModSearchResponse {
     pub results: Vec<ModSearchResultItem>,
     pub page: u32,
     pub total_pages: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NamelistModItem {
+    pub name: String,
+    pub title: String,
+    #[serde(default)]
+    pub owner: Option<String>,
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub downloads_count: Option<u64>,
+    #[serde(default)]
+    pub score: Option<f64>,
+    #[serde(default)]
+    pub releases: Vec<Release>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NamelistResponse {
+    #[serde(default)]
+    pub results: Vec<NamelistModItem>,
 }
